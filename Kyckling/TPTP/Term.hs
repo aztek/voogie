@@ -4,42 +4,72 @@ module TPTP.Term where
 
 import Data.List
 
-type Fun  = String
+list :: Show a => [a] -> String
+list = intercalate ", " . map show
+
+data Fun = Select | Store | Sum | Uminus | FCustom String
+
+instance Show Fun where
+  show Select = "$select"
+  show Store  = "$store"
+  show Sum    = "$sum"
+  show Uminus = "$uminus"
+  show (FCustom f) = f
+
 type Var  = String
-type Sort = String
+
+data Sort = Individual | Boolean | Integer | Real | STuple [Sort] | Array Sort Sort | SCustom String
+instance Show Sort where
+  show Individual  = "$i"
+  show Boolean     = "$o"
+  show Integer     = "$int"
+  show Real        = "$real"
+  show (STuple ss) = "$tuple(" ++ list ss ++ ")"
+  show (Array i s) = "$array(" ++ show i ++ "," ++ show s ++ ")"
+  show (SCustom s) = s
+
+data SortedVar = SortedVar { var :: Var , sort :: Sort }
+instance Show SortedVar where
+  show (SortedVar v s) = show v ++ ":" ++ show s
 
 data Definition where
-  Symbol :: Fun -> [(Var, Sort)] -> Definition
+  Symbol :: Fun -> [SortedVar] -> Definition
   TupleD :: [Fun] -> Definition
 
 instance Show Definition where
-  show (Symbol f []) = f
-  show (Symbol f vs) = "![" ++ map (\(v, s) -> v ++ ":" ++ s) vs ++ "]: " ++ f ++ "(" ++ intercalate ", " (map fst vs) ++ ")"
-  show (TupleD args) = "[" ++ intercalate ", " (map show args) ++ "]"
+  show (Symbol f []) = show f
+  show (Symbol f vs) = "![" ++ list vs ++ "]: " ++ show f ++ "(" ++ list (map var vs) ++ ")"
+  show (TupleD args) = "[" ++ list args ++ "]"
+
+data Binding = Binding Definition Term
+instance Show Binding where
+  show (Binding b s) = show b ++ " := " ++ show s
 
 data Term where
   FunApp :: Fun -> [Term] -> Term
   Var :: Var -> Term
 
-  Forall :: [(Var, Sort)] -> Term -> Term
-  Exists :: [(Var, Sort)] -> Term -> Term
+  Forall :: [SortedVar] -> Term -> Term
+  Exists :: [SortedVar] -> Term -> Term
 
   Tuple :: [Term] -> Term
 
-  Let :: [(Definition, Term)] -> Term -> Term
+  Let :: [Binding] -> Term -> Term
 
 instance Show Term where
-  show (FunApp f []) = f
-  show (FunApp f ts) = f ++ "(" ++ intercalate ", " (map show ts) ++ ")"
+  show (FunApp f []) = show f
+  show (FunApp f ts) = show f ++ "(" ++ list ts ++ ")"
   show (Var v) = v
 
-  show (Forall vs t) = "![" ++ intercalate ", " (map (\(v, s) -> v ++ ":" ++ s) vs) ++ "]: (" ++ show t ++ ")"
-  show (Exists vs t) = "?[" ++ intercalate ", " (map (\(v, s) -> v ++ ":" ++ s) vs) ++ "]: (" ++ show t ++ ")"
+  show (Forall [] t) = show t
+  show (Forall vs t) = "![" ++ list vs ++ "]: (" ++ show t ++ ")"
 
-  show (Tuple args) = "[" ++ intercalate ", " (map show args) ++ "]"
+  show (Exists [] t) = show t
+  show (Exists vs t) = "?[" ++ list vs ++ "]: (" ++ show t ++ ")"
+
+  show (Tuple args) = "[" ++ list args ++ "]"
 
   show (Let [] t) = show t
-  show (Let [(b, s)] t) = "$let(" ++ show b ++ " := " ++ show s ++ ", " ++ show t ++ ")"
-  show (Let bs t) = "$let([" ++ intercalate ", " (map showBinding bs) ++ "], " ++ show t ++ ")"
-    where showBinding (b, s) = show b ++ " := " ++ show s
+  show (Let [b] t) = "$let(" ++ show b ++ ", " ++ show t ++ ")"
+  show (Let bs  t) = "$let([" ++ list bs ++ "], " ++ show t ++ ")"
 

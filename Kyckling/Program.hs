@@ -2,6 +2,9 @@
 
 module Kyckling.Program where
 
+import Text.Printf
+import Data.List
+
 data Type = Int | Bool | IA | BA
 
 data IntArray
@@ -72,22 +75,32 @@ instance Show (Expr a) where
 data Program where
   IfElse :: Expr Bool -> Program -> Program -> Program
   If :: Expr Bool -> Program -> Program
-  (:=) :: Var -> Expr a -> Program
+  (:=) :: [Var] -> [Expr a] -> Program
   Compose :: Program -> Program -> Program
 
 toIndent :: Int -> String
 toIndent n = replicate (n * 2) ' '
 
+els :: Int -> String
+els n = rbra n ++ toIndent n ++ "else" ++ "\n" ++ lbra n
+
+lbra :: Int -> String
+lbra n = toIndent n ++ "{" ++ "\n"
+
+rbra :: Int -> String
+rbra n = toIndent n ++ "}" ++ "\n"
+
+semicolon :: String
+semicolon = ";" ++ "\n"
+
+condition :: Int -> String -> String
+condition n c = toIndent n ++ "if (" ++ c ++ ") " ++ lbra n
+
 showIndented :: Int -> Program -> String
-showIndented n (If c a) = toIndent n ++ "if (" ++ show c ++ ") {" ++ "\n" ++
-                                          showIndented (n + 1) a ++
-                          toIndent n ++ "}" ++ "\n"
-showIndented n (IfElse c a b) = toIndent n ++ "if (" ++ show c ++ ") {" ++ "\n" ++
-                                                showIndented (n + 1) a ++
-                                toIndent n ++ "} else {" ++ "\n" ++
-                                                showIndented (n + 1) b ++
-                                              "}" ++ "\n"
-showIndented n (v := e) = toIndent n ++ v ++ " = " ++ show e ++ ";" ++ "\n"
+showIndented n (If c a) = condition n (show c) ++ showIndented (n + 1) a ++ rbra n
+showIndented n (IfElse c a b) = condition n (show c) ++ showIndented (n + 1) a ++
+                                els n ++ showIndented (n + 1) b ++ rbra n
+showIndented n (vs := es) = toIndent n ++ intercalate ", " vs ++ " = " ++ intercalate ", " (map show es) ++ semicolon
 showIndented n (Compose p1 p2) = showIndented n p1 ++ showIndented n p2
 
 instance Show Program where
