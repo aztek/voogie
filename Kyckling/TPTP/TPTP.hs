@@ -1,6 +1,11 @@
 {-#LANGUAGE GADTs #-}
 
-module TPTP.TPTP where
+module Kyckling.TPTP.TPTP (
+  InputType (Axiom, Conjecture),
+  TPTP (TPTP)
+) where
+
+import Kyckling.TPTP.Term
 
 --data Tag = TFF | THF
 
@@ -10,8 +15,7 @@ instance Show InputType where
   show Axiom = "axiom"
   show Conjecture = "conjecture"
 
-data TPTP where
-  TPTP :: String -> InputType -> Term -> TPTP
+data TPTP = TPTP String InputType Term
 
 instance Show TPTP where
   show (TPTP n it t) = "thf(" ++ n ++ ", " ++ show it ++ "," ++ show t ++ ")."

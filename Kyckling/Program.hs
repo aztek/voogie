@@ -5,10 +5,7 @@ module Kyckling.Program where
 import Text.Printf
 import Data.List
 
-data Type = Int | Bool | IA | BA
-
-data IntArray
-data BoolArray
+data Type = Int | Bool | Array Type
 
 data Connective = And | Or | Iff
 
@@ -72,11 +69,11 @@ instance Show (Expr a) where
   show (VarBA v) = v
   show (Tern c a b) = show c ++ " ? " ++ show a ++ " : " ++ show b
 
-data Program where
-  IfElse :: Expr Bool -> Program -> Program -> Program
-  If :: Expr Bool -> Program -> Program
-  (:=) :: [Var] -> [Expr a] -> Program
-  Compose :: Program -> Program -> Program
+data Statement where
+  IfElse :: Expr Bool -> Statement -> Statement -> Statement
+  If :: Expr Bool -> Statement -> Statement
+  (:=) :: [Var] -> [Expr a] -> Statement
+  Seq :: [Statement] -> Statement
 
 toIndent :: Int -> String
 toIndent n = replicate (n * 2) ' '
@@ -96,12 +93,20 @@ semicolon = ";" ++ "\n"
 condition :: Int -> String -> String
 condition n c = toIndent n ++ "if (" ++ c ++ ") " ++ lbra n
 
-showIndented :: Int -> Program -> String
+showIndented :: Int -> Statement -> String
 showIndented n (If c a) = condition n (show c) ++ showIndented (n + 1) a ++ rbra n
 showIndented n (IfElse c a b) = condition n (show c) ++ showIndented (n + 1) a ++
                                 els n ++ showIndented (n + 1) b ++ rbra n
 showIndented n (vs := es) = toIndent n ++ intercalate ", " vs ++ " = " ++ intercalate ", " (map show es) ++ semicolon
-showIndented n (Compose p1 p2) = showIndented n p1 ++ showIndented n p2
+showIndented n (Seq ss) = concatMap (showIndented n) ss
 
-instance Show Program where
+instance Show Statement where
   show = showIndented 0
+
+data Assertion = Assertion (Expr Bool)
+instance Show Assertion where
+  show (Assertion e) = "assert(" ++ show e ++ ");"
+
+data Program = Program Statement [Assertion]
+instance Show Program where
+  show (Program s as) = show s ++ "\n" ++ intercalate "\n" (map show as)
