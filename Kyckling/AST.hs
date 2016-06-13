@@ -1,6 +1,7 @@
 module Kyckling.AST where
 
 import Data.List
+import Data.Maybe
 
 data PrefixOp = Uminus | Not
 
@@ -21,11 +22,9 @@ data Expr = IntConst Integer
 data Type = I | B | Array Type
 
 data Stmt = Assign LVal Expr
-          | If Expr Stmt
-          | IfElse Expr Stmt Stmt
+          | If Expr Stmt (Maybe Stmt)
           | Block [Stmt]
-          | Declare String Type
-          | Define String Type Expr
+          | Declare Type String (Maybe Expr)
           | Increment LVal
           | Decrement LVal
           | Assert Expr
@@ -69,11 +68,9 @@ instance Show Type where
 
 instance Show Stmt where
   show (Assign v e) = show v ++ " = " ++ show e ++ ";\n"
-  show (If e s) = "if (" ++ show e ++ ") " ++ show s
-  show (IfElse e s1 s2) = "if (" ++ show e ++ ") " ++ show s1 ++ " else " ++ show s2
+  show (If e s1 s2) = "if (" ++ show e ++ ") " ++ show s1 ++ if isJust s2 then " else " ++ show (fromJust s2) else ""
   show (Block ss) = "{\n" ++ concatMap show ss ++ "}\n"
-  show (Declare v t) = show t ++ " " ++ v ++ ";\n"
-  show (Define v t e) = show t ++ " " ++ v ++ " = " ++ show e ++ ";\n"
+  show (Declare t v e) = show t ++ " " ++ v ++ (if isJust e then " = " ++ show (fromJust e) else "") ++ ";\n"
   show (Increment v) = show v ++ "++;\n"
   show (Decrement v) = show v ++ "--;\n"
   show (Assert e) = "assert " ++ show e ++ ";\n"

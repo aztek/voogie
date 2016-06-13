@@ -43,7 +43,7 @@ postfix name fun = Postfix (reservedOp name >> return fun)
 
 expr :: Parser AST.Expr
 expr = do e <- expr'
-          tern <- optionMaybe $ try (reserved "?")
+          tern <- optionMaybe (reserved "?")
           case tern of
             Just _ -> do a <- expr
                          reserved ":"
@@ -82,56 +82,40 @@ stmt =  stmt'
     <|> liftM AST.Block (braces $ many stmt')
 
 stmt' :: Parser AST.Stmt
-stmt' =  try assignStmt
-     <|> incStmt
+stmt' =  incStmt
      <|> decStmt
-     <|> try defineStmt
      <|> declareStmt
-     <|> try ifElseStmt
      <|> ifStmt
      <|> assertStmt
+     <|> assignStmt
 
-assignStmt = do v <- lval
-                reservedOp "="
-                e <- expr
-                semi
-                return $ AST.Assign v e
+atomicStmt p = do { s <- p; semi; return s }
 
-incStmt = do v <- lval
-             reserved "++"
-             semi
-             return $ AST.Increment v
+assignStmt = atomicStmt $ do v <- lval
+                             reservedOp "="
+                             e <- expr
+                             return $ AST.Assign v e
 
-decStmt = do v <- lval
-             reserved "--"
-             semi
-             return $ AST.Decrement v
+incStmt = atomicStmt $ do v <- lval
+                          reserved "++"
+                          return $ AST.Increment v
 
-ifStmt = reserved "if" >> liftM2 AST.If (parens expr) stmt
+decStmt = atomicStmt $ do v <- lval
+                          reserved "--"
+                          return $ AST.Decrement v
 
-ifElseStmt = do reserved "if"
-                e <- parens expr
-                s1 <- stmt
-                reserved "else"
-                s2 <- stmt
-                return $ AST.IfElse e s1 s2
+ifStmt = do reserved "if"
+            e <- parens expr
+            s1 <- stmt
+            s2 <- optionMaybe (reserved "else" >> stmt)
+            return $ AST.If e s1 s2
 
-declareStmt = do t <- typ
-                 v <- identifier
-                 semi
-                 return $ AST.Declare v t
+declareStmt = atomicStmt $ do t <- typ
+                              v <- identifier
+                              e <- optionMaybe (reservedOp "=" >> expr)
+                              return $ AST.Declare t v e
 
-defineStmt = do t <- typ
-                v <- identifier
-                reservedOp "="
-                e <- expr
-                semi
-                return $ AST.Define v t e
-
-assertStmt = do reserved "assert"
-                e <- expr
-                semi
-                return $ AST.Assert e
+assertStmt = atomicStmt (reserved "assert" >> liftM AST.Assert expr)
 
 typ :: Parser AST.Type
 typ = do t <- atomicTyp
