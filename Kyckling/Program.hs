@@ -53,6 +53,16 @@ data Expr a where
 
   Tern :: Expr Bool -> Expr a -> Expr a -> Expr a
 
+data Statement where
+  IfElse :: Expr Bool -> Statement -> Statement -> Statement
+  If :: Expr Bool -> Statement -> Statement
+  (:=) :: [Var] -> [Expr a] -> Statement
+  Seq :: [Statement] -> Statement
+
+data Assertion = Assertion (Expr Bool)
+
+data Program = Program Statement [Assertion]
+
 instance Show (Expr a) where
   show (I i) = show i
   show (B True) = "true"
@@ -68,12 +78,6 @@ instance Show (Expr a) where
   show (VarIA v) = v
   show (VarBA v) = v
   show (Tern c a b) = show c ++ " ? " ++ show a ++ " : " ++ show b
-
-data Statement where
-  IfElse :: Expr Bool -> Statement -> Statement -> Statement
-  If :: Expr Bool -> Statement -> Statement
-  (:=) :: [Var] -> [Expr a] -> Statement
-  Seq :: [Statement] -> Statement
 
 toIndent :: Int -> String
 toIndent n = replicate (n * 2) ' '
@@ -103,10 +107,8 @@ showIndented n (Seq ss) = concatMap (showIndented n) ss
 instance Show Statement where
   show = showIndented 0
 
-data Assertion = Assertion (Expr Bool)
 instance Show Assertion where
-  show (Assertion e) = "assert(" ++ show e ++ ");"
+  show (Assertion e) = "assert " ++ show e ++ ";"
 
-data Program = Program Statement [Assertion]
 instance Show Program where
   show (Program s as) = show s ++ "\n" ++ intercalate "\n" (map show as)
