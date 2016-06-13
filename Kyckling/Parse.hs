@@ -1,4 +1,4 @@
-module Kyckling.Parse where
+module Kyckling.Parse (parseAST) where
 
 import System.IO
 import Control.Monad
@@ -131,3 +131,6 @@ atomicTyp =  constant "int"  AST.I
 
 ast :: Parser AST.AST
 ast = whiteSpace >> liftM AST.AST (many stmt)
+
+parseAST :: SourceName -> String -> Either ParseError AST.AST
+parseAST = parse ast

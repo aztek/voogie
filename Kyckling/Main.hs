@@ -1,7 +1,14 @@
 module Kyckling.Main where
 
-import Program
+import System.Environment
 
-p = Compose (If (Compare Leq (VarI "x") (I 2)) ("x" := I 10)) ("y" := (Op Plus (VarI "x") (I 5)))
+import Kyckling.Parse
 
-main = putStrLn $ show p
+main = do args <- getArgs
+          let (source, input) = case args of
+                                  []  -> ("<stdin>", getContents)
+                                  f:_ -> (f,         readFile f)
+          stream <- input
+          case parseAST source stream of
+            Left e -> putStrLn $ show e
+            Right ast -> putStrLn $ show ast
