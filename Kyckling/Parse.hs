@@ -34,6 +34,7 @@ semi       = Token.semi       lexer
 whiteSpace = Token.whiteSpace lexer
 braces     = Token.braces     lexer
 brackets   = Token.brackets   lexer
+commaSep1  = Token.commaSep1  lexer
 
 constant name fun = reserved name >> return fun
 
@@ -104,16 +105,14 @@ decStmt = atomicStmt $ do v <- lval
                           reserved "--"
                           return $ AST.Decrement v
 
-ifStmt = do reserved "if"
-            e <- parens expr
-            s1 <- stmt
-            s2 <- optionMaybe (reserved "else" >> stmt)
-            return $ AST.If e s1 s2
+ifStmt = reserved "if" >> liftM3 AST.If (parens expr) stmt maybeElse
+  where
+    maybeElse = optionMaybe (reserved "else" >> stmt)
 
-declareStmt = atomicStmt $ do t <- typ
-                              v <- identifier
-                              e <- optionMaybe (reservedOp "=" >> expr)
-                              return $ AST.Declare t v e
+declareStmt = atomicStmt $ liftM2 AST.Declare typ (commaSep1 definition)
+  where
+    definition = liftM2 (,) identifier maybeBody
+    maybeBody  = optionMaybe (reservedOp "=" >> expr)
 
 assertStmt = atomicStmt (reserved "assert" >> liftM AST.Assert expr)
 

@@ -24,7 +24,7 @@ data Type = I | B | Array Type
 data Stmt = Assign LVal Expr
           | If Expr Stmt (Maybe Stmt)
           | Block [Stmt]
-          | Declare Type String (Maybe Expr)
+          | Declare Type [(String, Maybe Expr)]
           | Increment LVal
           | Decrement LVal
           | Assert Expr
@@ -70,7 +70,10 @@ instance Show Stmt where
   show (Assign v e) = show v ++ " = " ++ show e ++ ";\n"
   show (If e s1 s2) = "if (" ++ show e ++ ") " ++ show s1 ++ if isJust s2 then " else " ++ show (fromJust s2) else ""
   show (Block ss) = "{\n" ++ concatMap show ss ++ "}\n"
-  show (Declare t v e) = show t ++ " " ++ v ++ (if isJust e then " = " ++ show (fromJust e) else "") ++ ";\n"
+  show (Declare t ds) = show t ++ " " ++ intercalate ", " (map (uncurry showDef) ds) ++ ";\n"
+    where
+      showDef v Nothing  = v
+      showDef v (Just e) = v ++ " = " ++ show e
   show (Increment v) = show v ++ "++;\n"
   show (Decrement v) = show v ++ "--;\n"
   show (Assert e) = "assert " ++ show e ++ ";\n"
