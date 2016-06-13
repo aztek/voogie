@@ -7,135 +7,127 @@ import Text.ParserCombinators.Parsec.Expr
 import Text.ParserCombinators.Parsec.Language
 import qualified Text.ParserCombinators.Parsec.Token as Token
 
-data BExpr = BoolConst Bool
-           | Not BExpr
-           | BBinary BBinOp BExpr BExpr
-           | RBinary RBinOp AExpr AExpr
-             deriving (Show)
-
-data BBinOp = And | Or deriving (Show)
-
-data RBinOp = Greater | Less deriving (Show)
-
-data AExpr = Var String
-           | IntConst Integer
-           | Neg AExpr
-           | ABinary ABinOp AExpr AExpr
-             deriving (Show)
-
-data ABinOp = Add
-            | Subtract
-            | Multiply
-            | Divide
-              deriving (Show)
-
-data Stmt = Seq [Stmt]
-          | Assign String AExpr
-          | If BExpr Stmt Stmt
-            deriving (Show)
+import qualified Kyckling.AST as AST
 
 languageDef =
   emptyDef { Token.commentStart    = "/*"
            , Token.commentEnd      = "*/"
            , Token.commentLine     = "//"
-           , Token.reservedNames   = [ "if"
-                                     , "else"
-                                     , "true"
-                                     , "false"
+           , Token.reservedNames   = [ "if", "else"
+                                     , "true", "false"
+                                     , "int", "bool"
+                                     , "assert"
                                      ]
-           , Token.reservedOpNames = ["+", "-", "*", "/", "=", "=="
-                                     , "<", ">", "&&", "||", "!"
+           , Token.reservedOpNames = ["+", "-", "*", "/", "==", "=", "[]", ":", "?"
+                                     , "<", ">", "<=", ">=", "&&", "||", "!"
                                      ]
            }
 
 lexer = Token.makeTokenParser languageDef
 
-identifier = Token.identifier lexer -- parses an identifier
-reserved   = Token.reserved   lexer -- parses a reserved name
-reservedOp = Token.reservedOp lexer -- parses an operator
-parens     = Token.parens     lexer -- parses surrounding parenthesis:
-                                     --   parens p
-                                     -- takes care of the parenthesis and
-                                     -- uses p to parse what's inside them
-integer    = Token.integer    lexer -- parses an integer
-semi       = Token.semi       lexer -- parses a semicolon
-whiteSpace = Token.whiteSpace lexer -- parses whitespace
+identifier = Token.identifier lexer
+reserved   = Token.reserved   lexer
+reservedOp = Token.reservedOp lexer
+parens     = Token.parens     lexer
+integer    = Token.integer    lexer
+semi       = Token.semi       lexer
+whiteSpace = Token.whiteSpace lexer
 braces     = Token.braces     lexer
+brackets   = Token.brackets   lexer
 
-parser :: Parser Stmt
-parser = whiteSpace >> statement
+constant name fun = reserved name >> return fun
 
-statement :: Parser Stmt
-statement =
-  do list <- braces $ many statement'
-     -- If there's only one statement return it without using Seq.
-     return $ if length list == 1 then head list else Seq list
+binary  name fun = Infix (reservedOp name >> return fun)
+prefix  name fun = Prefix (reservedOp name >> return fun)
+postfix name fun = Postfix (reservedOp name >> return fun)
 
-statement' :: Parser Stmt
-statement' =   ifStmt
-           <|> assignStmt
+expr :: Parser AST.Expr
+expr = do e <- expr'
+          tern <- optionMaybe $ try (reserved "?")
+          case tern of
+            Just _ -> do a <- expr
+                         reserved ":"
+                         b <- expr
+                         return $ AST.Ternary e a b
+            Nothing -> return e
 
-ifStmt :: Parser Stmt
-ifStmt =
-  do reserved "if"
-     cond  <- parens bExpression
-     stmt1 <- statement
-     reserved "else"
-     stmt2 <- statement
-     return $ If cond stmt1 stmt2
+expr' = buildExpressionParser operators term
 
-assignStmt :: Parser Stmt
-assignStmt =
-  do var  <- identifier
-     reservedOp "="
-     expr <- aExpression
-     return $ Assign var expr
+operators = [ [prefix "-"  (AST.Prefix AST.Uminus )          ]
+            , [binary "*"  (AST.Infix  AST.Times  ) AssocLeft,
+               binary "/"  (AST.Infix  AST.Divide ) AssocLeft]
+            , [binary "+"  (AST.Infix  AST.Plus   ) AssocLeft,
+               binary "-"  (AST.Infix  AST.Minus  ) AssocLeft]
+            , [binary ">"  (AST.Infix  AST.Greater) AssocNone,
+               binary "<"  (AST.Infix  AST.Less   ) AssocNone,
+               binary ">=" (AST.Infix  AST.Geq    ) AssocNone,
+               binary "<=" (AST.Infix  AST.Leq    ) AssocNone]
+            , [binary "==" (AST.Infix  AST.Eq     ) AssocLeft]
+            , [prefix "!"  (AST.Prefix AST.Not    )          ]
+            , [binary "&&" (AST.Infix  AST.And    ) AssocLeft,
+               binary "||" (AST.Infix  AST.Or     ) AssocLeft]
+            ]
 
-aExpression :: Parser AExpr
-aExpression = buildExpressionParser aOperators aTerm
+term =  parens expr
+    <|> constant "true"  (AST.BoolConst True)
+    <|> constant "false" (AST.BoolConst False)
+    <|> liftM AST.IntConst integer
+    <|> liftM AST.LVal lval
 
-bExpression :: Parser BExpr
-bExpression = buildExpressionParser bOperators bTerm
+lval =  try (liftM2 AST.ArrayElem identifier (brackets expr))
+    <|> liftM AST.Var identifier
 
-aOperators = [ [Prefix (reservedOp "-" >> return (Neg             ))          ]
-             , [Infix  (reservedOp "*" >> return (ABinary Multiply)) AssocLeft,
-                Infix  (reservedOp "/" >> return (ABinary Divide  )) AssocLeft]
-             , [Infix  (reservedOp "+" >> return (ABinary Add     )) AssocLeft,
-                Infix  (reservedOp "-" >> return (ABinary Subtract)) AssocLeft]
-              ]
- 
-bOperators = [ [Prefix (reservedOp "!"  >> return (Not        ))          ]
-             , [Infix  (reservedOp "&&" >> return (BBinary And)) AssocLeft,
-                Infix  (reservedOp "||" >> return (BBinary Or )) AssocLeft]
-             ]
+stmt :: Parser AST.Stmt
+stmt =  stmt'
+    <|> liftM AST.Block (braces $ many stmt')
 
-aTerm =  parens aExpression
-     <|> liftM Var identifier
-     <|> liftM IntConst integer
+stmt' :: Parser AST.Stmt
+stmt' =  assignStmt
+     <|> try defineStmt
+     <|> declareStmt
+     <|> try ifElseStmt
+     <|> ifStmt
+     <|> assertStmt
 
-bTerm =  parens bExpression
-     <|> (reserved "true"  >> return (BoolConst True ))
-     <|> (reserved "false" >> return (BoolConst False))
-     <|> rExpression
+assignStmt = do v <- lval
+                reservedOp "="
+                e <- expr
+                semi
+                return $ AST.Assign v e
 
-rExpression =
-  do a1 <- aExpression
-     op <- relation
-     a2 <- aExpression
-     return $ RBinary op a1 a2
+ifStmt = reserved "if" >> liftM2 AST.If (parens expr) stmt
 
-relation =   (reservedOp ">" >> return Greater)
-         <|> (reservedOp "<" >> return Less)
+ifElseStmt = do reserved "if"
+                e <- parens expr
+                s1 <- stmt
+                reserved "else"
+                s2 <- stmt
+                return $ AST.IfElse e s1 s2
 
-parseString :: String -> Stmt
-parseString str =
-  case parse parser "" str of
-    Left e  -> error $ show e
-    Right r -> r
- 
-parseFile :: String -> IO Stmt
-parseFile file =
-  do program  <- readFile file
-     case parse parser "" program of
-       Left e  -> print e >> fail "parse error"
-       Right r -> return r
+declareStmt = do t <- typ
+                 v <- identifier
+                 semi
+                 return $ AST.Declare v t
+
+defineStmt = do t <- typ
+                v <- identifier
+                reservedOp "="
+                e <- expr
+                semi
+                return $ AST.Define v t e
+
+assertStmt = do reserved "assert"
+                e <- expr
+                semi
+                return $ AST.Assert e
+
+typ :: Parser AST.Type
+typ = do t <- atomicTyp
+         arrs <- many (reserved "[]")
+         return $ foldr (const AST.Array) t arrs
+
+atomicTyp =  constant "int"  AST.I
+         <|> constant "bool" AST.B
+
+ast :: Parser AST.AST
+ast = whiteSpace >> liftM AST.AST (many stmt)
