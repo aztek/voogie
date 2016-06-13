@@ -26,6 +26,8 @@ data Stmt = Assign LVal Expr
           | Block [Stmt]
           | Declare String Type
           | Define String Type Expr
+          | Increment LVal
+          | Decrement LVal
           | Assert Expr
 
 data AST = AST [Stmt]
@@ -72,6 +74,8 @@ instance Show Stmt where
   show (Block ss) = "{\n" ++ concatMap show ss ++ "}\n"
   show (Declare v t) = show t ++ " " ++ v ++ ";\n"
   show (Define v t e) = show t ++ " " ++ v ++ " = " ++ show e ++ ";\n"
+  show (Increment v) = show v ++ "++;\n"
+  show (Decrement v) = show v ++ "--;\n"
   show (Assert e) = "assert " ++ show e ++ ";\n"
 
 instance Show AST where

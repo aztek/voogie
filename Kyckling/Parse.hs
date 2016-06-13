@@ -19,7 +19,7 @@ languageDef =
                                      , "assert"
                                      ]
            , Token.reservedOpNames = ["+", "-", "*", "/", "==", "=", "[]", ":", "?"
-                                     , "<", ">", "<=", ">=", "&&", "||", "!"
+                                     , "<", ">", "<=", ">=", "&&", "||", "!", "++", "--"
                                      ]
            }
 
@@ -82,7 +82,9 @@ stmt =  stmt'
     <|> liftM AST.Block (braces $ many stmt')
 
 stmt' :: Parser AST.Stmt
-stmt' =  assignStmt
+stmt' =  try assignStmt
+     <|> incStmt
+     <|> decStmt
      <|> try defineStmt
      <|> declareStmt
      <|> try ifElseStmt
@@ -94,6 +96,16 @@ assignStmt = do v <- lval
                 e <- expr
                 semi
                 return $ AST.Assign v e
+
+incStmt = do v <- lval
+             reserved "++"
+             semi
+             return $ AST.Increment v
+
+decStmt = do v <- lval
+             reserved "--"
+             semi
+             return $ AST.Decrement v
 
 ifStmt = reserved "if" >> liftM2 AST.If (parens expr) stmt
 
