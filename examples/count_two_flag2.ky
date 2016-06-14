@@ -1,0 +1,8 @@
+int[] a;
+bool b;
+int x = 0, y = 0;
+b = a[0] > 0;
+if (b) x++; else y++;
+b = a[1] > 0;
+if (b) x++; else y++;
+assert x + y == 2;

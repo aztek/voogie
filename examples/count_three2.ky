@@ -1,0 +1,5 @@
+int[] a;
+int x = 0, y = 0, z = 0;
+if (a[0] > 0) x++; else if (a[0] > 5) y++; else z++;
+if (a[1] > 0) x++; else if (a[1] > 5) y++; else z++;
+assert x + y + z == 2;
