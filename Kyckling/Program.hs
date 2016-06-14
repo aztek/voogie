@@ -1,89 +1,103 @@
-{-#LANGUAGE GADTs #-}
+{-#LANGUAGE GADTs,DataKinds,KindSignatures,ExistentialQuantification #-}
 
 module Kyckling.Program where
 
 import Text.Printf
 import Data.List
 
-data Type = Int | Bool | Array Type
-
-data Connective = And | Or | Iff
-
-instance Show Connective where
-  show And = "&&"
-  show Or  = "||"
-  show Iff = "=="
-
-data Comparison = Eq | Ineq | Geq | Leq | G | L
-
-instance Show Comparison where
-  show Eq   = "=="
-  show Ineq = "!="
-  show Geq  = ">="
-  show Leq  = "<="
-  show G    = ">"
-  show L    = "<"
-
-data ArithOp = Plus | Minus
-
-instance Show ArithOp where
-  show Plus  = "+"
-  show Minus = "-"
+data Type = I | B | A Type
 
 type Var = String
 type Env = [(Var, Type)]
 
-data Expr a where
-  I :: Int -> Expr Int
-  B :: Bool -> Expr Bool
+data UnaryOp (a :: Type) (b :: Type) where
+  Negate   :: UnaryOp B B
+  Positive :: UnaryOp I I
+  Negative :: UnaryOp I I
 
-  Not :: Expr Bool -> Expr Bool
-  Conn :: Connective -> Expr Bool -> Expr Bool -> Expr Bool
-  Compare :: Comparison -> Expr Int  -> Expr Int  -> Expr Bool
+data BinaryOp (a :: Type) (b :: Type) (c :: Type) where
+  And      :: BinaryOp B B B
+  Or       :: BinaryOp B B B
 
-  Op :: ArithOp -> Expr Int -> Expr Int -> Expr Int
+  Greater  :: BinaryOp I I B
+  Less     :: BinaryOp I I B
+  Geq      :: BinaryOp I I B
+  Leq      :: BinaryOp I I B
 
-  SelectI :: Var -> Expr Int -> Expr Int
-  SelectB :: Var -> Expr Int -> Expr Bool
+  Add      :: BinaryOp I I I
+  Subtract :: BinaryOp I I I
+  Multiply :: BinaryOp I I I
 
-  VarI  :: Var -> Expr Int
-  VarB  :: Var -> Expr Bool
-  VarIA :: Var -> Expr Int
-  VarBA :: Var -> Expr Bool
+  Select   :: BinaryOp (A b) I b
 
-  Tern :: Expr Bool -> Expr a -> Expr a -> Expr a
+  Eq       :: BinaryOp a a B
+  InEq     :: BinaryOp a a B
 
-data Statement where
-  IfElse :: Expr Bool -> Statement -> Statement -> Statement
-  If :: Expr Bool -> Statement -> Statement
-  (:=) :: [Var] -> [Expr a] -> Statement
-  Seq :: [Statement] -> Statement
+data TernaryOp (a :: Type) (b :: Type) (c :: Type) (d :: Type) where
+  IfElse :: TernaryOp B a a a
 
-data Assertion = Assertion (Expr Bool)
+data Expression (t :: Type) where
+  LiftInt  :: Integer -> Expression I
+  LiftBool :: Bool -> Expression B
 
-data Program = Program Statement [Assertion]
+  Unary   :: UnaryOp   a b     -> Expression a -> Expression b
+  Binary  :: BinaryOp  a b c   -> Expression a -> Expression b -> Expression c
+  Ternary :: TernaryOp a b c d -> Expression a -> Expression b -> Expression c -> Expression d
 
-instance Show (Expr a) where
-  show (I i) = show i
-  show (B True) = "true"
-  show (B False) = "false"
-  show (Not e) = "!" ++ show e
-  show (Conn c e1 e2) = show e1 ++ " " ++ show c ++ " " ++ show e2
-  show (Compare c e1 e2) = show e1 ++ " " ++ show c ++ " " ++ show e2
-  show (Op o e1 e2) = show e1 ++ " " ++ show o ++ " " ++ show e2
-  show (SelectI a i) = show a ++ "[" ++ show i ++ "]"
-  show (SelectB a i) = show a ++ "[" ++ show i ++ "]"
-  show (VarI  v) = v
-  show (VarB  v) = v
-  show (VarIA v) = v
-  show (VarBA v) = v
-  show (Tern c a b) = show c ++ " ? " ++ show a ++ " : " ++ show b
+  Var :: Var -> Type -> Expression t
+
+data Statement = forall t. Declare Type Var (Maybe (Expression t))
+               | forall t. Assign Var (Expression t)
+               | If (Expression B) [Statement] [Statement]
+               | Assert (Expression B)
+
+data Program = Program [Statement]
+
+instance Show Type where
+  show I = "int"
+  show B = "bool"
+  show (A t) = show t ++ "[]"
+
+instance Show (UnaryOp a b) where
+  show Negate   = "!"
+  show Positive = "+"
+  show Negative = "-"
+
+instance Show (BinaryOp a b c) where
+  show And = "&&"
+  show Or  = "||"
+
+  show Greater = ">"
+  show Less    = "<"
+  show Geq     = ">="
+  show Leq     = "<="
+
+  show Add      = "+"
+  show Subtract = "-"
+  show Multiply = "*"
+
+  show Select   = "[]"
+
+  show Eq       = "=="
+  show InEq     = "!="
+
+instance Show (Expression a) where
+  show (LiftInt i) = show i
+  show (LiftBool True)  = "true"
+  show (LiftBool False) = "false"
+
+  show (Unary op e) = show e ++ show op
+  show (Binary Select a b) = show a ++ "[" ++ show b ++ "]"
+  show (Binary op a b) = show a ++ show op ++ show b
+  show (Ternary IfElse a b c) = show a ++ " ? " ++ show a ++ " : " ++ show b
+
+  show (Var v _) = v
 
 toIndent :: Int -> String
 toIndent n = replicate (n * 2) ' '
 
 els :: Int -> String
-els n = rbra n ++ toIndent n ++ "else" ++ "\n" ++ lbra n
+els n = toIndent n ++ "else" ++ "\n"
 
 lbra :: Int -> String
 lbra n = toIndent n ++ "{" ++ "\n"
@@ -95,20 +109,23 @@ semicolon :: String
 semicolon = ";" ++ "\n"
 
 condition :: Int -> String -> String
-condition n c = toIndent n ++ "if (" ++ c ++ ") " ++ lbra n
+condition n c = "if (" ++ c ++ ")" ++ "\n"
 
 showIndented :: Int -> Statement -> String
-showIndented n (If c a) = condition n (show c) ++ showIndented (n + 1) a ++ rbra n
-showIndented n (IfElse c a b) = condition n (show c) ++ showIndented (n + 1) a ++
-                                els n ++ showIndented (n + 1) b ++ rbra n
-showIndented n (vs := es) = toIndent n ++ intercalate ", " vs ++ " = " ++ intercalate ", " (map show es) ++ semicolon
-showIndented n (Seq ss) = concatMap (showIndented n) ss
+showIndented n (Declare t v e) = toIndent n ++ show t ++ " " ++ v ++ showDef e ++ semicolon
+  where
+    showDef Nothing  = ""
+    showDef (Just e) = " = " ++ show e
+showIndented n (Assign v e) = toIndent n ++ v ++ " = " ++ show e ++ semicolon
+showIndented n (If c a b) = toIndent n ++ condition n (show c) ++ showBlock (n + 1) a ++ showElse b
+  where
+    showElse [] = ""
+    showElse b  = els n ++ showBlock (n + 1) b
+    showBlock n ss = lbra n ++ concatMap (showIndented n) ss ++ rbra n
+showIndented n (Assert e) = toIndent n ++ "assert " ++ show e ++ semicolon
 
 instance Show Statement where
   show = showIndented 0
 
-instance Show Assertion where
-  show (Assertion e) = "assert " ++ show e ++ ";"
-
 instance Show Program where
-  show (Program s as) = show s ++ "\n" ++ intercalate "\n" (map show as)
+  show (Program ss) = concatMap show ss
