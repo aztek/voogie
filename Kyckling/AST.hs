@@ -5,8 +5,8 @@ import Data.Maybe
 
 data PrefixOp = Uminus | Uplus | Not
 
-data InfixOp = Plus | Minus | Times | Slash
-             | Less | Greater | Leq | Geq | Eq
+data InfixOp = Plus | Minus | Times
+             | Less | Greater | Leq | Geq | Eq | NonEq
              | And | Or
 
 data LVal = Var String
@@ -21,7 +21,7 @@ data Expr = IntConst Integer
 
 data Type = I | B | Array Type
 
-data UpdateOp = Assign | Negate | Add | Subtract | Multiply | Divide
+data UpdateOp = Assign | Add | Subtract | Multiply
 
 data Stmt = If Expr Stmt (Maybe Stmt)
           | Block [Stmt]
@@ -42,12 +42,12 @@ instance Show InfixOp where
   show Plus    = "+"
   show Minus   = "-"
   show Times   = "*"
-  show Slash   = "/"
   show Less    = "<"
   show Greater = ">"
   show Leq     = "<="
   show Geq     = ">="
   show Eq      = "=="
+  show NonEq   = "!="
   show And     = "&&"
   show Or      = "||"
 
@@ -71,22 +71,22 @@ instance Show Type where
 
 instance Show UpdateOp where
   show Assign   = "="
-  show Negate   = "!="
   show Add      = "+="
   show Subtract = "-="
   show Multiply = "*="
-  show Divide   = "/="
 
-showAtomic as = intercalate " " as ++ ";\n"
+showAtomic as = unwords as ++ ";\n"
 
 instance Show Stmt where
-  show (If e s1 s2) = "if (" ++ show e ++ ") " ++ show s1 ++
-                      if isJust s2 then " else " ++ show (fromJust s2) else ""
-  show (Block ss) = "{\n" ++ concatMap show ss ++ "}\n"
-  show (Declare t ds) = showAtomic [show t, intercalate ", " (map (uncurry showDef) ds)]
+  show (If c a b) = "if (" ++ show c ++ ") " ++ show a ++ showElse b
     where
-      showDef v Nothing  = v
-      showDef v (Just e) = v ++ " = " ++ show e
+      showElse Nothing  = ""
+      showElse (Just b) = " else " ++ show b
+  show (Block ss) = "{\n" ++ concatMap show ss ++ "}\n"
+  show (Declare t ds) = showAtomic [show t, intercalate ", " $ map showDef ds]
+    where
+      showDef (v, Nothing) = v
+      showDef (v, Just e)  = v ++ " = " ++ show e
   show (Increment v) = showAtomic [show v ++ "++"]
   show (Decrement v) = showAtomic [show v ++ "--"]
   show (Update v op e) = showAtomic [show v, show op, show e]

@@ -18,9 +18,9 @@ languageDef =
                                      , "int", "bool"
                                      , "assert"
                                      ]
-           , Token.reservedOpNames = [ "+",  "-",  "*",  "/"
-                                     , "+=", "-=", "*=", "/=", "=", "++", "--"
-                                     , "==", "<", ">", "<=", ">="
+           , Token.reservedOpNames = [ "+",  "-",  "*"
+                                     , "+=", "-=", "*=", "=", "++", "--"
+                                     , "==", "!=", "<", ">", "<=", ">="
                                      , "&&", "||", "!"
                                      , ":", "?"
                                      , "[]"
@@ -60,15 +60,15 @@ expr' = buildExpressionParser operators term
 
 operators = [ [prefix "-"  (AST.Prefix AST.Uminus )          ,
                prefix "+"  (AST.Prefix AST.Uplus  )          ]
-            , [binary "*"  (AST.Infix  AST.Times  ) AssocLeft,
-               binary "/"  (AST.Infix  AST.Slash  ) AssocLeft]
+            , [binary "*"  (AST.Infix  AST.Times  ) AssocLeft]
             , [binary "+"  (AST.Infix  AST.Plus   ) AssocLeft,
                binary "-"  (AST.Infix  AST.Minus  ) AssocLeft]
             , [binary ">"  (AST.Infix  AST.Greater) AssocNone,
                binary "<"  (AST.Infix  AST.Less   ) AssocNone,
                binary ">=" (AST.Infix  AST.Geq    ) AssocNone,
                binary "<=" (AST.Infix  AST.Leq    ) AssocNone]
-            , [binary "==" (AST.Infix  AST.Eq     ) AssocLeft]
+            , [binary "==" (AST.Infix  AST.Eq     ) AssocLeft,
+               binary "!=" (AST.Infix  AST.NonEq  ) AssocLeft]
             , [prefix "!"  (AST.Prefix AST.Not    )          ]
             , [binary "&&" (AST.Infix  AST.And    ) AssocLeft,
                binary "||" (AST.Infix  AST.Or     ) AssocLeft]
@@ -99,9 +99,8 @@ updateStmt = atomicStmt $ do v <- lval
                              choice $ map (\(t, o) -> reserved t >> return (o v)) unaryUpdates ++
                                       map (\(t, o) -> reserved t >> liftM (AST.Update v o) expr) binaryUpdates
   where
-    unaryUpdates  = [ ("++", AST.Increment), ("--", AST.Decrement) ]
-    binaryUpdates = [ ("=",  AST.Assign),    ("!=", AST.Negate),   ("+=", AST.Add)
-                    , ("-=", AST.Subtract),  ("*=", AST.Multiply), ("/=", AST.Divide) ]
+    unaryUpdates  = [("++", AST.Increment), ("--", AST.Decrement)]
+    binaryUpdates = [("=",  AST.Assign), ("+=", AST.Add), ("-=", AST.Subtract), ("*=", AST.Multiply)]
 
 declareStmt = atomicStmt $ liftM2 AST.Declare typ (commaSep1 definition)
   where
