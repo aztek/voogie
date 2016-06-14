@@ -18,8 +18,12 @@ languageDef =
                                      , "int", "bool"
                                      , "assert"
                                      ]
-           , Token.reservedOpNames = ["+", "-", "*", "/", "==", "=", "[]", ":", "?"
-                                     , "<", ">", "<=", ">=", "&&", "||", "!", "++", "--"
+           , Token.reservedOpNames = [ "+",  "-",  "*",  "/"
+                                     , "+=", "-=", "*=", "/=", "=", "++", "--"
+                                     , "==", "<", ">", "<=", ">="
+                                     , "&&", "||", "!"
+                                     , ":", "?"
+                                     , "[]"
                                      ]
            }
 
@@ -57,7 +61,7 @@ expr' = buildExpressionParser operators term
 operators = [ [prefix "-"  (AST.Prefix AST.Uminus )          ,
                prefix "+"  (AST.Prefix AST.Uplus  )          ]
             , [binary "*"  (AST.Infix  AST.Times  ) AssocLeft,
-               binary "/"  (AST.Infix  AST.Divide ) AssocLeft]
+               binary "/"  (AST.Infix  AST.Slash  ) AssocLeft]
             , [binary "+"  (AST.Infix  AST.Plus   ) AssocLeft,
                binary "-"  (AST.Infix  AST.Minus  ) AssocLeft]
             , [binary ">"  (AST.Infix  AST.Greater) AssocNone,
@@ -84,36 +88,29 @@ stmt =  stmt'
     <|> liftM AST.Block (braces $ many stmt')
 
 stmt' :: Parser AST.Stmt
-stmt' =  try incStmt
-     <|> try decStmt
+stmt' =  updateStmt
      <|> declareStmt
      <|> ifStmt
      <|> assertStmt
-     <|> assignStmt
 
 atomicStmt p = do { s <- p; semi; return s }
 
-assignStmt = atomicStmt $ do v <- lval
-                             reservedOp "="
-                             e <- expr
-                             return $ AST.Assign v e
-
-incStmt = atomicStmt $ do v <- lval
-                          reserved "++"
-                          return $ AST.Increment v
-
-decStmt = atomicStmt $ do v <- lval
-                          reserved "--"
-                          return $ AST.Decrement v
-
-ifStmt = reserved "if" >> liftM3 AST.If (parens expr) stmt maybeElse
+updateStmt = atomicStmt $ do v <- lval
+                             choice $ map (\(t, o) -> reserved t >> return (o v)) unaryUpdates ++
+                                      map (\(t, o) -> reserved t >> liftM (AST.Update v o) expr) binaryUpdates
   where
-    maybeElse = optionMaybe (reserved "else" >> stmt)
+    unaryUpdates  = [ ("++", AST.Increment), ("--", AST.Decrement) ]
+    binaryUpdates = [ ("=",  AST.Assign),    ("!=", AST.Negate),   ("+=", AST.Add)
+                    , ("-=", AST.Subtract),  ("*=", AST.Multiply), ("/=", AST.Divide) ]
 
 declareStmt = atomicStmt $ liftM2 AST.Declare typ (commaSep1 definition)
   where
     definition = liftM2 (,) identifier maybeBody
     maybeBody  = optionMaybe (reservedOp "=" >> expr)
+
+ifStmt = reserved "if" >> liftM3 AST.If (parens expr) stmt maybeElse
+  where
+    maybeElse = optionMaybe (reserved "else" >> stmt)
 
 assertStmt = atomicStmt (reserved "assert" >> liftM AST.Assert expr)
 

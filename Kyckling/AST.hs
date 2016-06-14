@@ -5,7 +5,7 @@ import Data.Maybe
 
 data PrefixOp = Uminus | Uplus | Not
 
-data InfixOp = Plus | Minus | Times | Divide
+data InfixOp = Plus | Minus | Times | Slash
              | Less | Greater | Leq | Geq | Eq
              | And | Or
 
@@ -21,12 +21,14 @@ data Expr = IntConst Integer
 
 data Type = I | B | Array Type
 
-data Stmt = Assign LVal Expr
-          | If Expr Stmt (Maybe Stmt)
+data UpdateOp = Assign | Negate | Add | Subtract | Multiply | Divide
+
+data Stmt = If Expr Stmt (Maybe Stmt)
           | Block [Stmt]
           | Declare Type [(String, Maybe Expr)]
           | Increment LVal
           | Decrement LVal
+          | Update LVal UpdateOp Expr
           | Assert Expr
 
 data AST = AST [Stmt]
@@ -40,7 +42,7 @@ instance Show InfixOp where
   show Plus    = "+"
   show Minus   = "-"
   show Times   = "*"
-  show Divide  = "/"
+  show Slash   = "/"
   show Less    = "<"
   show Greater = ">"
   show Leq     = "<="
@@ -67,17 +69,28 @@ instance Show Type where
   show B = "bool"
   show (Array t) = show t ++ "[]"
 
+instance Show UpdateOp where
+  show Assign   = "="
+  show Negate   = "!="
+  show Add      = "+="
+  show Subtract = "-="
+  show Multiply = "*="
+  show Divide   = "/="
+
+showAtomic as = intercalate " " as ++ ";\n"
+
 instance Show Stmt where
-  show (Assign v e) = show v ++ " = " ++ show e ++ ";\n"
-  show (If e s1 s2) = "if (" ++ show e ++ ") " ++ show s1 ++ if isJust s2 then " else " ++ show (fromJust s2) else ""
+  show (If e s1 s2) = "if (" ++ show e ++ ") " ++ show s1 ++
+                      if isJust s2 then " else " ++ show (fromJust s2) else ""
   show (Block ss) = "{\n" ++ concatMap show ss ++ "}\n"
-  show (Declare t ds) = show t ++ " " ++ intercalate ", " (map (uncurry showDef) ds) ++ ";\n"
+  show (Declare t ds) = showAtomic [show t, intercalate ", " (map (uncurry showDef) ds)]
     where
       showDef v Nothing  = v
       showDef v (Just e) = v ++ " = " ++ show e
-  show (Increment v) = show v ++ "++;\n"
-  show (Decrement v) = show v ++ "--;\n"
-  show (Assert e) = "assert " ++ show e ++ ";\n"
+  show (Increment v) = showAtomic [show v ++ "++"]
+  show (Decrement v) = showAtomic [show v ++ "--"]
+  show (Update v op e) = showAtomic [show v, show op, show e]
+  show (Assert e) = showAtomic ["assert", show e]
 
 instance Show AST where
   show (AST ss) = concatMap show ss
