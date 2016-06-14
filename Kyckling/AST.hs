@@ -3,7 +3,7 @@ module Kyckling.AST where
 import Data.List
 import Data.Maybe
 
-data PrefixOp = Uminus | Not
+data PrefixOp = Uminus | Uplus | Not
 
 data InfixOp = Plus | Minus | Times | Divide
              | Less | Greater | Leq | Geq | Eq
@@ -33,6 +33,7 @@ data AST = AST [Stmt]
 
 instance Show PrefixOp where
   show Uminus = "-"
+  show Uplus  = "+"
   show Not    = "!"
 
 instance Show InfixOp where

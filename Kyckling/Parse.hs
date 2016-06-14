@@ -54,7 +54,8 @@ expr = do e <- expr'
 
 expr' = buildExpressionParser operators term
 
-operators = [ [prefix "-"  (AST.Prefix AST.Uminus )          ]
+operators = [ [prefix "-"  (AST.Prefix AST.Uminus )          ,
+               prefix "+"  (AST.Prefix AST.Uplus  )          ]
             , [binary "*"  (AST.Infix  AST.Times  ) AssocLeft,
                binary "/"  (AST.Infix  AST.Divide ) AssocLeft]
             , [binary "+"  (AST.Infix  AST.Plus   ) AssocLeft,
