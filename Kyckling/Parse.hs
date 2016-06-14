@@ -83,8 +83,8 @@ stmt =  stmt'
     <|> liftM AST.Block (braces $ many stmt')
 
 stmt' :: Parser AST.Stmt
-stmt' =  incStmt
-     <|> decStmt
+stmt' =  try incStmt
+     <|> try decStmt
      <|> declareStmt
      <|> ifStmt
      <|> assertStmt
