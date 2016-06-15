@@ -7,8 +7,21 @@ import Data.List
 
 data Type = I | B | A Type
 
-type Var = String
-type Env = [(Var, Type)]
+data LiftedType (t :: Type) where
+  LiftI :: LiftedType I
+  LiftB :: LiftedType B
+  LiftA :: LiftedType t -> LiftedType (A t)
+
+unliftType :: LiftedType t -> Type
+unliftType LiftI = I
+unliftType LiftB = B
+unliftType (LiftA t) = A (unliftType t)
+
+arrayElem :: LiftedType (A t) -> LiftedType t
+arrayElem (LiftA t) = t
+
+data Var (t :: Type) where
+  Var :: LiftedType t -> String -> Var t
 
 data UnaryOp (a :: Type) (b :: Type) where
   Negate   :: UnaryOp B B
@@ -37,26 +50,58 @@ data TernaryOp (a :: Type) (b :: Type) (c :: Type) (d :: Type) where
   IfElse :: TernaryOp B a a a
 
 data Expression (t :: Type) where
-  LiftInt  :: Integer -> Expression I
-  LiftBool :: Bool -> Expression B
+  IntegerConst :: Integer -> Expression I
+  BoolConst    :: Bool -> Expression B
 
   Unary   :: UnaryOp   a b     -> Expression a -> Expression b
   Binary  :: BinaryOp  a b c   -> Expression a -> Expression b -> Expression c
   Ternary :: TernaryOp a b c d -> Expression a -> Expression b -> Expression c -> Expression d
 
-  Var :: Var -> Type -> Expression t
+  Ref :: Var t -> Expression t
 
-data Statement = forall t. Declare Type Var (Maybe (Expression t))
-               | forall t. Assign Var (Expression t)
+typeOf :: Expression t -> LiftedType t
+typeOf (IntegerConst _)  = LiftI
+typeOf (BoolConst _) = LiftB
+typeOf (Unary op _) = typeOf' op
+  where
+    typeOf' :: UnaryOp a b -> LiftedType b
+    typeOf' Negate   = LiftB
+    typeOf' Positive = LiftI
+    typeOf' Negative = LiftI
+typeOf (Binary Select arr _) = arrayElem (typeOf arr)
+typeOf (Binary op _ _) = typeOf' op
+  where
+    typeOf' :: BinaryOp a b c -> LiftedType c
+    typeOf' And      = LiftB
+    typeOf' Or       = LiftB
+    typeOf' Greater  = LiftB
+    typeOf' Less     = LiftB
+    typeOf' Geq      = LiftB
+    typeOf' Leq      = LiftB
+    typeOf' Add      = LiftI
+    typeOf' Subtract = LiftI
+    typeOf' Multiply = LiftI
+    typeOf' Eq       = LiftB
+    typeOf' InEq     = LiftB
+typeOf (Ternary IfElse _ a _) = typeOf a
+typeOf (Ref (Var t _)) = t
+
+data LValue (t :: Type) where
+  Variable  :: Var t -> LValue t
+  ArrayElem :: Var (A t) -> Expression I -> LValue t
+
+data Statement = forall t. Declare (Var t) (Maybe (Expression t))
+               | forall t. Assign (LValue t) (Expression t)
                | If (Expression B) [Statement] [Statement]
-               | Assert (Expression B)
 
-data Program = Program [Statement]
+data Assertion = Assertion (Expression B)
 
-instance Show Type where
-  show I = "int"
-  show B = "bool"
-  show (A t) = show t ++ "[]"
+data Program = Program [Statement] [Assertion]
+
+instance Show (LiftedType t) where
+  show LiftI = "int"
+  show LiftB = "bool"
+  show (LiftA t) = show t ++ "[]"
 
 instance Show (UnaryOp a b) where
   show Negate   = "!"
@@ -81,17 +126,21 @@ instance Show (BinaryOp a b c) where
   show Eq       = "=="
   show InEq     = "!="
 
-instance Show (Expression a) where
-  show (LiftInt i) = show i
-  show (LiftBool True)  = "true"
-  show (LiftBool False) = "false"
+instance Show (Expression t) where
+  show (IntegerConst i) = show i
+  show (BoolConst True)  = "true"
+  show (BoolConst False) = "false"
 
   show (Unary op e) = show e ++ show op
   show (Binary Select a b) = show a ++ "[" ++ show b ++ "]"
   show (Binary op a b) = show a ++ show op ++ show b
   show (Ternary IfElse a b c) = show a ++ " ? " ++ show a ++ " : " ++ show b
 
-  show (Var v _) = v
+  show (Ref (Var _ v)) = v
+
+instance Show (LValue t) where
+  show (Variable (Var _ v)) = v
+  show (ArrayElem (Var _ v) e) = v ++ "[" ++ show e ++ "]"
 
 toIndent :: Int -> String
 toIndent n = replicate (n * 2) ' '
@@ -112,20 +161,23 @@ condition :: Int -> String -> String
 condition n c = "if (" ++ c ++ ")" ++ "\n"
 
 showIndented :: Int -> Statement -> String
-showIndented n (Declare t v e) = toIndent n ++ show t ++ " " ++ v ++ showDef e ++ semicolon
+showIndented n (Declare v e) = toIndent n ++ showVar v ++ showDef e ++ semicolon
   where
+    showVar (Var t v) = show t ++ " " ++ v
     showDef Nothing  = ""
     showDef (Just e) = " = " ++ show e
-showIndented n (Assign v e) = toIndent n ++ v ++ " = " ++ show e ++ semicolon
+showIndented n (Assign lv e) = toIndent n ++ show lv ++ " = " ++ show e ++ semicolon
 showIndented n (If c a b) = toIndent n ++ condition n (show c) ++ showBlock (n + 1) a ++ showElse b
   where
     showElse [] = ""
     showElse b  = els n ++ showBlock (n + 1) b
     showBlock n ss = lbra n ++ concatMap (showIndented n) ss ++ rbra n
-showIndented n (Assert e) = toIndent n ++ "assert " ++ show e ++ semicolon
+
+instance Show Assertion where
+  show (Assertion e) = "assert " ++ show e ++ semicolon
 
 instance Show Statement where
   show = showIndented 0
 
 instance Show Program where
-  show (Program ss) = concatMap show ss
+  show (Program ss as) = concatMap show ss ++ "\n" ++ concatMap show as
