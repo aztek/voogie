@@ -3,12 +3,15 @@ module Kyckling.Main where
 import System.Environment
 
 import Kyckling.Parse
+import Kyckling.Front
 
 main = do args <- getArgs
           let (source, input) = case args of
                                   []  -> ("<stdin>", getContents)
-                                  f:_ -> (f,         readFile f)
+                                  f:_ -> (f        , readFile f)
           stream <- input
-          case parseAST source stream of
-            Left e -> putStrLn $ show e
-            Right ast -> putStrLn $ show ast
+          let program = do ast <- parseAST source stream
+                           return $ analyze ast
+          case program of
+            Left  err  -> print err
+            Right code -> print code

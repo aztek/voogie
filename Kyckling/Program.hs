@@ -1,34 +1,62 @@
-{-#LANGUAGE GADTs,DataKinds,KindSignatures,ExistentialQuantification #-}
+{-#LANGUAGE GADTs,DataKinds,KindSignatures,RankNTypes #-}
 
-module Kyckling.Program where
+module Kyckling.Program {-(
+  T(I, B, A), TType(TType),
+  Type (LiftI, LiftB, LiftA), unliftType,
+  Var (Var),
+  UnaryOp (Negate, Positive, Negative),
+  TypedUnaryOp (TypedUnaryOp),
+  --BinaryOp(...),
+  --TypedBinaryOp(...),
+  LValue (Variable, ArrayElem),
+  Expression (IntegerConst, BoolConst, Unary, Binary, Ternary, Ref),
+  TypedExpression (TypedExpression),
+  Assertion (Assertion),
+  Program (Program)
+  )-} where
 
 import Text.Printf
 import Data.List
 
-data Type = I | B | A Type
+data T = I | B | A T deriving (Eq)
 
-data LiftedType (t :: Type) where
-  LiftI :: LiftedType I
-  LiftB :: LiftedType B
-  LiftA :: LiftedType t -> LiftedType (A t)
+data Type (t :: T) where
+  LiftI :: Type I
+  LiftB :: Type B
+  LiftA :: Type t -> Type (A t)
 
-unliftType :: LiftedType t -> Type
+unliftType :: Type t -> T
 unliftType LiftI = I
 unliftType LiftB = B
 unliftType (LiftA t) = A (unliftType t)
 
-arrayElem :: LiftedType (A t) -> LiftedType t
-arrayElem (LiftA t) = t
+--instance Eq (Type t) where
+--  a == b = unliftType a == unliftType b
 
-data Var (t :: Type) where
-  Var :: LiftedType t -> String -> Var t
+data TType = TType (forall t . Type t)
+instance Eq TType where
+  TType a == TType b = unliftType a == unliftType b
 
-data UnaryOp (a :: Type) (b :: Type) where
+liftType :: T -> Type t
+liftType = undefined
+--liftType I = LiftI
+--liftType B = LiftB
+--liftType (A t) = LiftA (liftType t)
+
+data Var (t :: T) where
+  Var :: Type t -> String -> Var t
+
+data UnaryOp (a :: T) (b :: T) where
   Negate   :: UnaryOp B B
   Positive :: UnaryOp I I
   Negative :: UnaryOp I I
 
-data BinaryOp (a :: Type) (b :: Type) (c :: Type) where
+data TypedUnaryOp = forall a b . TypedUnaryOp (Type a) (Type b) (UnaryOp a b)
+
+--data TypedUnaryOp where
+  --TypedUnaryOp :: { range :: Type a, domain :: Type b, op :: UnaryOp a b } -> TypedUnaryOp
+
+data BinaryOp (a :: T) (b :: T) (c :: T) where
   And      :: BinaryOp B B B
   Or       :: BinaryOp B B B
 
@@ -46,10 +74,20 @@ data BinaryOp (a :: Type) (b :: Type) (c :: Type) where
   Eq       :: BinaryOp a a B
   InEq     :: BinaryOp a a B
 
-data TernaryOp (a :: Type) (b :: Type) (c :: Type) (d :: Type) where
+data TypedBinaryOp = forall a b c . TypedBinaryOp (Type a) (Type b) (Type c) (BinaryOp a b c)
+
+data TernaryOp (a :: T) (b :: T) (c :: T) (d :: T) where
   IfElse :: TernaryOp B a a a
 
-data Expression (t :: Type) where
+data TypedTernaryOp = forall a b c d . TypedTernaryOp (Type a) (Type b) (Type c) (Type d) (TernaryOp a b c d)
+
+data LValue (t :: T) where
+  Variable  :: Var t -> LValue t
+  ArrayElem :: Var (A t) -> Expression I -> LValue t
+
+data TypedLValue = forall t . TypedLValue (Type t) (LValue t)
+
+data Expression (t :: T) where
   IntegerConst :: Integer -> Expression I
   BoolConst    :: Bool -> Expression B
 
@@ -57,21 +95,35 @@ data Expression (t :: Type) where
   Binary  :: BinaryOp  a b c   -> Expression a -> Expression b -> Expression c
   Ternary :: TernaryOp a b c d -> Expression a -> Expression b -> Expression c -> Expression d
 
-  Ref :: Var t -> Expression t
+  Ref :: LValue t -> Expression t
 
-typeOf :: Expression t -> LiftedType t
+--data TypedExpression where
+  --TypedExpression :: { typeOf :: Type t, expr :: Expression t } -> TypedExpression
+
+data TypedExpression = forall t . TypedExpression (Type t) (Expression t)
+
+--expr :: TypedExpression -> Expression t
+--expr 
+
+--typeOf :: TypedExpression -> Type t
+--typeOf (TypedExpression t _) = t
+{-
+typeOf :: Expression t -> Type t
 typeOf (IntegerConst _)  = LiftI
 typeOf (BoolConst _) = LiftB
 typeOf (Unary op _) = typeOf' op
   where
-    typeOf' :: UnaryOp a b -> LiftedType b
+    typeOf' :: UnaryOp a b -> Type b
     typeOf' Negate   = LiftB
     typeOf' Positive = LiftI
     typeOf' Negative = LiftI
 typeOf (Binary Select arr _) = arrayElem (typeOf arr)
+  where
+    arrayElem :: Type (A t) -> Type t
+    arrayElem (LiftA t) = t
 typeOf (Binary op _ _) = typeOf' op
   where
-    typeOf' :: BinaryOp a b c -> LiftedType c
+    typeOf' :: BinaryOp a b c -> Type c
     typeOf' And      = LiftB
     typeOf' Or       = LiftB
     typeOf' Greater  = LiftB
@@ -84,21 +136,17 @@ typeOf (Binary op _ _) = typeOf' op
     typeOf' Eq       = LiftB
     typeOf' InEq     = LiftB
 typeOf (Ternary IfElse _ a _) = typeOf a
-typeOf (Ref (Var t _)) = t
-
-data LValue (t :: Type) where
-  Variable  :: Var t -> LValue t
-  ArrayElem :: Var (A t) -> Expression I -> LValue t
-
-data Statement = forall t. Declare (Var t) (Maybe (Expression t))
-               | forall t. Assign (LValue t) (Expression t)
+typeOf (Ref _) = undefined -- TODO
+-}
+data Statement = forall t . Declare (Var t) (Maybe (Expression t))
+               | forall t . Assign (LValue t) (Expression t)
                | If (Expression B) [Statement] [Statement]
 
 data Assertion = Assertion (Expression B)
 
 data Program = Program [Statement] [Assertion]
 
-instance Show (LiftedType t) where
+instance Show (Type t) where
   show LiftI = "int"
   show LiftB = "bool"
   show (LiftA t) = show t ++ "[]"
@@ -126,6 +174,10 @@ instance Show (BinaryOp a b c) where
   show Eq       = "=="
   show InEq     = "!="
 
+instance Show (LValue t) where
+  show (Variable (Var _ v)) = v
+  show (ArrayElem (Var _ v) e) = v ++ "[" ++ show e ++ "]"
+
 instance Show (Expression t) where
   show (IntegerConst i) = show i
   show (BoolConst True)  = "true"
@@ -136,11 +188,7 @@ instance Show (Expression t) where
   show (Binary op a b) = show a ++ show op ++ show b
   show (Ternary IfElse a b c) = show a ++ " ? " ++ show a ++ " : " ++ show b
 
-  show (Ref (Var _ v)) = v
-
-instance Show (LValue t) where
-  show (Variable (Var _ v)) = v
-  show (ArrayElem (Var _ v) e) = v ++ "[" ++ show e ++ "]"
+  show (Ref lval) = show lval
 
 toIndent :: Int -> String
 toIndent n = replicate (n * 2) ' '
