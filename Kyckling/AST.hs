@@ -29,9 +29,10 @@ data Stmt = If Expr Stmt (Maybe Stmt)
           | Increment LVal
           | Decrement LVal
           | Update LVal UpdateOp Expr
-          | Assert Expr
 
-data AST = AST [Stmt]
+data Assert = Assert Expr
+
+data AST = AST [Stmt] [Assert]
 
 instance Show PrefixOp where
   show Uminus = "-"
@@ -90,7 +91,9 @@ instance Show Stmt where
   show (Increment v) = showAtomic [show v ++ "++"]
   show (Decrement v) = showAtomic [show v ++ "--"]
   show (Update v op e) = showAtomic [show v, show op, show e]
+
+instance Show Assert where
   show (Assert e) = showAtomic ["assert", show e]
 
 instance Show AST where
-  show (AST ss) = concatMap show ss
+  show (AST ss as) = concatMap show ss ++ "\n" ++ concatMap show as

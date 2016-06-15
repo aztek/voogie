@@ -91,7 +91,6 @@ stmt' :: Parser AST.Stmt
 stmt' =  updateStmt
      <|> declareStmt
      <|> ifStmt
-     <|> assertStmt
 
 atomicStmt p = do { s <- p; semi; return s }
 
@@ -111,8 +110,6 @@ ifStmt = reserved "if" >> liftM3 AST.If (parens expr) stmt maybeElse
   where
     maybeElse = optionMaybe (reserved "else" >> stmt)
 
-assertStmt = atomicStmt (reserved "assert" >> liftM AST.Assert expr)
-
 typ :: Parser AST.Type
 typ = do t <- atomicTyp
          arrs <- many (reserved "[]")
@@ -121,8 +118,13 @@ typ = do t <- atomicTyp
 atomicTyp =  constant "int"  AST.I
          <|> constant "bool" AST.B
 
+assert = atomicStmt (reserved "assert" >> liftM AST.Assert expr)
+
 ast :: Parser AST.AST
-ast = whiteSpace >> liftM AST.AST (many stmt)
+ast = do whiteSpace
+         stmts <- many stmt
+         asserts <- many assert
+         return $ AST.AST stmts asserts
 
 parseAST :: SourceName -> String -> Either ParseError AST.AST
 parseAST = parse ast
