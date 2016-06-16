@@ -1,6 +1,8 @@
 module Kyckling.Front where
 
 import Control.Monad
+import Control.Applicative
+import Control.Monad.Writer
 
 import Kyckling.Program
 import Kyckling.Program.Types
@@ -31,6 +33,8 @@ analyze (AST.AST ss as) =
      as' <- mapM (analyzeAssert env) as
      return (Program ss' as')
 
+type ScopedStatements = Writer Env [Statement]
+
 analyzeStmtList :: Env -> [AST.Stmt] -> Either Error (Env, [Statement])
 analyzeStmtList env [] = Right (env, [])
 analyzeStmtList env (s:ss) =
@@ -40,18 +44,14 @@ analyzeStmtList env (s:ss) =
 
 analyzeStmt :: Env -> AST.Stmt -> Either Error (Env, [Statement])
 analyzeStmt env (AST.Declare typ defs) =
-  do defs' <- analyzeDefs defs
-     return (map (\(n, _) -> (n, t)) defs' ++ env,
-             map (\(n, e) -> Declare (Var n t) e) defs')
+  do defs' <- mapM analyzeDef defs
+     let env' = map (\(n, _) -> (n, t)) defs'
+     let decl = map (\(n, e) -> Declare (Var n t) e) defs'
+     return (env' ++ env, decl)
   where
     t = translateType typ
-    analyzeDefs :: [(String, Maybe AST.Expr)] -> Either Error [(String, Maybe Expression)]
-    analyzeDefs [] = Right []
-    analyzeDefs ((n, Nothing):ds) = do ds' <- analyzeDefs ds
-                                       return $ (n, Nothing):ds'
-    analyzeDefs ((n,  Just e):ds) = do ds' <- analyzeDefs ds
-                                       e'  <- analyzeExpr env t e
-                                       return $ (n, Just e'):ds'
+    analyzeDef (n, e) = do e' <- mapM (analyzeExpr env t) e
+                           return (n, e')
 analyzeStmt env (AST.If c a b) =
   do (_, a') <- analyzeStmtList env a
      (_, b') <- analyzeStmtList env b
@@ -63,23 +63,27 @@ analyzeStmt env (AST.Increment lval) =
 analyzeStmt env (AST.Decrement lval) =
   do lv <- analyzeLValue env Integer lval
      return (env, [Assign lv (Binary Subtract (Ref lv) (IntegerConst 1))])
-analyzeStmt env (AST.Update lval op e) =
+analyzeStmt env (AST.Update lval AST.Assign e) =
   do (t, lv) <- analyzeLValue' env lval
      e' <- analyzeExpr env t e
-     let e'' = case op of
-                 AST.Assign -> e'
-                 otherwise  -> Binary (translateUpdateOp op) (Ref lv) e'
-     return (env, [Assign lv e''])
-
+     return (env, [Assign lv e'])
+analyzeStmt env (AST.Update lval op e) =
+  do lv <- analyzeLValue env d1 lval
+     e' <- analyzeExpr env d2 e
+     return (env, [Assign lv (Binary op' (Ref lv) e')])
+  where
+    op' = translateUpdateOp op
+    (d1, d2) = binaryOpDomain op'
+    r = binaryOpDomain op'
+    -- we assume that d1 == r
 analyzeAssert :: Env -> AST.Assert -> Either Error Assertion
-analyzeAssert env (AST.Assert e) = liftM Assertion (analyzeExpr env Boolean e)
+analyzeAssert env (AST.Assert e) = Assertion <$> analyzeExpr env Boolean e
 
 analyzeLValue :: Env -> Type -> AST.LVal -> Either Error LValue
 analyzeLValue env t lval = do (t', lval') <- analyzeLValue' env lval
-                              case t == t' of
-                                True  -> return lval'
-                                False -> Left $ "expected an expression of the type " ++ prettyType t' ++
-                                                " but got " ++ prettyLValue lval' ++ " of the type " ++ prettyType t 
+                              if t == t' then return lval' else
+                                Left $ "expected an expression of the type " ++ showType t' ++
+                                       " but got " ++ showLValue lval' ++ " of the type " ++ showType t 
 
 analyzeLValue' :: Env -> AST.LVal -> Either Error (Type, LValue)
 analyzeLValue' env (AST.Var name) =
@@ -92,10 +96,9 @@ analyzeLValue' env (AST.ArrayElem name el) =
 
 analyzeExpr :: Env -> Type -> AST.Expr -> Either Error Expression
 analyzeExpr env t e = do (t', e') <- analyzeExpr' env e
-                         case t == t' of
-                           True  -> return e'
-                           False -> Left $ "expected an expression of the type " ++ prettyType t' ++
-                                           " but got " ++ prettyExpression e' ++ " of the type " ++ prettyType t 
+                         if t == t' then return e' else
+                           Left $ "expected an expression of the type " ++ showType t' ++
+                                  " but got " ++ showExpression e' ++ " of the type " ++ showType t 
 
 analyzeExpr' :: Env -> AST.Expr -> Either Error (Type, Expression)
 analyzeExpr' _ (AST.IntConst  i) = return (Integer, IntegerConst i)

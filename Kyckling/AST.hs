@@ -4,13 +4,16 @@ import Data.List
 import Data.Maybe
 
 data PrefixOp = Uminus | Uplus | Not
+  deriving (Eq)
 
 data InfixOp = Plus | Minus | Times
              | Less | Greater | Leq | Geq | Eq | NonEq
              | And | Or
+  deriving (Eq)
 
 data LVal = Var String
           | ArrayElem String Expr
+  deriving (Eq)
 
 data Expr = IntConst Integer
           | BoolConst Bool
@@ -18,20 +21,26 @@ data Expr = IntConst Integer
           | Infix InfixOp Expr Expr
           | Ternary Expr Expr Expr
           | LVal LVal
+  deriving (Eq)
 
 data Type = I | B | Array Type
+  deriving (Eq)
 
 data UpdateOp = Assign | Add | Subtract | Multiply
+  deriving (Eq)
 
 data Stmt = If Expr [Stmt] [Stmt]
           | Declare Type [(String, Maybe Expr)]
           | Increment LVal
           | Decrement LVal
           | Update LVal UpdateOp Expr
+  deriving (Eq)
 
 data Assert = Assert Expr
+  deriving (Eq)
 
 data AST = AST [Stmt] [Assert]
+  deriving (Eq)
 
 instance Show PrefixOp where
   show Uminus = "-"
