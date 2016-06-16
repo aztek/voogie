@@ -37,11 +37,12 @@ data TType = TType (forall t . Type t)
 instance Eq TType where
   TType a == TType b = unliftType a == unliftType b
 
-liftType :: T -> Type t
+liftType :: T -> TType
 liftType = undefined
---liftType I = LiftI
---liftType B = LiftB
---liftType (A t) = LiftA (liftType t)
+--liftType I = TType LiftI
+--liftType B = TType LiftB
+--liftType (A t) = TType $ LiftA t'
+--  where liftType t
 
 data Var (t :: T) where
   Var :: Type t -> String -> Var t

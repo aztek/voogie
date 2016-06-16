@@ -23,8 +23,7 @@ data Type = I | B | Array Type
 
 data UpdateOp = Assign | Add | Subtract | Multiply
 
-data Stmt = If Expr Stmt (Maybe Stmt)
-          | Block [Stmt]
+data Stmt = If Expr [Stmt] [Stmt]
           | Declare Type [(String, Maybe Expr)]
           | Increment LVal
           | Decrement LVal
@@ -79,11 +78,11 @@ instance Show UpdateOp where
 showAtomic as = unwords as ++ ";\n"
 
 instance Show Stmt where
-  show (If c a b) = "if (" ++ show c ++ ") " ++ show a ++ showElse b
+  show (If c a b) = "if (" ++ show c ++ ") " ++ showBlock a ++ showElse b
     where
-      showElse Nothing  = ""
-      showElse (Just b) = " else " ++ show b
-  show (Block ss) = "{\n" ++ concatMap show ss ++ "}\n"
+      showElse [] = ""
+      showElse b  = " else " ++ showBlock b
+      showBlock ss = "{\n" ++ concatMap show ss ++ "}\n"
   show (Declare t ds) = showAtomic [show t, intercalate ", " $ map showDef ds]
     where
       showDef (v, Nothing) = v

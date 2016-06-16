@@ -2,6 +2,7 @@ module Kyckling.Parse (parseAST) where
 
 import System.IO
 import Control.Monad
+import Data.Maybe
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Expr
 import Text.ParserCombinators.Parsec.Language
@@ -83,14 +84,14 @@ term =  parens expr
 lval =  try (liftM2 AST.ArrayElem identifier (brackets expr))
     <|> liftM AST.Var identifier
 
-stmt :: Parser AST.Stmt
-stmt =  stmt'
-    <|> liftM AST.Block (braces $ many stmt')
+stmts :: Parser [AST.Stmt]
+stmts =  liftM (: []) stmt
+     <|> braces (many stmt)
 
-stmt' :: Parser AST.Stmt
-stmt' =  updateStmt
-     <|> declareStmt
-     <|> ifStmt
+stmt :: Parser AST.Stmt
+stmt =  updateStmt
+    <|> declareStmt
+    <|> ifStmt
 
 atomicStmt p = do { s <- p; semi; return s }
 
@@ -106,9 +107,9 @@ declareStmt = atomicStmt $ liftM2 AST.Declare typ (commaSep1 definition)
     definition = liftM2 (,) identifier maybeBody
     maybeBody  = optionMaybe (reservedOp "=" >> expr)
 
-ifStmt = reserved "if" >> liftM3 AST.If (parens expr) stmt maybeElse
+ifStmt = reserved "if" >> liftM3 AST.If (parens expr) stmts elseStmts
   where
-    maybeElse = optionMaybe (reserved "else" >> stmt)
+    elseStmts = liftM (fromMaybe []) $ optionMaybe (reserved "else" >> stmts)
 
 typ :: Parser AST.Type
 typ = do t <- atomicTyp
@@ -121,10 +122,7 @@ atomicTyp =  constant "int"  AST.I
 assert = atomicStmt (reserved "assert" >> liftM AST.Assert expr)
 
 ast :: Parser AST.AST
-ast = do whiteSpace
-         stmts <- many stmt
-         asserts <- many assert
-         return $ AST.AST stmts asserts
+ast = whiteSpace >> liftM2 AST.AST stmts (many assert)
 
 parseAST :: SourceName -> String -> Either ParseError AST.AST
 parseAST = parse ast

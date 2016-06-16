@@ -31,25 +31,51 @@ analyze (AST.AST ss as) =
      as' <- mapM (analyzeAssert env) as
      return $ Program [] as'
 
-analyzeStmt :: Env -> AST.Stmt -> (Env, Either Error Statement)
-analyzeStmt env (AST.If c a b) = undefined
-analyzeStmt env (AST.Block ss) = undefined
-analyzeStmt env (AST.Declare typ defs) = undefined
-analyzeStmt env (AST.Increment lval) = (env, stmt)
-  where stmt = do lv <- analyzeLValue env LiftI lval
-                  return $ Assign lv (Binary Add (Ref lv) (IntegerConst 1))
-analyzeStmt env (AST.Decrement lval) = (env, stmt)
-  where stmt = do lv <- analyzeLValue env LiftI lval
-                  return $ Assign lv (Binary Subtract (Ref lv) (IntegerConst 1))
-analyzeStmt env (AST.Update lval op e) = (env, stmt)
-  where stmt = do lv <- analyzeLValue env LiftI lval
-                  e' <- analyzeExpr   env LiftI e
-                  let e'' = case op of
-                              AST.Assign -> e'
-                              otherwise  -> undefined
-                                            --let TypedBinaryOp _ _ _ op' = translateUpdateOp op
-                                            -- in Binary op' (Ref lv) e'
-                  return $ Assign lv e''
+analyzeStmtList :: Env -> [AST.Stmt] -> Either Error (Env, [Statement])
+analyzeStmtList env [] = Right (env, [])
+analyzeStmtList env (s:ss) =
+  do (env', s')   <- analyzeStmt env s
+     (env'', ss') <- analyzeStmtList env' ss
+     return (env'', s' ++ ss')
+
+analyzeStmt :: Env -> AST.Stmt -> Either Error (Env, [Statement])
+analyzeStmt env (AST.Declare typ defs) =
+  do defs' <- analyzeDefs t defs
+     return (map (\(n, _) -> (n, tt)) defs' ++ env,
+             map (\(n, e) -> Declare (Var t n) e) defs')
+  where
+    tt = translateType typ
+    TType t = tt
+    analyzeDefs :: Type t -> [(String, Maybe AST.Expr)] -> Either Error [(String, Maybe (Expression t))]
+    analyzeDefs t [] = Right []
+    analyzeDefs t ((n, Nothing):ds) = do ds' <- analyzeDefs t ds
+                                         return $ (n, Nothing):ds'
+    analyzeDefs t ((n,  Just e):ds) = do ds' <- analyzeDefs t ds
+                                         e'  <- analyzeExpr env t e
+                                         return $ (n, Just e'):ds'
+analyzeStmt env (AST.If c a b) =
+  do (_, a') <- analyzeStmtList env a
+     (_, b') <- analyzeStmtList env b
+     c' <- analyzeExpr env LiftB c
+     return (env, [If c' a' b'])
+analyzeStmt env (AST.Increment lval) =
+  do lv <- analyzeLValue env LiftI lval
+     let stmt = Assign lv (Binary Add (Ref lv) (IntegerConst 1))
+     return (env, [stmt])
+analyzeStmt env (AST.Decrement lval) =
+  do lv <- analyzeLValue env LiftI lval
+     let stmt = Assign lv (Binary Subtract (Ref lv) (IntegerConst 1))
+     return (env, [stmt])
+analyzeStmt env (AST.Update lval op e) =
+  do lv <- analyzeLValue env LiftI lval
+     e' <- analyzeExpr   env LiftI e
+     let e'' = case op of
+                 AST.Assign -> e'
+                 otherwise  -> undefined
+                               --let TypedBinaryOp _ _ _ op' = translateUpdateOp op
+                               -- in Binary op' (Ref lv) e'
+     let stmt = Assign lv e''
+     return (env, [stmt])
 
 analyzeAssert :: Env -> AST.Assert -> Either Error Assertion
 analyzeAssert env (AST.Assert e) = liftM Assertion (analyzeExpr env LiftB e)
@@ -129,6 +155,13 @@ translateUpdateOp op =
     AST.Add      -> TypedBinaryOp LiftI LiftI LiftI Add
     AST.Subtract -> TypedBinaryOp LiftI LiftI LiftI Subtract
     AST.Multiply -> TypedBinaryOp LiftI LiftI LiftI Multiply
+
+translateType :: AST.Type -> TType
+translateType = undefined
+--translateType AST.I = TType LiftI
+--translateType AST.B = TType LiftB
+--translateType (AST.Array t) = TType (LiftA t')
+  --where TType t' = translateType t
 
 --translateInfixOp Select   :: BinaryOp (A b) I b
 --translateInfixOp Eq       :: BinaryOp a a B
