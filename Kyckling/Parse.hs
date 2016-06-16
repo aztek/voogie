@@ -2,6 +2,7 @@ module Kyckling.Parse (parseAST) where
 
 import System.IO
 import Control.Monad
+import Control.Applicative ((<$>), (<*>))
 import Data.Maybe
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Expr
@@ -78,15 +79,15 @@ operators = [ [prefix "-"  (AST.Prefix AST.Uminus )          ,
 term =  parens expr
     <|> constant "true"  (AST.BoolConst True)
     <|> constant "false" (AST.BoolConst False)
-    <|> liftM AST.IntConst integer
-    <|> liftM AST.LVal lval
+    <|> AST.IntConst <$> integer
+    <|> AST.LVal <$> lval
 
-lval =  try (liftM2 AST.ArrayElem identifier (brackets expr))
-    <|> liftM AST.Var identifier
+lval =  try (AST.ArrayElem <$> identifier <*> brackets expr)
+    <|> AST.Var <$> identifier
 
 stmts :: Parser [AST.Stmt]
 stmts =  braces (many stmt)
-     <|> liftM (:[]) stmt
+     <|> (:[]) <$> stmt
 
 stmt :: Parser AST.Stmt
 stmt =  updateStmt
@@ -97,19 +98,19 @@ atomicStmt p = do { s <- p; semi; return s }
 
 updateStmt = atomicStmt $ do v <- lval
                              choice $ map (\(t, o) -> reserved t >> return (o v)) unaryUpdates ++
-                                      map (\(t, o) -> reserved t >> liftM (AST.Update v o) expr) binaryUpdates
+                                      map (\(t, o) -> reserved t >> AST.Update v o <$> expr) binaryUpdates
   where
     unaryUpdates  = [("++", AST.Increment), ("--", AST.Decrement)]
     binaryUpdates = [("=",  AST.Assign), ("+=", AST.Add), ("-=", AST.Subtract), ("*=", AST.Multiply)]
 
-declareStmt = atomicStmt $ liftM2 AST.Declare typ (commaSep1 definition)
+declareStmt = atomicStmt $ AST.Declare <$> typ <*> commaSep1 definition
   where
-    definition = liftM2 (,) identifier maybeBody
+    definition = (,) <$> identifier <*> maybeBody
     maybeBody  = optionMaybe (reservedOp "=" >> expr)
 
-ifStmt = reserved "if" >> liftM3 AST.If (parens expr) stmts elseStmts
+ifStmt = reserved "if" >> AST.If <$> parens expr <*> stmts <*> elseStmts
   where
-    elseStmts = liftM (fromMaybe []) $ optionMaybe (reserved "else" >> stmts)
+    elseStmts = fromMaybe [] <$> optionMaybe (reserved "else" >> stmts)
 
 typ :: Parser AST.Type
 typ = do t <- atomicTyp
@@ -119,10 +120,10 @@ typ = do t <- atomicTyp
 atomicTyp =  constant "int"  AST.I
          <|> constant "bool" AST.B
 
-assert = atomicStmt (reserved "assert" >> liftM AST.Assert expr)
+assert = atomicStmt (reserved "assert" >> AST.Assert <$> expr)
 
 ast :: Parser AST.AST
-ast = whiteSpace >> liftM2 AST.AST (many stmt) (many assert)
+ast = whiteSpace >> AST.AST <$> many stmt <*> many assert
 
 parseAST :: SourceName -> String -> Either ParseError AST.AST
 parseAST = parse ast
