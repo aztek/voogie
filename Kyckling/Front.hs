@@ -1,168 +1,165 @@
-{-#LANGUAGE GADTs,DataKinds #-}
-
 module Kyckling.Front where
 
 import Control.Monad
 
 import Kyckling.Program
+import Kyckling.Pretty
 import qualified Kyckling.AST as AST
 
 type Error = String
 
-type Env = [(String, TType)]
+type Env = [(String, Type)]
 
 emptyEnv :: Env
 emptyEnv = []
 
-lookupName :: String -> Env -> Either Error (Type t)
+lookupName :: String -> Env -> Either Error Type
 lookupName name env = case lookup name env of
-                        Nothing        -> Left ("undefined variable " ++ name)
-                        Just (TType t) -> Right t
+                        Nothing -> Left $ "undefined variable " ++ name
+                        Just t  -> Right t
 
-lookupArrayName :: String -> Env -> Either Error (Type t)
+lookupArrayName :: String -> Env -> Either Error Type
 lookupArrayName name env = do arr <- lookupName name env
                               case arr of
-                                LiftA el -> Right undefined --el
+                                Array el  -> Right el
                                 otherwise -> Left "not an array"
 
 analyze :: AST.AST -> Either Error Program
 analyze (AST.AST ss as) =
-  do let env = emptyEnv
+  do (env, ss') <- analyzeStmtList emptyEnv ss
      as' <- mapM (analyzeAssert env) as
-     return $ Program [] as'
+     return (Program ss' as')
 
 analyzeStmtList :: Env -> [AST.Stmt] -> Either Error (Env, [Statement])
 analyzeStmtList env [] = Right (env, [])
 analyzeStmtList env (s:ss) =
-  do (env', s')   <- analyzeStmt env s
+  do (env',  s')  <- analyzeStmt env s
      (env'', ss') <- analyzeStmtList env' ss
      return (env'', s' ++ ss')
 
 analyzeStmt :: Env -> AST.Stmt -> Either Error (Env, [Statement])
 analyzeStmt env (AST.Declare typ defs) =
-  do defs' <- analyzeDefs t defs
-     return (map (\(n, _) -> (n, tt)) defs' ++ env,
-             map (\(n, e) -> Declare (Var t n) e) defs')
+  do defs' <- analyzeDefs defs
+     return (map (\(n, _) -> (n, t)) defs' ++ env,
+             map (\(n, e) -> Declare (Var n t) e) defs')
   where
-    tt = translateType typ
-    TType t = tt
-    analyzeDefs :: Type t -> [(String, Maybe AST.Expr)] -> Either Error [(String, Maybe (Expression t))]
-    analyzeDefs t [] = Right []
-    analyzeDefs t ((n, Nothing):ds) = do ds' <- analyzeDefs t ds
-                                         return $ (n, Nothing):ds'
-    analyzeDefs t ((n,  Just e):ds) = do ds' <- analyzeDefs t ds
-                                         e'  <- analyzeExpr env t e
-                                         return $ (n, Just e'):ds'
+    t = translateType typ
+    analyzeDefs :: [(String, Maybe AST.Expr)] -> Either Error [(String, Maybe Expression)]
+    analyzeDefs [] = Right []
+    analyzeDefs ((n, Nothing):ds) = do ds' <- analyzeDefs ds
+                                       return $ (n, Nothing):ds'
+    analyzeDefs ((n,  Just e):ds) = do ds' <- analyzeDefs ds
+                                       e'  <- analyzeExpr env t e
+                                       return $ (n, Just e'):ds'
 analyzeStmt env (AST.If c a b) =
   do (_, a') <- analyzeStmtList env a
      (_, b') <- analyzeStmtList env b
-     c' <- analyzeExpr env LiftB c
+     c' <- analyzeExpr env Boolean c
      return (env, [If c' a' b'])
 analyzeStmt env (AST.Increment lval) =
-  do lv <- analyzeLValue env LiftI lval
-     let stmt = Assign lv (Binary Add (Ref lv) (IntegerConst 1))
-     return (env, [stmt])
+  do lv <- analyzeLValue env Integer lval
+     return (env, [Assign lv (Binary Add (Ref lv) (IntegerConst 1))])
 analyzeStmt env (AST.Decrement lval) =
-  do lv <- analyzeLValue env LiftI lval
-     let stmt = Assign lv (Binary Subtract (Ref lv) (IntegerConst 1))
-     return (env, [stmt])
+  do lv <- analyzeLValue env Integer lval
+     return (env, [Assign lv (Binary Subtract (Ref lv) (IntegerConst 1))])
 analyzeStmt env (AST.Update lval op e) =
-  do lv <- analyzeLValue env LiftI lval
-     e' <- analyzeExpr   env LiftI e
+  do (t, lv) <- analyzeLValue' env lval
+     e' <- analyzeExpr env t e
      let e'' = case op of
                  AST.Assign -> e'
-                 otherwise  -> undefined
-                               --let TypedBinaryOp _ _ _ op' = translateUpdateOp op
-                               -- in Binary op' (Ref lv) e'
-     let stmt = Assign lv e''
-     return (env, [stmt])
+                 otherwise  -> Binary (translateUpdateOp op) (Ref lv) e'
+     return (env, [Assign lv e''])
 
 analyzeAssert :: Env -> AST.Assert -> Either Error Assertion
-analyzeAssert env (AST.Assert e) = liftM Assertion (analyzeExpr env LiftB e)
+analyzeAssert env (AST.Assert e) = liftM Assertion (analyzeExpr env Boolean e)
 
-analyzeLValue :: Env -> Type t -> AST.LVal -> Either Error (LValue t)
-analyzeLValue env t lval = do { lval' <- analyzeLValue' env lval ; expect lval' t }
-  where
-    expect (TypedLValue t lval) t' | unliftType t == unliftType t' = undefined
-    expect (TypedLValue t lval) t' = Left $ "expected an expression of the type " ++ show t' ++
-                                            " but got " ++ show lval ++ " of the type " ++ show t 
+analyzeLValue :: Env -> Type -> AST.LVal -> Either Error LValue
+analyzeLValue env t lval = do (t', lval') <- analyzeLValue' env lval
+                              case t == t' of
+                                True  -> return lval'
+                                False -> Left $ "expected an expression of the type " ++ showType t' ++
+                                                " but got " ++ showLValue lval' ++ " of the type " ++ showType t 
 
-analyzeLValue' :: Env -> AST.LVal -> Either Error TypedLValue
+analyzeLValue' :: Env -> AST.LVal -> Either Error (Type, LValue)
 analyzeLValue' env (AST.Var name) =
   do t <- lookupName name env
-     return $ TypedLValue t (Variable (Var t name))
+     return (t, Variable (Var name t))
 analyzeLValue' env (AST.ArrayElem name el) =
-  do el <- analyzeExpr env LiftI el
+  do el <- analyzeExpr env Integer el
      t  <- lookupArrayName name env
-     return $ TypedLValue t (ArrayElem (Var (LiftA t) name) el)
+     return (t, ArrayElem (Var name t) el)
 
+analyzeExpr :: Env -> Type -> AST.Expr -> Either Error Expression
+analyzeExpr env t e = do (t', e') <- analyzeExpr' env e
+                         case t == t' of
+                           True  -> return e'
+                           False -> Left $ "expected an expression of the type " ++ showType t' ++
+                                           " but got " ++ showExpression e' ++ " of the type " ++ showType t 
 
-expect :: TypedExpression -> Type t -> Either Error (Expression t)
-expect (TypedExpression t e) t' | unliftType t == unliftType t' = undefined
-expect (TypedExpression t e) t' = Left $ "expected an expression of the type " ++ show t' ++
-                                         " but got " ++ show e ++ " of the type " ++ show t 
-
-
-analyzeExpr :: Env -> Type t -> AST.Expr -> Either Error (Expression t)
-analyzeExpr env t e = do { e' <- analyzeExpr' env e ; expect e' t }
-
-analyzeExpr' :: Env -> AST.Expr -> Either Error TypedExpression
-analyzeExpr' _ (AST.IntConst  i) = return $ TypedExpression LiftI (IntegerConst i)
-analyzeExpr' _ (AST.BoolConst b) = return $ TypedExpression LiftB (BoolConst b)
+analyzeExpr' :: Env -> AST.Expr -> Either Error (Type, Expression)
+analyzeExpr' _ (AST.IntConst  i) = return (Integer, IntegerConst i)
+analyzeExpr' _ (AST.BoolConst b) = return (Boolean, BoolConst b)
 analyzeExpr' env (AST.LVal lval) =
-  do TypedLValue t lv <- analyzeLValue' env lval
-     return $ TypedExpression t (Ref lv)
-analyzeExpr' env (AST.Prefix op e) = undefined
-  --let TypedUnaryOp op' r d = translatePrefixOp op in
-  --do e' <- analyzeExpr env r e
-     --return $ TypedExpression d (Unary op' e')
-analyzeExpr' env (AST.Infix op a b) = undefined
-  --let TypedBinaryOp op' r1 r2 d = translateInfixOp op in
-  --do a' <- analyzeExpr env r1 a
-     --b' <- analyzeExpr env r2 b
-     --return $ TypedExpression d (Binary op' a' b')
+  do (t, lv) <- analyzeLValue' env lval
+     return (t, Ref lv)
+analyzeExpr' env (AST.Prefix op e) =
+  do e' <- analyzeExpr env d e
+     return (r, Unary op' e')
+  where
+    op' = translatePrefixOp op
+    r   = unaryOpRange op'
+    d   = unaryOpDomain op'
+analyzeExpr' env (AST.Infix AST.Eq a b) =
+  do (t, a') <- analyzeExpr' env a
+     b' <- analyzeExpr env t b
+     return (Boolean, Eql a' b')
+analyzeExpr' env (AST.Infix AST.NonEq a b) =
+  do (t, a') <- analyzeExpr' env a
+     b' <- analyzeExpr env t b
+     return (Boolean, InEql a' b')
+analyzeExpr' env (AST.Infix op a b) =
+  do a' <- analyzeExpr env d1 a
+     b' <- analyzeExpr env d2 b
+     return (r, Binary op' a' b')
+  where
+    op' = translateInfixOp op
+    (d1, d2) = binaryOpDomain op'
+    r = binaryOpRange op'
 analyzeExpr' env (AST.Ternary c a b) =
-  do TypedExpression t a' <- analyzeExpr' env a
-     b'  <- analyzeExpr' env b
-     b'' <- expect b' t
-     c'  <- analyzeExpr env LiftB c
-     return $ TypedExpression t (Ternary IfElse c' a' b'')
+  do c' <- analyzeExpr env Boolean c
+     (t, a') <- analyzeExpr' env a
+     b' <- analyzeExpr env t b
+     return (t, Ternary IfElse c' a' b')
 
 
-translatePrefixOp :: AST.PrefixOp -> TypedUnaryOp
+translatePrefixOp :: AST.PrefixOp -> UnaryOp
 translatePrefixOp op =
   case op of
-    AST.Uminus -> TypedUnaryOp LiftI LiftI Negative
-    AST.Uplus  -> TypedUnaryOp LiftI LiftI Positive
-    AST.Not    -> TypedUnaryOp LiftB LiftB Negate
+    AST.Uminus -> Negative
+    AST.Uplus  -> Positive
+    AST.Not    -> Negate
 
-translateInfixOp :: AST.InfixOp -> TypedBinaryOp
+translateInfixOp :: AST.InfixOp -> BinaryOp
 translateInfixOp op =
   case op of
-    AST.And     -> TypedBinaryOp LiftB LiftB LiftB And
-    AST.Or      -> TypedBinaryOp LiftB LiftB LiftB Or
-    AST.Greater -> TypedBinaryOp LiftI LiftI LiftB Greater
-    AST.Less    -> TypedBinaryOp LiftI LiftI LiftB Less
-    AST.Geq     -> TypedBinaryOp LiftI LiftI LiftB Geq
-    AST.Leq     -> TypedBinaryOp LiftI LiftI LiftB Leq
-    AST.Plus    -> TypedBinaryOp LiftI LiftI LiftI Add
-    AST.Minus   -> TypedBinaryOp LiftI LiftI LiftI Subtract
-    AST.Times   -> TypedBinaryOp LiftI LiftI LiftI Multiply
+    AST.And     -> And
+    AST.Or      -> Or
+    AST.Greater -> Greater
+    AST.Less    -> Less
+    AST.Geq     -> Geq
+    AST.Leq     -> Leq
+    AST.Plus    -> Add
+    AST.Minus   -> Subtract
+    AST.Times   -> Multiply
 
-translateUpdateOp :: AST.UpdateOp -> TypedBinaryOp
+translateUpdateOp :: AST.UpdateOp -> BinaryOp
 translateUpdateOp op =
   case op of
-    AST.Add      -> TypedBinaryOp LiftI LiftI LiftI Add
-    AST.Subtract -> TypedBinaryOp LiftI LiftI LiftI Subtract
-    AST.Multiply -> TypedBinaryOp LiftI LiftI LiftI Multiply
+    AST.Add      -> Add
+    AST.Subtract -> Subtract
+    AST.Multiply -> Multiply
 
-translateType :: AST.Type -> TType
-translateType = undefined
---translateType AST.I = TType LiftI
---translateType AST.B = TType LiftB
---translateType (AST.Array t) = TType (LiftA t')
-  --where TType t' = translateType t
-
---translateInfixOp Select   :: BinaryOp (A b) I b
---translateInfixOp Eq       :: BinaryOp a a B
---translateInfixOp InEq     :: BinaryOp a a B
+translateType :: AST.Type -> Type
+translateType AST.I = Integer
+translateType AST.B = Boolean
+translateType (AST.Array t) = Array (translateType t)

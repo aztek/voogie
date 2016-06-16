@@ -85,8 +85,8 @@ lval =  try (liftM2 AST.ArrayElem identifier (brackets expr))
     <|> liftM AST.Var identifier
 
 stmts :: Parser [AST.Stmt]
-stmts =  liftM (: []) stmt
-     <|> braces (many stmt)
+stmts =  braces (many stmt)
+     <|> liftM (:[]) stmt
 
 stmt :: Parser AST.Stmt
 stmt =  updateStmt
@@ -122,7 +122,7 @@ atomicTyp =  constant "int"  AST.I
 assert = atomicStmt (reserved "assert" >> liftM AST.Assert expr)
 
 ast :: Parser AST.AST
-ast = whiteSpace >> liftM2 AST.AST stmts (many assert)
+ast = whiteSpace >> liftM2 AST.AST (many stmt) (many assert)
 
 parseAST :: SourceName -> String -> Either ParseError AST.AST
 parseAST = parse ast
