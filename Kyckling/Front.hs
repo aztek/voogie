@@ -3,7 +3,7 @@ module Kyckling.Front where
 import Control.Monad
 
 import Kyckling.Program
-import Kyckling.Pretty
+import Kyckling.Program.Pretty
 import qualified Kyckling.AST as AST
 
 type Error = String

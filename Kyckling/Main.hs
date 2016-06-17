@@ -4,7 +4,7 @@ import System.Environment
 
 import Kyckling.Parse
 import Kyckling.Front
-import Kyckling.Pretty
+import Kyckling.Program.Pretty
 
 main = do args <- getArgs
           let (source, input) = case args of

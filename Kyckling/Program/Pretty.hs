@@ -1,4 +1,4 @@
-module Kyckling.Pretty (
+module Kyckling.Program.Pretty (
   showType,
   showLValue,
   showExpression,
