@@ -1,26 +1,26 @@
 module Kyckling.Program.Pretty (
-  showType,
-  showLValue,
-  showExpression,
-  showProgram
+  prettyType,
+  prettyLValue,
+  prettyExpression,
+  prettyProgram
 ) where
 
 import Data.List
 
 import Kyckling.Program
 
-showType :: Type -> String
-showType Integer = "int"
-showType Boolean = "bool"
-showType (Array t) = showType t ++ "[]"
+prettyType :: Type -> String
+prettyType Integer = "int"
+prettyType Boolean = "bool"
+prettyType (Array t) = prettyType t ++ "[]"
 
-showUnaryOp :: UnaryOp -> String
-showUnaryOp Negate   = "!"
-showUnaryOp Positive = "+"
-showUnaryOp Negative = "-"
+prettyUnaryOp :: UnaryOp -> String
+prettyUnaryOp Negate   = "!"
+prettyUnaryOp Positive = "+"
+prettyUnaryOp Negative = "-"
 
-showBinaryOp :: BinaryOp -> String
-showBinaryOp op =
+prettyBinaryOp :: BinaryOp -> String
+prettyBinaryOp op =
   case op of
     And      -> "&&"
     Or       -> "||"
@@ -32,23 +32,23 @@ showBinaryOp op =
     Subtract -> "-"
     Multiply -> "*"
 
-showLValue :: LValue -> String
-showLValue (Variable (Var v _)) = v
-showLValue (ArrayElem (Var v _) e) = v ++ "[" ++ showExpression e ++ "]"
+prettyLValue :: LValue -> String
+prettyLValue (Variable (Var v _)) = v
+prettyLValue (ArrayElem (Var v _) e) = v ++ "[" ++ prettyExpression e ++ "]"
 
-showExpression :: Expression -> String
-showExpression (IntegerConst i)  = show i
-showExpression (BoolConst True)  = "true"
-showExpression (BoolConst False) = "false"
+prettyExpression :: Expression -> String
+prettyExpression (IntegerConst i)  = show i
+prettyExpression (BoolConst True)  = "true"
+prettyExpression (BoolConst False) = "false"
 
-showExpression (Unary op e) = showExpression e ++ showUnaryOp op
-showExpression (Binary op a b) = showExpression a ++ " " ++ showBinaryOp op ++ " " ++ showExpression b
-showExpression (Ternary IfElse a b c) = showExpression a ++ " ? " ++ showExpression a ++ " : " ++ showExpression b
+prettyExpression (Unary op e) = prettyExpression e ++ prettyUnaryOp op
+prettyExpression (Binary op a b) = prettyExpression a ++ " " ++ prettyBinaryOp op ++ " " ++ prettyExpression b
+prettyExpression (Ternary IfElse a b c) = prettyExpression a ++ " ? " ++ prettyExpression a ++ " : " ++ prettyExpression b
 
-showExpression (Eql   a b) = showExpression a ++ " == " ++ showExpression b
-showExpression (InEql a b) = showExpression a ++ " != " ++ showExpression b
+prettyExpression (Eql   a b) = prettyExpression a ++ " == " ++ prettyExpression b
+prettyExpression (InEql a b) = prettyExpression a ++ " != " ++ prettyExpression b
 
-showExpression (Ref lval) = showLValue lval
+prettyExpression (Ref lval) = prettyLValue lval
 
 toIndent :: Int -> String
 toIndent n = replicate (n * 2) ' '
@@ -68,27 +68,27 @@ semicolon = ";"
 condition :: Int -> String -> String
 condition n c = "if (" ++ c ++ ") "
 
-showIndented :: Int -> Statement -> String
-showIndented n (Declare v e) = toIndent n ++ showVar v ++ showDef e ++ semicolon
+indented :: Int -> Statement -> String
+indented n (Declare v e) = toIndent n ++ prettyVar v ++ prettyDef e ++ semicolon
   where
-    showVar (Var v t) = showType t ++ " " ++ v
-    showDef Nothing  = ""
-    showDef (Just e) = " = " ++ showExpression e
-showIndented n (Assign lv e) = toIndent n ++ showLValue lv ++ " = " ++ showExpression e ++ semicolon
-showIndented n (If c a b) = toIndent n ++ condition n (showExpression c) ++ showBlock n a ++ showElse b
+    prettyVar (Var v t) = prettyType t ++ " " ++ v
+    prettyDef Nothing  = ""
+    prettyDef (Just e) = " = " ++ prettyExpression e
+indented n (Assign lv e) = toIndent n ++ prettyLValue lv ++ " = " ++ prettyExpression e ++ semicolon
+indented n (If c a b) = toIndent n ++ condition n (prettyExpression c) ++ prettyBlock n a ++ prettyElse b
   where
-    showElse [] = ""
-    showElse b  = els n ++ showBlock n b
-    showBlock n ss = lbra n ++ showStatements (n + 1) ss ++ rbra n
+    prettyElse [] = ""
+    prettyElse b  = els n ++ prettyBlock n b
+    prettyBlock n ss = lbra n ++ prettyStatements (n + 1) ss ++ rbra n
 
-showStatement :: Statement -> String
-showStatement = showIndented 0
+prettyStatement :: Statement -> String
+prettyStatement = indented 0
 
-showStatements :: Int -> [Statement] -> String
-showStatements n = intercalate "\n" . map (showIndented n)
+prettyStatements :: Int -> [Statement] -> String
+prettyStatements n = intercalate "\n" . map (indented n)
 
-showAssertion :: Assertion -> String
-showAssertion (Assertion e) = "assert " ++ showExpression e ++ semicolon
+prettyAssertion :: Assertion -> String
+prettyAssertion (Assertion e) = "assert " ++ prettyExpression e ++ semicolon
 
-showProgram :: Program -> String
-showProgram (Program ss as) = showStatements 0 ss ++ "\n" ++ concatMap showAssertion as
+prettyProgram :: Program -> String
+prettyProgram (Program ss as) = prettyStatements 0 ss ++ "\n" ++ concatMap prettyAssertion as

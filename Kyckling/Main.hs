@@ -15,4 +15,4 @@ main = do args <- getArgs
             Left parsingError -> print parsingError
             Right ast -> case analyze ast of
                            Left typeError -> print typeError
-                           Right code -> putStrLn $ showProgram code
+                           Right code -> putStrLn $ prettyProgram code
