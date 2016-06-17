@@ -62,6 +62,9 @@ prettyQuantifier q =
     Exists -> "?"
 
 prettyTerm :: Term -> String
+prettyTerm (IntegerConst i) = show i
+prettyTerm (BooleanConst True) = "$true"
+prettyTerm (BooleanConst False) = "$false"
 prettyTerm (FunApp f []) = prettyFun f
 prettyTerm (FunApp f ts) = prettyFun f ++ "(" ++ list (map prettyTerm ts) ++ ")"
 prettyTerm (Var v) = v

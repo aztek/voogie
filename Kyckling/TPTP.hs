@@ -38,7 +38,9 @@ data Binding = Binding Definition Term
 
 data Quantifier = Forall | Exists
 
-data Term = FunApp Fun [Term]
+data Term = IntegerConst Integer
+          | BooleanConst Bool
+          | FunApp Fun [Term]
           | Var Var
           | Binary BinaryOp Term Term
           | Quantify Quantifier [SortedVar] Term
