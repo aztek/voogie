@@ -17,4 +17,4 @@ main = do args <- getArgs
             Right ast -> case analyze ast of
                            Left typeError -> print typeError
                            Right code -> let tptp = translate code
-                                          in putStrLn $ prettyTPTP tptp
+                                          in putStr $ prettyTPTP tptp

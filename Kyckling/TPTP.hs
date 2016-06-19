@@ -23,14 +23,16 @@ data BinaryOp = Impl
 data UnaryOp = Not
   deriving (Show)
 
-type Var = String
-type Constant = String
-
 data Sort = Boolean
           | Integer
           | TupleS [Sort]
           | Array Sort Sort
-  deriving (Show)
+  deriving (Show, Eq)
+
+type Var = String
+
+data Constant = Constant { constantName :: String, constantSort :: Sort }
+  deriving (Show, Eq)
 
 data SortedVar = SortedVar Var Sort
   deriving (Show)
@@ -49,7 +51,7 @@ data Term = IntegerConst Integer
           | BooleanConst Bool
           | FunApp Fun [Term]
           | Var Var
-          | Constant Constant
+          | Const Constant
           | Unary  UnaryOp  Term
           | Binary BinaryOp Term Term
           | Quantify Quantifier [SortedVar] Term
@@ -57,7 +59,7 @@ data Term = IntegerConst Integer
           | If Term Term Term
   deriving (Show)
 
-data SortDeclaration = SortDeclaration Constant Sort
+data SortDeclaration = SortDeclaration Constant
   deriving (Show)
 
 data Conjecture = Conjecture String Term
