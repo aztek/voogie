@@ -1,15 +1,4 @@
-module Kyckling.Program (
-  Type(..),
-  Var(..),
-  UnaryOp(..), unaryOpDomain, unaryOpRange,
-  BinaryOp(..), binaryOpDomain, binaryOpRange,
-  TernaryOp(..),
-  LValue(..),
-  Expression(..),
-  Statement(..),
-  Assertion(..),
-  Program(..)
-) where
+module Kyckling.Program where
 
 data Type = Integer
           | Boolean
@@ -24,51 +13,10 @@ data UnaryOp = Negate
              | Negative
   deriving (Show)
 
-unaryOpDomain :: UnaryOp -> Type
-unaryOpDomain op = 
-  case op of
-    Negate   -> Boolean
-    Positive -> Integer
-    Negative -> Integer
-
-unaryOpRange :: UnaryOp -> Type
-unaryOpRange op = 
-  case op of
-    Negate   -> Boolean
-    Positive -> Integer
-    Negative -> Integer
-
-
 data BinaryOp = And | Or
               | Greater | Less | Geq | Leq
               | Add | Subtract | Multiply
   deriving (Show)
-
-binaryOpDomain :: BinaryOp -> (Type, Type)
-binaryOpDomain op =
-  case op of
-    And      -> (Boolean, Boolean)
-    Or       -> (Boolean, Boolean)
-    Greater  -> (Integer, Integer)
-    Less     -> (Integer, Integer)
-    Geq      -> (Integer, Integer)
-    Leq      -> (Integer, Integer)
-    Add      -> (Integer, Integer)
-    Subtract -> (Integer, Integer)
-    Multiply -> (Integer, Integer)
-
-binaryOpRange :: BinaryOp -> Type
-binaryOpRange op =
-  case op of
-    And      -> Boolean
-    Or       -> Boolean
-    Greater  -> Boolean
-    Less     -> Boolean
-    Geq      -> Boolean
-    Leq      -> Boolean
-    Add      -> Integer
-    Subtract -> Integer
-    Multiply -> Integer
 
 data TernaryOp = IfElse
   deriving (Show)

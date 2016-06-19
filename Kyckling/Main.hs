@@ -4,7 +4,8 @@ import System.Environment
 
 import Kyckling.Parse
 import Kyckling.Front
-import Kyckling.Program.Pretty
+import Kyckling.Back
+import Kyckling.TPTP.Pretty
 
 main = do args <- getArgs
           let (source, input) = case args of
@@ -15,4 +16,5 @@ main = do args <- getArgs
             Left parsingError -> print parsingError
             Right ast -> case analyze ast of
                            Left typeError -> print typeError
-                           Right code -> putStrLn $ prettyProgram code
+                           Right code -> let tptp = translate code
+                                          in putStrLn $ prettyTPTP tptp

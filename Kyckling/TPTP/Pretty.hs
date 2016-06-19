@@ -1,4 +1,6 @@
-module Kyckling.TPTP.Pretty (prettyTPTP) where
+module Kyckling.TPTP.Pretty (
+  prettyTPTP
+) where
 
 import Data.List
 
@@ -7,13 +9,21 @@ import Kyckling.TPTP
 list :: [String] -> String
 list = intercalate ", "
 
+tuple :: [String] -> String
+tuple es = "[" ++ list es ++ "]"
+
+parens :: String -> String
+parens s = "(" ++ s ++ ")"
+
+funapp :: String -> [String] -> String
+funapp f as = f ++ parens (list as)
+
 prettyFun :: Fun -> String
 prettyFun f =
   case f of
     Sum        -> "$sum"
     Difference -> "$difference"
     Product    -> "$product"
-    Divide     -> "$divide"
     Uminus     -> "$uminus"
     Lesseq     -> "$lesseq"
     Less       -> "$less"
@@ -26,10 +36,10 @@ prettyBinaryOp :: BinaryOp -> String
 prettyBinaryOp op =
   case op of 
     Impl -> "=>"
-    Xor  -> "<~>"
-    Iff  -> "<=>"
     And  -> "&"
     Or   -> "|"
+    Eq   -> "="
+    InEq -> "!="
 
 prettyUnaryOp :: UnaryOp -> String
 prettyUnaryOp op =
@@ -39,21 +49,25 @@ prettyUnaryOp op =
 prettySort :: Sort -> String
 prettySort s =
   case s of
-    Individual -> "$i"
     Boolean    -> "$o"
     Integer    -> "$int"
-    STuple ss  -> "[" ++ list (map prettySort ss) ++ "]"
-    Array i t  -> "$array(" ++ list [prettySort i, prettySort t] ++ ")"
+    TupleS ss  -> tuple (map prettySort ss)
+    Array i t  -> funapp "$array" [prettySort i, prettySort t]
 
 prettySortedVar :: SortedVar -> String
 prettySortedVar (SortedVar v s) = v ++ ":" ++ prettySort s
 
 prettyDefinition :: Definition -> String
-prettyDefinition (Symbol f []) = prettyFun f
-prettyDefinition (Symbol f vs) = prettyFun f ++ "(" ++ list (map prettySortedVar vs) ++ ")"
+prettyDefinition (Symbol c []) = c
+prettyDefinition (Symbol c vs) = funapp c (map prettySortedVar vs)
+prettyDefinition (TupleD es) = tuple es
+
+offsetBinding :: Int -> Binding -> String
+offsetBinding o (Binding d t) = d' ++ " := " ++ indentedTerm 0 (o + length d' + 4) t
+  where d' = prettyDefinition d
 
 prettyBinding :: Binding -> String
-prettyBinding (Binding d t) = prettyDefinition d ++ " := " ++ prettyTerm t
+prettyBinding = offsetBinding 0
 
 prettyQuantifier :: Quantifier -> String
 prettyQuantifier q =
@@ -61,26 +75,45 @@ prettyQuantifier q =
     Forall -> "!"
     Exists -> "?"
 
-prettyTerm :: Term -> String
-prettyTerm (IntegerConst i) = show i
-prettyTerm (BooleanConst True) = "$true"
-prettyTerm (BooleanConst False) = "$false"
-prettyTerm (FunApp f []) = prettyFun f
-prettyTerm (FunApp f ts) = prettyFun f ++ "(" ++ list (map prettyTerm ts) ++ ")"
-prettyTerm (Var v) = v
-prettyTerm (Binary op a b) = prettyTerm a ++ " " ++ prettyBinaryOp op ++ " " ++ prettyTerm b
-prettyTerm (Quantify q [] t) = prettyTerm t
-prettyTerm (Quantify q vs t) = prettyQuantifier q ++ " [" ++ list (map prettySortedVar vs) ++ "]: " ++ prettyTerm t
-prettyTerm (Let []  t) = prettyTerm t
-prettyTerm (Let [b] t) = "$let(" ++ list [prettyBinding b, prettyTerm t] ++ ")"
-prettyTerm (Let bs  t) = "$let([" ++ list (map prettyBinding bs) ++ "], " ++ prettyTerm t ++ ")"
-prettyTerm (If c a b) = "$ite(" ++ list [prettyTerm c, prettyTerm a, prettyTerm b] ++ ")"
+indent :: Int -> String
+indent = flip replicate ' '
 
-prettyInputType :: InputType -> String
-prettyInputType it =
-  case it of
-    Axiom      -> "axiom"
-    Conjecture -> "conjecture"
+indentedTerm :: Int -> Int -> Term -> String
+indentedTerm i o t = indent i ++ case t of
+  IntegerConst num   -> show num
+  BooleanConst True  -> "$true"
+  BooleanConst False -> "$false"
+  FunApp Tuple ts    -> tuple (map prettyTerm ts)
+  FunApp f []        -> prettyFun f
+  FunApp f ts        -> funapp (prettyFun f) (map prettyTerm ts)
+  Var v              -> v
+  Constant c         -> c
+  Unary op a         -> prettyUnaryOp op ++ prettyTerm a
+  Binary op a b      -> parens $ prettyTerm a ++ " " ++ prettyBinaryOp op ++ " " ++ prettyTerm b
+  Quantify q [] t    -> prettyTerm t
+  Quantify q vs t    -> prettyQuantifier q ++ " " ++ tuple (map prettySortedVar vs) ++ ": " ++ prettyTerm t
+  Let b t            -> funapp "$let" [offsetBinding (o + 5) b,
+                               "\n" ++ indentedTerm (if isLet t then i else i + 5) (if isLet t then o else o + 5) t]
+  If c a b           -> funapp "$ite" [indentedTerm 0 (o + 5) c,
+                               "\n" ++ indentedTerm (i + o + 5) (i + o + 5) a,
+                               "\n" ++ indentedTerm (i + o + 5) (i + o + 5) b]
+
+isLet :: Term -> Bool
+isLet (Let _ _) = True
+isLet _ = False
+
+prettyTerm :: Term -> String
+prettyTerm = indentedTerm 0 0
+
+thf :: String -> String -> String -> String
+thf n it s = funapp "thf" [n , it, "\n" ++ s] ++ ".\n"
+
+prettySortDeclaration :: SortDeclaration -> String
+prettySortDeclaration (SortDeclaration c s) = thf c "type" (c ++ ": " ++ prettySort s)
+
+prettyConjecture :: Conjecture -> String
+prettyConjecture (Conjecture n t) = thf n "conjecture" (indentedTerm 4 4 t)
+  where i = 4 + length n
 
 prettyTPTP :: TPTP -> String
-prettyTPTP (TPTP name it t) = "thf(" ++ list [name, prettyInputType it, prettyTerm t] ++ ")."
+prettyTPTP (TPTP sds c) = unwords (map prettySortDeclaration sds) ++ prettyConjecture c
