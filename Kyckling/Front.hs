@@ -78,8 +78,8 @@ analyzeAssert env (AST.Assert e) = Assertion <$> analyzeExpr env Boolean e
 analyzeLValue :: Env -> Type -> AST.LVal -> Either Error LValue
 analyzeLValue env t lval = do (t', lval') <- analyzeLValue' env lval
                               if t == t' then return lval' else
-                                Left $ "expected an expression of the type " ++ showType t' ++
-                                       " but got " ++ showLValue lval' ++ " of the type " ++ showType t 
+                                Left $ "expected an expression of the type " ++ prettyType t' ++
+                                       " but got " ++ prettyLValue lval' ++ " of the type " ++ prettyType t 
 
 analyzeLValue' :: Env -> AST.LVal -> Either Error (Type, LValue)
 analyzeLValue' env (AST.Var name) =
@@ -93,8 +93,8 @@ analyzeLValue' env (AST.ArrayElem name el) =
 analyzeExpr :: Env -> Type -> AST.Expr -> Either Error Expression
 analyzeExpr env t e = do (t', e') <- analyzeExpr' env e
                          if t == t' then return e' else
-                           Left $ "expected an expression of the type " ++ showType t' ++
-                                  " but got " ++ showExpression e' ++ " of the type " ++ showType t 
+                           Left $ "expected an expression of the type " ++ prettyType t' ++
+                                  " but got " ++ prettyExpression e' ++ " of the type " ++ prettyType t 
 
 analyzeExpr' :: Env -> AST.Expr -> Either Error (Type, Expression)
 analyzeExpr' _ (AST.IntConst  i) = return (Integer, IntegerConst i)
