@@ -2,10 +2,10 @@
 
 all:
 	mkdir -p bin
-	ghc -Werror -o bin/kyckling Kyckling/Main.hs
+	ghc -Werror -isrc -o bin/kyckling src/Kyckling/Main.hs
 
 hlint:
-	hlint Kyckling/
+	hlint src/
 
 clean:
-	rm -rf bin **/*.hi **/**/*.hi
+	rm -rf bin **/*.hi **/**/*.hi **/**/**/*.hi
