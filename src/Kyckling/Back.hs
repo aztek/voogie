@@ -19,7 +19,7 @@ translate (P.Program ss as) = TPTP sortDecls conjecture
 
     sortDecls = map SortDeclaration unbound
 
-    conjecture = Conjecture "1" boundAssert
+    conjecture = Conjecture "asserts" boundAssert
     boundAssert = foldr Let assert bindings
     assert = foldr1 (Binary And) (map translateAssertion as)
 
