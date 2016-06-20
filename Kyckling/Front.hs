@@ -2,7 +2,6 @@ module Kyckling.Front where
 
 import Control.Monad
 import Control.Applicative
-import Control.Monad.Writer
 
 import Kyckling.Program
 import Kyckling.Program.Types
@@ -33,8 +32,6 @@ analyze (AST.AST ss as) =
      as' <- mapM (analyzeAssert env) as
      return (Program ss' as')
 
-type ScopedStatements = Writer Env [Statement]
-
 analyzeStmtList :: Env -> [AST.Stmt] -> Either Error (Env, [Statement])
 analyzeStmtList env [] = Right (env, [])
 analyzeStmtList env (s:ss) =
@@ -45,9 +42,9 @@ analyzeStmtList env (s:ss) =
 analyzeStmt :: Env -> AST.Stmt -> Either Error (Env, [Statement])
 analyzeStmt env (AST.Declare typ defs) =
   do defs' <- mapM analyzeDef defs
-     let env' = map (\(n, _) -> (n, t)) defs'
+     let env' = map (\(n, _) -> (n, t)) defs' ++ env
      let decl = map (\(n, e) -> Declare (Var n t) e) defs'
-     return (env' ++ env, decl)
+     return (env', decl)
   where
     t = translateType typ
     analyzeDef (n, e) = do e' <- mapM (analyzeExpr env t) e
@@ -73,9 +70,8 @@ analyzeStmt env (AST.Update lval op e) =
      return (env, [Assign lv (Binary op' (Ref lv) e')])
   where
     op' = translateUpdateOp op
-    (d1, d2) = binaryOpDomain op'
-    r = binaryOpDomain op'
-    -- we assume that d1 == r
+    (d1, d2) = binaryOpDomain op' -- we assume that d1 == range of op'
+
 analyzeAssert :: Env -> AST.Assert -> Either Error Assertion
 analyzeAssert env (AST.Assert e) = Assertion <$> analyzeExpr env Boolean e
 
