@@ -11,14 +11,16 @@ translate :: P.Program -> TPTP
 translate (P.Program ss []) = TPTP [] (Conjecture "true" (BooleanConst True))
 translate (P.Program ss as) = TPTP sortDecls conjecture
   where
-    (ds, bs) = translateStatements ss
+    (declared, bindings) = translateStatements ss
 
-    unboundDecls = nub (concatMap namesIn bs \\ ds)
+    bound = concatMap namesIn bindings
 
-    sortDecls = map SortDeclaration unboundDecls
+    unbound = nub (declared \\ bound)
+
+    sortDecls = map SortDeclaration unbound
 
     conjecture = Conjecture "1" boundAssert
-    boundAssert = foldr Let assert bs
+    boundAssert = foldr Let assert bindings
     assert = foldr1 (Binary And) (map translateAssertion as)
 
 type Declaration = Constant
@@ -42,17 +44,24 @@ translateStatement (P.Assign lval e) = Right (Binding (Symbol n []) body)
              P.ArrayElem _ a -> FunApp Store [Const n, translateExpression a, e']
 translateStatement (P.If c a b) = Right binding
   where
-    (ad, a') = translateStatements a
-    (bd, b') = translateStatements b
+    (thenDeclared, thenBindings) = translateStatements a
+    (elseDeclared, elseBindings) = translateStatements b
 
-    decls = nub (ad ++ bd)
+    thenBound = concatMap namesIn thenBindings
+    elseBound = concatMap namesIn elseBindings
+    bound = nub (thenBound ++ elseBound)
 
-    updated = nub (concatMap namesIn a' ++ concatMap namesIn b') \\ decls
+    declared = nub (thenDeclared ++ elseDeclared)
+
+    updated = bound \\ declared
+
+    -- TODO: for now we assume that there are no unbound declarations;
+    --       this assumption must be removed in the future
 
     constructBranch = foldr Let (FunApp Tuple $ map Const updated)
 
     c' = translateExpression c
-    ite = If c' (constructBranch a') (constructBranch b')
+    ite = If c' (constructBranch thenBindings) (constructBranch elseBindings)
     binding = Binding (TupleD updated) ite
 
 translateStatements :: [P.Statement] -> ([Declaration], [Binding])
