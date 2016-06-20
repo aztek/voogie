@@ -69,11 +69,7 @@ condition :: Int -> String -> String
 condition n c = "if (" ++ c ++ ") "
 
 indented :: Int -> Statement -> String
-indented n (Declare v e) = toIndent n ++ prettyVar v ++ prettyDef e ++ semicolon
-  where
-    prettyVar (Var v t) = prettyType t ++ " " ++ v
-    prettyDef Nothing  = ""
-    prettyDef (Just e) = " = " ++ prettyExpression e
+indented n (Declare (Var v t)) = toIndent n ++ prettyType t ++ " " ++ v ++ semicolon
 indented n (Assign lv e) = toIndent n ++ prettyLValue lv ++ " = " ++ prettyExpression e ++ semicolon
 indented n (If c a b) = toIndent n ++ condition n (prettyExpression c) ++ prettyBlock n a ++ prettyElse b
   where

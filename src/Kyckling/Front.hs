@@ -3,6 +3,8 @@ module Kyckling.Front where
 import Control.Monad
 import Control.Applicative
 
+import Data.Maybe
+
 import Kyckling.Program
 import Kyckling.Program.Types
 import Kyckling.Program.Pretty
@@ -43,12 +45,14 @@ analyzeStmt :: Env -> AST.Stmt -> Either Error (Env, [Statement])
 analyzeStmt env (AST.Declare typ defs) =
   do defs' <- mapM analyzeDef defs
      let env' = map (\(n, _) -> (n, t)) defs' ++ env
-     let decl = map (\(n, e) -> Declare (Var n t) e) defs'
+     let decl = concatMap toStmts defs'
      return (env', decl)
   where
     t = translateType typ
     analyzeDef (n, e) = do e' <- mapM (analyzeExpr env t) e
                            return (n, e')
+    toStmts (n, e) = (Declare v):(map (Assign (Variable v)) $ maybeToList e)
+      where v = Var n t
 analyzeStmt env (AST.If c a b) =
   do (_, a') <- analyzeStmtList env a
      (_, b') <- analyzeStmtList env b

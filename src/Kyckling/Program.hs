@@ -35,7 +35,7 @@ data Expression = IntegerConst Integer
                 | Ref LValue
   deriving (Show)
 
-data Statement = Declare Var (Maybe Expression)
+data Statement = Declare Var
                | Assign LValue Expression
                | If Expression [Statement] [Statement]
   deriving (Show)

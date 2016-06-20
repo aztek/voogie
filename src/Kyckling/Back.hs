@@ -28,8 +28,7 @@ namesIn (Binding (Symbol n _) _) = [n]
 namesIn (Binding (TupleD ns)  _) = ns
 
 translateStatement :: P.Statement -> Either Declaration Binding
-translateStatement (P.Declare v Nothing) = Left (translateVar v)
-translateStatement (P.Declare v (Just e)) = undefined
+translateStatement (P.Declare v) = Left (translateVar v)
 translateStatement (P.Assign lval e) = Right (Binding (Symbol n []) body)
   where
     e' = translateExpression e
