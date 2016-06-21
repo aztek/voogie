@@ -49,9 +49,9 @@ analyzeStmt env (AST.Declare typ defs) =
      return (env', decl)
   where
     t = translateType typ
-    analyzeDef (n, e) = do e' <- mapM (analyzeExpr env t) e
+    analyzeDef (n, e) = do e' <- mapM (analyzeExpr env t) $ maybeToList e
                            return (n, e')
-    toStmts (n, e) = (Declare v):(map (Assign (Variable v)) $ maybeToList e)
+    toStmts (n, e) = (Declare v):(map (Assign (Variable v)) e)
       where v = Var n t
 analyzeStmt env (AST.If c a b) =
   do (_, a') <- analyzeStmtList env a
