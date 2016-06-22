@@ -1,4 +1,4 @@
-module Kyckling.AST where
+module Kyckling.Program.AST where
 
 import Data.List
 import Data.Maybe

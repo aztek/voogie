@@ -8,7 +8,7 @@ import Data.Maybe
 import Kyckling.Program
 import Kyckling.Program.Types
 import Kyckling.Program.Pretty
-import qualified Kyckling.AST as AST
+import qualified Kyckling.Program.AST as AST
 
 type Error = String
 
