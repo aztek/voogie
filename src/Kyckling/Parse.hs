@@ -96,12 +96,14 @@ stmt =  updateStmt
 
 atomicStmt p = do { s <- p; semi; return s }
 
-updateStmt = atomicStmt $ do v <- lval
-                             choice $ map (\(t, o) -> reserved t >> return (o v)) unaryUpdates ++
-                                      map (\(t, o) -> reserved t >> AST.Update v o <$> expr) binaryUpdates
+updateStmt = atomicStmt $ do lv <- lval
+                             let unary  op = return (op lv)
+                             let binary op = AST.Update lv op <$> expr
+                             choice (map (update unary) unaryOps ++ map (update binary) binaryOps)
   where
-    unaryUpdates  = [("++", AST.Increment), ("--", AST.Decrement)]
-    binaryUpdates = [("=",  AST.Assign), ("+=", AST.Add), ("-=", AST.Subtract), ("*=", AST.Multiply)]
+    update u (t, op) = reserved t >> u op
+    unaryOps  = [("++", AST.Increment), ("--", AST.Decrement)]
+    binaryOps = [("=",  AST.Assign), ("+=", AST.Add), ("-=", AST.Subtract), ("*=", AST.Multiply)]
 
 declareStmt = atomicStmt $ AST.Declare <$> typ <*> commaSep1 definition
   where
