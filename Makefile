@@ -1,11 +1,11 @@
 .PHONY = all
 
 all:
-	mkdir -p bin
-	ghc -Werror -isrc -o bin/kyckling src/Kyckling/Main.hs
+	mkdir -p bin obj
+	ghc -Werror -hidir obj -odir obj -isrc -o bin/kyckling src/Kyckling/Main.hs
 
 hlint:
 	hlint src/
 
 clean:
-	rm -rf bin **/*.hi **/**/*.hi **/**/**/*.hi
+	rm -rf bin obj
