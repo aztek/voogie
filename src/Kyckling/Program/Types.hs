@@ -2,42 +2,33 @@ module Kyckling.Program.Types where
 
 import Kyckling.Program
 
-unaryOpDomain :: UnaryOp -> Type
-unaryOpDomain op = 
+unaryOpTypes :: UnaryOp -> (Type, Type)
+unaryOpTypes op =
   case op of
-    Negate   -> Boolean
-    Positive -> Integer
-    Negative -> Integer
+    Negate   -> (Boolean, Boolean)
+    Positive -> (Integer, Integer)
+    Negative -> (Integer, Integer)
 
-unaryOpRange :: UnaryOp -> Type
-unaryOpRange op = 
+unaryOpDomain, unaryOpRange :: UnaryOp -> Type
+unaryOpDomain = fst . unaryOpTypes
+unaryOpRange  = snd . unaryOpTypes
+
+
+binaryOpTypes :: BinaryOp -> ((Type, Type), Type)
+binaryOpTypes op =
   case op of
-    Negate   -> Boolean
-    Positive -> Integer
-    Negative -> Integer
+    And      -> ((Boolean, Boolean), Boolean)
+    Or       -> ((Boolean, Boolean), Boolean)
+    Greater  -> ((Integer, Integer), Boolean)
+    Less     -> ((Integer, Integer), Boolean)
+    Geq      -> ((Integer, Integer), Boolean)
+    Leq      -> ((Integer, Integer), Boolean)
+    Add      -> ((Integer, Integer), Integer)
+    Subtract -> ((Integer, Integer), Integer)
+    Multiply -> ((Integer, Integer), Integer)
 
 binaryOpDomain :: BinaryOp -> (Type, Type)
-binaryOpDomain op =
-  case op of
-    And      -> (Boolean, Boolean)
-    Or       -> (Boolean, Boolean)
-    Greater  -> (Integer, Integer)
-    Less     -> (Integer, Integer)
-    Geq      -> (Integer, Integer)
-    Leq      -> (Integer, Integer)
-    Add      -> (Integer, Integer)
-    Subtract -> (Integer, Integer)
-    Multiply -> (Integer, Integer)
+binaryOpDomain = fst . binaryOpTypes
 
 binaryOpRange :: BinaryOp -> Type
-binaryOpRange op =
-  case op of
-    And      -> Boolean
-    Or       -> Boolean
-    Greater  -> Boolean
-    Less     -> Boolean
-    Geq      -> Boolean
-    Leq      -> Boolean
-    Add      -> Integer
-    Subtract -> Integer
-    Multiply -> Integer
+binaryOpRange = snd . binaryOpTypes
