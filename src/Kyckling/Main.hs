@@ -5,7 +5,7 @@ import System.Environment
 import Kyckling.Parse
 import Kyckling.Front
 import Kyckling.Back
-import Kyckling.TPTP.Pretty
+import Kyckling.FOOL.TPTPretty
 
 main = do args <- getArgs
           let (source, input) = case args of
@@ -16,5 +16,5 @@ main = do args <- getArgs
             Left parsingError -> print parsingError
             Right ast -> case analyze ast of
                            Left typeError -> print typeError
-                           Right code -> let tptp = translate code
-                                          in putStr $ prettyTPTP tptp
+                           Right code -> let fool = translate code
+                                          in putStr $ prettyTPTP fool

@@ -1,10 +1,10 @@
-module Kyckling.TPTP.Pretty (
+module Kyckling.FOOL.TPTPretty (
   prettyTPTP
 ) where
 
 import Data.List
 
-import Kyckling.TPTP
+import Kyckling.FOOL
 
 list :: [String] -> String
 list = intercalate ", "

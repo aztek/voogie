@@ -1,4 +1,4 @@
-module Kyckling.TPTP where
+module Kyckling.FOOL where
 
 data Fun = Sum
          | Difference

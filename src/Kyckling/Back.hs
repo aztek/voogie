@@ -4,7 +4,7 @@ import Data.Char
 import Data.Either
 import Data.List
 
-import Kyckling.TPTP
+import Kyckling.FOOL
 import qualified Kyckling.Program as P
 
 translate :: P.Program -> TPTP
