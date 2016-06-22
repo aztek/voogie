@@ -1,9 +1,6 @@
 module Kyckling.Program where
 
-data Type = Integer
-          | Boolean
-          | Array Type
-  deriving (Show, Eq)
+import Kyckling.Type
 
 data Var = Var String Type
   deriving (Show)

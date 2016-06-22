@@ -7,6 +7,7 @@ module Kyckling.Program.Pretty (
 
 import Data.List
 
+import Kyckling.Type
 import Kyckling.Program
 
 prettyType :: Type -> String

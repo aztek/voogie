@@ -1,5 +1,7 @@
 module Kyckling.FOOL where
 
+import Kyckling.Type
+
 data Fun = Sum
          | Difference
          | Product
@@ -23,21 +25,14 @@ data BinaryOp = Impl
 data UnaryOp = Not
   deriving (Show)
 
-data Sort = Boolean
-          | Integer
-          | TupleS [Sort]
-          | Array Sort Sort
-  deriving (Show, Eq)
-
 type Var = String
 
-data Constant = Constant { constantName :: String, constantSort :: Sort }
-  deriving (Show, Eq)
+type Constant = (String, Type)
 
-data SortedVar = SortedVar Var Sort
+data TypedVar = TypedVar Var Type
   deriving (Show)
 
-data Definition = Symbol Constant [SortedVar]
+data Definition = Symbol Constant [TypedVar]
                 | TupleD [Constant]
   deriving (Show)
 
@@ -54,16 +49,9 @@ data Term = IntegerConst Integer
           | Const Constant
           | Unary  UnaryOp  Term
           | Binary BinaryOp Term Term
-          | Quantify Quantifier [SortedVar] Term
+          | Quantify Quantifier [TypedVar] Term
           | Let Binding Term
           | If Term Term Term
   deriving (Show)
 
-data SortDeclaration = SortDeclaration Constant
-  deriving (Show)
-
-data Conjecture = Conjecture String Term
-  deriving (Show)
-
-data TPTP = TPTP [SortDeclaration] Conjecture
-  deriving (Show)
+type Formula = Term

@@ -4,23 +4,21 @@ import Data.Char
 import Data.Either
 import Data.List
 
+import Kyckling.Type
 import Kyckling.FOOL
 import qualified Kyckling.Program as P
 
-translate :: P.Program -> TPTP
-translate (P.Program ss []) = TPTP [] (Conjecture "true" (BooleanConst True))
-translate (P.Program ss as) = TPTP sortDecls conjecture
+translate :: P.Program -> (Signature, Term)
+translate (P.Program ss []) = ([] , BooleanConst True)
+translate (P.Program ss as) = (signature, conjecture)
   where
     (declared, bindings) = translateStatements ss
 
     bound = concatMap namesIn bindings
 
-    unbound = nub (declared \\ bound)
+    signature = nub (declared \\ bound)
 
-    sortDecls = map SortDeclaration unbound
-
-    conjecture = Conjecture "asserts" boundAssert
-    boundAssert = foldr Let assert bindings
+    conjecture = foldr Let assert bindings
     assert = foldr1 (Binary And) (map translateAssertion as)
 
 type Declaration = Constant
@@ -102,9 +100,4 @@ translateLValue (P.Variable v)    = Const (translateVar v)
 translateLValue (P.ArrayElem v e) = FunApp Select [Const (translateVar v), translateExpression e]
 
 translateVar :: P.Var -> Constant
-translateVar (P.Var v t) = Constant (map toLower v) (translateType t)
-
-translateType :: P.Type -> Sort
-translateType P.Integer = Integer
-translateType P.Boolean = Boolean
-translateType (P.Array t) = Array Integer (translateType t)
+translateVar (P.Var v t) = (map toLower v, t)

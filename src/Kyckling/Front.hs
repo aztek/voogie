@@ -5,6 +5,7 @@ import Control.Applicative
 
 import Data.Maybe
 
+import Kyckling.Type
 import Kyckling.Program
 import Kyckling.Program.Types
 import Kyckling.Program.Pretty

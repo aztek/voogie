@@ -1,5 +1,6 @@
 module Kyckling.Program.Types where
 
+import Kyckling.Type
 import Kyckling.Program
 
 unaryOpTypes :: UnaryOp -> (Type, Type)

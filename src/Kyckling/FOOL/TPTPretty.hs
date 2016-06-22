@@ -4,6 +4,7 @@ module Kyckling.FOOL.TPTPretty (
 
 import Data.List
 
+import Kyckling.Type
 import Kyckling.FOOL
 
 list :: [String] -> String
@@ -46,23 +47,22 @@ prettyUnaryOp op =
   case op of
     Not -> "~"
 
-prettySort :: Sort -> String
-prettySort s =
+prettyType :: Type -> String
+prettyType s =
   case s of
-    Boolean    -> "$o"
-    Integer    -> "$int"
-    TupleS ss  -> tuple (map prettySort ss)
-    Array i t  -> funapp "$array" [prettySort i, prettySort t]
+    Boolean -> "$o"
+    Integer -> "$int"
+    Array t -> funapp "$array" ["$int", prettyType t]
 
 prettyConstant :: Constant -> String
-prettyConstant (Constant n _) = n
+prettyConstant = fst
 
-prettySortedVar :: SortedVar -> String
-prettySortedVar (SortedVar v s) = v ++ ":" ++ prettySort s
+prettyTypedVar :: TypedVar -> String
+prettyTypedVar (TypedVar v s) = v ++ ":" ++ prettyType s
 
 prettyDefinition :: Definition -> String
 prettyDefinition (Symbol c []) = prettyConstant c
-prettyDefinition (Symbol c vs) = funapp (prettyConstant c) (map prettySortedVar vs)
+prettyDefinition (Symbol c vs) = funapp (prettyConstant c) (map prettyTypedVar vs)
 prettyDefinition (TupleD es) = tuple (map prettyConstant es)
 
 offsetBinding :: Int -> Binding -> String
@@ -97,7 +97,7 @@ indentedTerm pp i o t = indent i ++ case t of
   Quantify q [] t -> indentedTerm pp 0 o t
   Quantify q vs t -> prettyQ ++ " " ++ prettyVars ++ ": " ++ parens (indentedTerm False 0 o' t)
                        where prettyQ = prettyQuantifier q
-                             prettyVars = tuple (map prettySortedVar vs)
+                             prettyVars = tuple (map prettyTypedVar vs)
                              o' = o + length prettyQ + 1 + length prettyVars + 3
   Let b t         -> funapp "$let" [offsetBinding (o + 5) b,
                                     "\n" ++ indentedTerm False i' o' t]
@@ -116,11 +116,11 @@ prettyTerm = indentedTerm False 0 0
 thf :: String -> String -> String -> String
 thf n it s = funapp "thf" [n, it, s] ++ ".\n"
 
-prettySortDeclaration :: SortDeclaration -> String
-prettySortDeclaration (SortDeclaration (Constant n s)) = thf n "type" (n ++ ": " ++ prettySort s)
+prettyTypeDeclaration :: (String, Type) -> String
+prettyTypeDeclaration (n, t) = thf n "type" (n ++ ": " ++ prettyType t)
 
-prettyConjecture :: Conjecture -> String
-prettyConjecture (Conjecture n t) = thf n "conjecture" ("\n" ++ indentedTerm False 4 4 t)
+prettyConjecture :: Formula -> String
+prettyConjecture f = thf "asserts" "conjecture" ("\n" ++ indentedTerm False 4 4 f)
 
-prettyTPTP :: TPTP -> String
-prettyTPTP (TPTP sds c) = concatMap prettySortDeclaration sds ++ prettyConjecture c
+prettyTPTP :: (Signature, Formula) -> String
+prettyTPTP (sds, c) = concatMap prettyTypeDeclaration sds ++ prettyConjecture c
