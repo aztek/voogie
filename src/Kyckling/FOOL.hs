@@ -1,6 +1,6 @@
 module Kyckling.FOOL where
 
-import Kyckling.Type
+import Kyckling.Theory
 
 data Fun = Sum
          | Difference

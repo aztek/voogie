@@ -1,4 +1,4 @@
-module Kyckling.Type where
+module Kyckling.Theory where
 
 data Type = Boolean
           | Integer

@@ -4,7 +4,7 @@ module Kyckling.FOOL.TPTPretty (
 
 import Data.List
 
-import Kyckling.Type
+import Kyckling.Theory
 import Kyckling.FOOL
 
 list :: [String] -> String

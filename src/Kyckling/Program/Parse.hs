@@ -9,7 +9,7 @@ import Text.ParserCombinators.Parsec.Expr
 import Text.ParserCombinators.Parsec.Language
 import qualified Text.ParserCombinators.Parsec.Token as Token
 
-import Kyckling.Type
+import Kyckling.Theory
 import qualified Kyckling.Program.AST as AST
 
 languageDef =

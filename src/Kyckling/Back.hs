@@ -4,7 +4,7 @@ import Data.Char
 import Data.Either
 import Data.List
 
-import Kyckling.Type
+import Kyckling.Theory
 import Kyckling.FOOL
 import qualified Kyckling.Program as P
 

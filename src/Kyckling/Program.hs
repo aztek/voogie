@@ -1,6 +1,6 @@
 module Kyckling.Program where
 
-import Kyckling.Type
+import Kyckling.Theory
 
 data Var = Var String Type
   deriving (Show)

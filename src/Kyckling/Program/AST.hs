@@ -3,7 +3,7 @@ module Kyckling.Program.AST where
 import Data.List
 import Data.Maybe
 
-import Kyckling.Type
+import Kyckling.Theory
 
 data PrefixOp = Uminus | Uplus | Not
   deriving (Eq)
