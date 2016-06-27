@@ -42,9 +42,9 @@ prettyExpression (IntegerConst i)  = show i
 prettyExpression (BoolConst True)  = "true"
 prettyExpression (BoolConst False) = "false"
 
-prettyExpression (Unary op e) = prettyExpression e ++ prettyUnaryOp op
+prettyExpression (Unary op e)    = prettyExpression e ++ prettyUnaryOp op
 prettyExpression (Binary op a b) = prettyExpression a ++ " " ++ prettyBinaryOp op ++ " " ++ prettyExpression b
-prettyExpression (Ternary IfElse a b c) = prettyExpression a ++ " ? " ++ prettyExpression a ++ " : " ++ prettyExpression b
+prettyExpression (IfElse a b c)  = prettyExpression a ++ " ? " ++ prettyExpression a ++ " : " ++ prettyExpression b
 
 prettyExpression (Eql   a b) = prettyExpression a ++ " == " ++ prettyExpression b
 prettyExpression (InEql a b) = prettyExpression a ++ " != " ++ prettyExpression b

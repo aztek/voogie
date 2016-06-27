@@ -1,4 +1,4 @@
-module Kyckling.Parse (parseAST) where
+module Kyckling.Program.Parse (parseAST) where
 
 import System.IO
 import Control.Monad
@@ -9,6 +9,7 @@ import Text.ParserCombinators.Parsec.Expr
 import Text.ParserCombinators.Parsec.Language
 import qualified Text.ParserCombinators.Parsec.Token as Token
 
+import Kyckling.Type
 import qualified Kyckling.Program.AST as AST
 
 languageDef =
@@ -114,13 +115,13 @@ ifStmt = reserved "if" >> AST.If <$> parens expr <*> stmts <*> elseStmts
   where
     elseStmts = fromMaybe [] <$> optionMaybe (reserved "else" >> stmts)
 
-typ :: Parser AST.Type
+typ :: Parser Type
 typ = do t <- atomicTyp
          arrs <- many (reserved "[]")
-         return $ foldr (const AST.Array) t arrs
+         return $ foldr (const Array) t arrs
 
-atomicTyp =  constant "int"  AST.I
-         <|> constant "bool" AST.B
+atomicTyp =  constant "int"  Integer
+         <|> constant "bool" Boolean
 
 assert = atomicStmt (reserved "assert" >> AST.Assert <$> expr)
 

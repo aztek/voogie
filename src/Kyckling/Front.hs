@@ -43,13 +43,12 @@ analyzeStmtList env (s:ss) =
      return (env'', s' ++ ss')
 
 analyzeStmt :: Env -> AST.Stmt -> Either Error (Env, [Statement])
-analyzeStmt env (AST.Declare typ defs) =
+analyzeStmt env (AST.Declare t defs) =
   do defs' <- mapM analyzeDef defs
      let env' = map (\(n, _) -> (n, t)) defs' ++ env
      let decl = concatMap toStmts defs'
      return (env', decl)
   where
-    t = translateType typ
     analyzeDef (n, e) = do e' <- mapM (analyzeExpr env t) (maybeToList e)
                            return (n, e')
     toStmts (n, e) = Declare v : map (Assign (Variable v)) e
@@ -134,7 +133,7 @@ analyzeExpr' env (AST.Ternary c a b) =
   do c' <- analyzeExpr env Boolean c
      (t, a') <- analyzeExpr' env a
      b' <- analyzeExpr env t b
-     return (t, Ternary IfElse c' a' b')
+     return (t, IfElse c' a' b')
 
 
 translatePrefixOp :: AST.PrefixOp -> UnaryOp
@@ -163,8 +162,3 @@ translateUpdateOp op =
     AST.Add      -> Add
     AST.Subtract -> Subtract
     AST.Multiply -> Multiply
-
-translateType :: AST.Type -> Type
-translateType AST.I = Integer
-translateType AST.B = Boolean
-translateType (AST.Array t) = Array (translateType t)

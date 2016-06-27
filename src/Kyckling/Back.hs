@@ -90,7 +90,7 @@ translateExpression (P.Binary op a b) =
     P.Add      -> FunApp Sum        [a', b']
     P.Subtract -> FunApp Difference [a', b']
     P.Multiply -> FunApp Product    [a', b']
-translateExpression (P.Ternary P.IfElse c a b) = If (translateExpression c) (translateExpression a) (translateExpression b)
+translateExpression (P.IfElse c a b) = If (translateExpression c) (translateExpression a) (translateExpression b)
 translateExpression (P.Eql   a b) = Binary Eq   (translateExpression a) (translateExpression b)
 translateExpression (P.InEql a b) = Binary InEq (translateExpression a) (translateExpression b)
 translateExpression (P.Ref lval) = translateLValue lval

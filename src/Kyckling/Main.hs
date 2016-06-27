@@ -2,7 +2,7 @@ module Main where
 
 import System.Environment
 
-import Kyckling.Parse
+import Kyckling.Program.Parse
 import Kyckling.Front
 import Kyckling.Back
 import Kyckling.FOOL.TPTPretty

@@ -3,6 +3,8 @@ module Kyckling.Program.AST where
 import Data.List
 import Data.Maybe
 
+import Kyckling.Type
+
 data PrefixOp = Uminus | Uplus | Not
   deriving (Eq)
 
@@ -21,9 +23,6 @@ data Expr = IntConst Integer
           | Infix InfixOp Expr Expr
           | Ternary Expr Expr Expr
           | LVal LVal
-  deriving (Eq)
-
-data Type = I | B | Array Type
   deriving (Eq)
 
 data UpdateOp = Assign | Add | Subtract | Multiply
@@ -72,11 +71,6 @@ instance Show Expr where
   show (Infix op e1 e2) = "(" ++ show e1 ++ " " ++ show op ++ " " ++ show e2 ++ ")"
   show (Ternary c a b) = "(" ++ show c ++ " ? " ++ show a ++ " : " ++ show b ++ ")"
   show (LVal lval) = show lval
-
-instance Show Type where
-  show I = "int"
-  show B = "bool"
-  show (Array t) = show t ++ "[]"
 
 instance Show UpdateOp where
   show Assign   = "="

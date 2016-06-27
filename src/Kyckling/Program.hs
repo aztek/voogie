@@ -15,18 +15,15 @@ data BinaryOp = And | Or
               | Add | Subtract | Multiply
   deriving (Show)
 
-data TernaryOp = IfElse
-  deriving (Show)
-
 data LValue = Variable Var
             | ArrayElem Var Expression
   deriving (Show)
 
 data Expression = IntegerConst Integer
                 | BoolConst Bool
-                | Unary   UnaryOp   Expression
-                | Binary  BinaryOp  Expression Expression
-                | Ternary TernaryOp Expression Expression Expression
+                | Unary  UnaryOp    Expression
+                | Binary BinaryOp   Expression Expression
+                | IfElse Expression Expression Expression
                 | Eql Expression Expression
                 | InEql Expression Expression
                 | Ref LValue
