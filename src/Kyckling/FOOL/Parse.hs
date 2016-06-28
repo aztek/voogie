@@ -38,7 +38,8 @@ operators = [ [prefix "-"  (Unary  Negative)          ,
                binary "!="  InEql            AssocLeft]
             , [prefix "!"  (Unary  Negate  )          ]
             , [binary "&&" (Binary And     ) AssocLeft,
-               binary "||" (Binary Or      ) AssocLeft]
+               binary "||" (Binary Or      ) AssocLeft,
+               binary "=>" (Binary Imply   ) AssocLeft]
             ]
 
 arg =  parens term

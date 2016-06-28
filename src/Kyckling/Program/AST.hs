@@ -17,7 +17,7 @@ data Expr = IntConst Integer
           | LVal LVal
   deriving (Show, Eq)
 
-data UpdateOp = Assign | Add | Subtract | Multiply
+data UpdateOp = Assign | Plus | Minus | Times
   deriving (Show, Eq)
 
 data Stmt = If Expr [Stmt] [Stmt]

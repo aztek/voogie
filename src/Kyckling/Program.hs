@@ -14,7 +14,7 @@ instance TypeOf LValue where
   typeOf (ArrayElem v _) = arrayArgument (typeOf v)
 
 data Expression = IntegerConst Integer
-                | BoolConst Bool
+                | BooleanConst Bool
                 | Ref LValue
                 | Unary  UnaryOp    Expression
                 | Binary BinaryOp   Expression Expression
@@ -25,7 +25,7 @@ data Expression = IntegerConst Integer
 
 instance TypeOf Expression where
   typeOf (IntegerConst _) = Integer
-  typeOf (BoolConst    _) = Boolean
+  typeOf (BooleanConst _) = Boolean
   typeOf (Ref lval) = typeOf lval
   typeOf (Unary op _) = unaryOpRange op
   typeOf (Binary op _ _) = binaryOpRange op

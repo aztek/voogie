@@ -4,31 +4,33 @@ import Control.Monad
 import Control.Applicative
 import Data.Maybe
 
+import qualified Data.Map as Map
+
 import Kyckling.Theory
 import Kyckling.Program
 import Kyckling.Program.Pretty
 import qualified Kyckling.Program.AST as AST
 
 import qualified Kyckling.FOOL as F
-import qualified Kyckling.FOOL.AST as FAST
-import qualified Kyckling.FOOL.Pretty as FP
+import qualified Kyckling.FOOL.AST as F.AST
+import qualified Kyckling.FOOL.Pretty as F.P
 
 type Error = String
 
-type Env = [(String, Type)]
+type Env = Map.Map String Type
 
 emptyEnv :: Env
-emptyEnv = []
+emptyEnv = Map.empty
 
 lookupName :: String -> Env -> Either Error (Typed Name)
-lookupName name env = case lookup name env of
+lookupName name env = case Map.lookup name env of
                         Nothing  -> Left  ("undefined variable " ++ name)
                         Just typ -> Right (Typed name typ)
 
 lookupArrayName :: String -> Env -> Either Error (Typed Name)
-lookupArrayName name env = do Typed _ arr <- lookupName name env
-                              case arr of
-                                Array el  -> Right (Typed name el)
+lookupArrayName name env = do name <- lookupName name env
+                              case typeOf name of
+                                Array _   -> Right name
                                 otherwise -> Left "not an array"
 
 analyze :: AST.AST -> Either Error Program
@@ -47,7 +49,7 @@ analyzeStmtList env (s:ss) =
 analyzeStmt :: Env -> AST.Stmt -> Either Error (Env, [Statement])
 analyzeStmt env (AST.Declare t defs) =
   do defs' <- mapM analyzeDef defs
-     let env' = map (\(n, _) -> (n, t)) defs' ++ env
+     let env' = foldr (\(n, _) -> Map.insert n t) env defs'
      let decl = concatMap toStmts defs'
      return (env', decl)
   where
@@ -76,65 +78,53 @@ analyzeStmt env (AST.Update lval op e) =
      return (env, [Assign lv (Binary op' (Ref lv) e')])
   where
     op' = case op of
-            AST.Add      -> Add
-            AST.Subtract -> Subtract
-            AST.Multiply -> Multiply
+            AST.Plus  -> Add
+            AST.Minus -> Subtract
+            AST.Times -> Multiply
     (d1, d2) = binaryOpDomain op' -- we assume that d1 == range of op'
 
 analyzeAssert :: Env -> AST.Assert -> Either Error Assertion
 analyzeAssert env (AST.Assert f) = Assertion <$> analyzeFormula env f
 
-analyzeFormula :: Env -> FAST.Term -> Either Error F.Formula
+analyzeFormula :: Env -> F.AST.Term -> Either Error F.Formula
 analyzeFormula env = analyzeTerm env Boolean
 
-analyzeTerm :: Env -> Type -> FAST.Term -> Either Error F.Term
+analyzeTerm :: Env -> Type -> F.AST.Term -> Either Error F.Term
 analyzeTerm env t term = do term' <- analyzeTerm' env term
                             let t' = typeOf term'
                             if t == t' then return term' else
                               Left $ "expected an expression of the type " ++ prettyType t' ++
-                                     " but got " ++ FP.prettyTerm term' ++ " of the type " ++ prettyType t 
+                                     " but got " ++ F.P.prettyTerm term' ++ " of the type " ++ prettyType t 
 
-typesCoincide :: F.Term -> F.Term -> Either Error ()
-typesCoincide a b = if t1 == t2 then Right ()
-                                else Left "types mismatch"
-  where
-    t1 = typeOf a
-    t2 = typeOf b
-
-ofType :: F.Term -> Type -> Either Error ()
-ofType a t = if t == typeOf a then Right ()
-                                  else Left "type mismatch"
-
-
-analyzeTerm' :: Env -> FAST.Term -> Either Error F.Term
-analyzeTerm' env (FAST.IntConst  i) = return (F.IntegerConst i)
-analyzeTerm' env (FAST.BoolConst b) = return (F.BooleanConst b)
-analyzeTerm' env (FAST.Unary  op t) = F.Unary op <$> analyzeTerm env d t
+analyzeTerm' :: Env -> F.AST.Term -> Either Error F.Term
+analyzeTerm' _ (F.AST.IntConst  i) = return (F.IntegerConst i)
+analyzeTerm' _ (F.AST.BoolConst b) = return (F.BooleanConst b)
+analyzeTerm' env (F.AST.Unary op t) = F.Unary op <$> analyzeTerm env d t
   where
     d = unaryOpDomain op
-analyzeTerm' env (FAST.Binary op a b) = F.Binary op <$> analyzeTerm env d1 a <*> analyzeTerm env d2 b
+analyzeTerm' env (F.AST.Binary op a b) = F.Binary op <$> analyzeTerm env d1 a <*> analyzeTerm env d2 b
   where
     (d1, d2) = binaryOpDomain op
-analyzeTerm' env (FAST.Ternary c a b) = 
+analyzeTerm' env (F.AST.Ternary c a b) = 
   do c' <- analyzeTerm  env Boolean c
      a' <- analyzeTerm' env a
      b' <- analyzeTerm  env (typeOf a') b
      return (F.If c' a' b')
-analyzeTerm' env (FAST.Eql a b) =
+analyzeTerm' env (F.AST.Eql a b) =
   do a' <- analyzeTerm' env a
      b' <- analyzeTerm  env (typeOf a') b
      return (F.Eql a' b')
-analyzeTerm' env (FAST.InEql a b) =
+analyzeTerm' env (F.AST.InEql a b) =
   do a' <- analyzeTerm' env a
      b' <- analyzeTerm  env (typeOf a') b
      return (F.InEql a' b')
-analyzeTerm' env (FAST.Quantified q vars term) = F.Quantify q vars' <$> analyzeTerm env' Boolean term
+analyzeTerm' env (F.AST.Quantified q vars term) = F.Quantify q vars' <$> analyzeTerm env' Boolean term
   where
     -- TODO: check that the variables are disjoint
-    env' = map (\(Typed v t) -> (v, t)) vars ++ env
+    env' = foldr (\(Typed v t) -> Map.insert v t) env vars
     vars' = map (fmap F.Var) vars
-analyzeTerm' env (FAST.Constant  s)   = F.Const  <$> lookupName s env
-analyzeTerm' env (FAST.ArrayElem s i) = F.Select <$> (F.Const <$> lookupArrayName s env) <*> analyzeTerm env Integer i
+analyzeTerm' env (F.AST.Constant  s)   = F.Const  <$> lookupName s env
+analyzeTerm' env (F.AST.ArrayElem s i) = F.Select <$> (F.Const <$> lookupArrayName s env) <*> analyzeTerm env Integer i
 
 
 analyzeLValue :: Env -> Type -> AST.LVal -> Either Error LValue
@@ -157,7 +147,7 @@ analyzeExpr env t e = do e' <- analyzeExpr' env e
 
 analyzeExpr' :: Env -> AST.Expr -> Either Error Expression
 analyzeExpr' _ (AST.IntConst  i) = return (IntegerConst i)
-analyzeExpr' _ (AST.BoolConst b) = return (BoolConst    b)
+analyzeExpr' _ (AST.BoolConst b) = return (BooleanConst b)
 analyzeExpr' env (AST.LVal lval) = Ref <$> analyzeLValue' env lval
 analyzeExpr' env (AST.Unary op e) = Unary op <$> analyzeExpr env d e
   where

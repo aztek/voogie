@@ -17,8 +17,8 @@ prettyLValue (Variable  (Typed v _)) = v
 prettyLValue (ArrayElem (Typed v _) e) = v ++ "[" ++ prettyExpression e ++ "]"
 
 prettyExpression :: Expression -> String
-prettyExpression (IntegerConst i)  = show i
-prettyExpression (BoolConst b)  = if b then "true" else "false"
+prettyExpression (IntegerConst i) = show i
+prettyExpression (BooleanConst b) = if b then "true" else "false"
 
 prettyExpression (Unary  op e)   = prettyExpression e ++ F.prettyUnaryOp op
 prettyExpression (Binary op a b) = prettyExpression a ++ " " ++ F.prettyBinaryOp op ++ " " ++ prettyExpression b

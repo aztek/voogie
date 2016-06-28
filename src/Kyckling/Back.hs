@@ -67,7 +67,7 @@ translateStatements = partitionEithers . map translateStatement
 
 translateExpression :: P.Expression -> F.Term
 translateExpression (P.IntegerConst i) = F.IntegerConst i 
-translateExpression (P.BoolConst    b) = F.BooleanConst b
+translateExpression (P.BooleanConst b) = F.BooleanConst b
 translateExpression (P.Unary  op e)    = F.Unary  op (translateExpression e)
 translateExpression (P.Binary op a b)  = F.Binary op (translateExpression a) (translateExpression b)
 translateExpression (P.IfElse c a b)   = F.If (translateExpression c) (translateExpression a) (translateExpression b)
