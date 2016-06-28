@@ -4,50 +4,14 @@ import System.IO
 import Control.Monad
 import Control.Applicative ((<$>), (<*>))
 import Data.Maybe
+
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Expr
-import Text.ParserCombinators.Parsec.Language
-import qualified Text.ParserCombinators.Parsec.Token as Token
 
 import Kyckling.Theory
+import Kyckling.Parse
+import qualified Kyckling.FOOL.Parse as F
 import qualified Kyckling.Program.AST as AST
-
-languageDef =
-  emptyDef { Token.commentStart    = "/*"
-           , Token.commentEnd      = "*/"
-           , Token.commentLine     = "//"
-           , Token.reservedNames   = [ "if", "else"
-                                     , "true", "false"
-                                     , "int", "bool"
-                                     , "assert"
-                                     ]
-           , Token.reservedOpNames = [ "+",  "-",  "*"
-                                     , "+=", "-=", "*=", "=", "++", "--"
-                                     , "==", "!=", "<", ">", "<=", ">="
-                                     , "&&", "||", "!"
-                                     , ":", "?"
-                                     , "[]"
-                                     ]
-           }
-
-lexer = Token.makeTokenParser languageDef
-
-identifier = Token.identifier lexer
-reserved   = Token.reserved   lexer
-reservedOp = Token.reservedOp lexer
-parens     = Token.parens     lexer
-integer    = Token.integer    lexer
-semi       = Token.semi       lexer
-whiteSpace = Token.whiteSpace lexer
-braces     = Token.braces     lexer
-brackets   = Token.brackets   lexer
-commaSep1  = Token.commaSep1  lexer
-
-constant name fun = reserved name >> return fun
-
-binary  name fun = Infix (reservedOp name >> return fun)
-prefix  name fun = Prefix (reservedOp name >> return fun)
-postfix name fun = Postfix (reservedOp name >> return fun)
 
 expr :: Parser AST.Expr
 expr = do e <- expr'
@@ -61,20 +25,20 @@ expr = do e <- expr'
 
 expr' = buildExpressionParser operators term
 
-operators = [ [prefix "-"  (AST.Prefix AST.Uminus )          ,
-               prefix "+"  (AST.Prefix AST.Uplus  )          ]
-            , [binary "*"  (AST.Infix  AST.Times  ) AssocLeft]
-            , [binary "+"  (AST.Infix  AST.Plus   ) AssocLeft,
-               binary "-"  (AST.Infix  AST.Minus  ) AssocLeft]
-            , [binary ">"  (AST.Infix  AST.Greater) AssocNone,
-               binary "<"  (AST.Infix  AST.Less   ) AssocNone,
-               binary ">=" (AST.Infix  AST.Geq    ) AssocNone,
-               binary "<=" (AST.Infix  AST.Leq    ) AssocNone]
-            , [binary "==" (AST.Infix  AST.Eq     ) AssocLeft,
-               binary "!=" (AST.Infix  AST.NonEq  ) AssocLeft]
-            , [prefix "!"  (AST.Prefix AST.Not    )          ]
-            , [binary "&&" (AST.Infix  AST.And    ) AssocLeft,
-               binary "||" (AST.Infix  AST.Or     ) AssocLeft]
+operators = [ [prefix "-"  (AST.Unary  Negative)          ,
+               prefix "+"  (AST.Unary  Positive)          ]
+            , [binary "*"  (AST.Binary Multiply) AssocLeft]
+            , [binary "+"  (AST.Binary Add     ) AssocLeft,
+               binary "-"  (AST.Binary Subtract) AssocLeft]
+            , [binary ">"  (AST.Binary Greater ) AssocNone,
+               binary "<"  (AST.Binary Less    ) AssocNone,
+               binary ">=" (AST.Binary Geq     ) AssocNone,
+               binary "<=" (AST.Binary Leq     ) AssocNone]
+            , [binary "=="  AST.Eql              AssocLeft,
+               binary "!="  AST.InEql            AssocLeft]
+            , [prefix "!"  (AST.Unary  Negate  )          ]
+            , [binary "&&" (AST.Binary And     ) AssocLeft,
+               binary "||" (AST.Binary Or      ) AssocLeft]
             ]
 
 term =  parens expr
@@ -115,15 +79,7 @@ ifStmt = reserved "if" >> AST.If <$> parens expr <*> stmts <*> elseStmts
   where
     elseStmts = fromMaybe [] <$> optionMaybe (reserved "else" >> stmts)
 
-typ :: Parser Type
-typ = do t <- atomicTyp
-         arrs <- many (reserved "[]")
-         return $ foldr (const Array) t arrs
-
-atomicTyp =  constant "int"  Integer
-         <|> constant "bool" Boolean
-
-assert = atomicStmt (reserved "assert" >> AST.Assert <$> expr)
+assert = atomicStmt (reserved "assert" >> AST.Assert <$> F.formula)
 
 ast :: Parser AST.AST
 ast = whiteSpace >> AST.AST <$> many stmt <*> many assert

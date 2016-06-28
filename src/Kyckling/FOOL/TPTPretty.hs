@@ -3,6 +3,7 @@ module Kyckling.FOOL.TPTPretty (
 ) where
 
 import Data.List
+import Data.Char
 
 import Kyckling.Theory
 import Kyckling.FOOL
@@ -19,33 +20,28 @@ parens s = "(" ++ s ++ ")"
 funapp :: String -> [String] -> String
 funapp f as = f ++ parens (list as)
 
-prettyFun :: Fun -> String
-prettyFun f =
-  case f of
-    Sum        -> "$sum"
-    Difference -> "$difference"
-    Product    -> "$product"
-    Uminus     -> "$uminus"
-    Lesseq     -> "$lesseq"
-    Less       -> "$less"
-    Greatereq  -> "$greatereq"
-    Greater    -> "$greater"
-    Select     -> "$select"
-    Store      -> "$store"
-
-prettyBinaryOp :: BinaryOp -> String
+prettyBinaryOp :: BinaryOp -> (Bool, String)
 prettyBinaryOp op =
-  case op of 
-    Impl -> "=>"
-    And  -> "&"
-    Or   -> "|"
-    Eq   -> "="
-    InEq -> "!="
+  case op of
+    And      -> (True,  "&")
+    Or       -> (True,  "|")
+    Imply    -> (True,  "=>")
+    Iff      -> (True,  "<=>")
+    Xor      -> (True,  "<~>")
+    Greater  -> (False, "$greater")
+    Less     -> (False, "$less")
+    Geq      -> (False, "$greatereq")
+    Leq      -> (False, "$lesseq")
+    Add      -> (False, "$sum")
+    Subtract -> (False, "$difference")
+    Multiply -> (False, "$product")
 
-prettyUnaryOp :: UnaryOp -> String
+prettyUnaryOp :: UnaryOp -> (Bool, String)
 prettyUnaryOp op =
   case op of
-    Not -> "~"
+    Negate   -> (True, "~")
+    Positive -> (False, "$uplus")
+    Negative -> (False, "$uminus")
 
 prettyType :: Type -> String
 prettyType s =
@@ -54,11 +50,14 @@ prettyType s =
     Integer -> "$int"
     Array t -> funapp "$array" ["$int", prettyType t]
 
-prettyConstant :: Constant -> String
-prettyConstant = fst
+prettyVar :: Var -> String
+prettyVar (Var n) = map toUpper n
 
-prettyTypedVar :: TypedVar -> String
-prettyTypedVar (TypedVar v s) = v ++ ":" ++ prettyType s
+prettyConstant :: Constant -> String
+prettyConstant (Typed n _) = n
+
+prettyTypedVar :: Typed Var -> String
+prettyTypedVar (Typed v t) = prettyVar v ++ ":" ++ prettyType t
 
 prettyDefinition :: Definition -> String
 prettyDefinition (Symbol c []) = prettyConstant c
@@ -81,30 +80,42 @@ prettyQuantifier q =
 indent :: Int -> String
 indent = flip replicate ' '
 
+infx :: String -> String -> String -> String
+infx a op b = a ++ " " ++ op ++ " " ++ b
+
+newline :: String -> String
+newline = ('\n' :)
+
 indentedTerm :: Bool -> Int -> Int -> Term -> String
 indentedTerm pp i o t = indent i ++ case t of
   IntegerConst n  -> show n
   BooleanConst b  -> if b then "$true" else "$false"
-  FunApp Tuple ts -> tuple (map prettyTerm ts)
-  FunApp f []     -> prettyFun f
-  FunApp f ts     -> funapp (prettyFun f) (map prettyTerm ts)
-  Var v           -> v
+  Select a i      -> funapp "$select" [prettyTerm a, prettyTerm i]
+  Store  a i e    -> funapp "$store"  [prettyTerm a, prettyTerm i, prettyTerm e]
+  Variable v      -> prettyTypedVar v
   Const c         -> prettyConstant c
-  Unary op a      -> prettyOp ++ indentedTerm True 0 (o + length prettyOp) a
-                       where prettyOp = prettyUnaryOp op
+  Unary op a      -> unary
+                       where (isPrefix, prettyOp) = prettyUnaryOp op
+                             unary = if isPrefix then prettyOp ++ indentedTerm True 0 (o + length prettyOp) a
+                                                 else funapp prettyOp [indentedTerm True 0 (o + length prettyOp + 1) a]
   Binary op a b   -> if pp then parens binary else binary
-                       where binary = prettyTerm a ++ " " ++ prettyBinaryOp op ++ " " ++ prettyTerm b
+                       where (isInfix, prettyOp) = prettyBinaryOp op
+                             binary = if isInfix then infx (prettyTerm a) prettyOp (prettyTerm b)
+                                                 else funapp prettyOp [prettyTerm a, prettyTerm b]
   Quantify q [] t -> indentedTerm pp 0 o t
   Quantify q vs t -> prettyQ ++ " " ++ prettyVars ++ ": " ++ parens (indentedTerm False 0 o' t)
                        where prettyQ = prettyQuantifier q
                              prettyVars = tuple (map prettyTypedVar vs)
                              o' = o + length prettyQ + 1 + length prettyVars + 3
+  Eql   a b       -> infx (prettyTerm a)  "=" (prettyTerm b)
+  InEql a b       -> infx (prettyTerm a) "!=" (prettyTerm b)
+  Tuple ts        -> tuple (map prettyTerm ts)
   Let b t         -> funapp "$let" [offsetBinding (o + 5) b,
-                                    "\n" ++ indentedTerm False i' o' t]
+                                    newline $ indentedTerm False i' o' t]
                        where (i', o') = if isLet t then (i, o) else (i + 5, o + 5)
   If c a b        -> funapp "$ite" [indentedTerm False 0 (o + 5) c,
-                                    "\n" ++ indentedTerm False (i + o + 5) (i + o + 5) a,
-                                    "\n" ++ indentedTerm False (i + o + 5) (i + o + 5) b]
+                                    newline $ indentedTerm False (i + o + 5) (i + o + 5) a,
+                                    newline $ indentedTerm False (i + o + 5) (i + o + 5) b]
 
 isLet :: Term -> Bool
 isLet (Let _ _) = True
@@ -116,11 +127,11 @@ prettyTerm = indentedTerm False 0 0
 thf :: String -> String -> String -> String
 thf n it s = funapp "thf" [n, it, s] ++ ".\n"
 
-prettyTypeDeclaration :: (String, Type) -> String
-prettyTypeDeclaration (n, t) = thf n "type" (n ++ ": " ++ prettyType t)
+prettyTypeDeclaration :: Typed Name -> String
+prettyTypeDeclaration (Typed n t) = thf n "type" (n ++ ": " ++ prettyType t)
 
 prettyConjecture :: Formula -> String
-prettyConjecture f = thf "asserts" "conjecture" ("\n" ++ indentedTerm False 4 4 f)
+prettyConjecture f = thf "asserts" "conjecture" (newline $ indentedTerm False 4 4 f)
 
 prettyTPTP :: (Signature, Formula) -> String
 prettyTPTP (sds, c) = concatMap prettyTypeDeclaration sds ++ prettyConjecture c

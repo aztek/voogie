@@ -5,11 +5,11 @@ import Data.Either
 import Data.List
 
 import Kyckling.Theory
-import Kyckling.FOOL
+import qualified Kyckling.FOOL as F
 import qualified Kyckling.Program as P
 
-translate :: P.Program -> (Signature, Term)
-translate (P.Program ss []) = ([] , BooleanConst True)
+translate :: P.Program -> (Signature, F.Formula)
+translate (P.Program ss []) = ([] , F.BooleanConst True)
 translate (P.Program ss as) = (signature, conjecture)
   where
     (declared, bindings) = translateStatements ss
@@ -18,18 +18,18 @@ translate (P.Program ss as) = (signature, conjecture)
 
     signature = nub (declared \\ bound)
 
-    conjecture = foldr Let assert bindings
-    assert = foldr1 (Binary And) (map translateAssertion as)
+    conjecture = foldr F.Let assert bindings
+    assert = foldr1 (F.Binary And) (map (\(P.Assertion f) -> f) as)
 
-type Declaration = Constant
+type Declaration = F.Constant
 
-namesIn :: Binding -> [Constant]
-namesIn (Binding (Symbol n _) _) = [n]
-namesIn (Binding (TupleD ns)  _) = ns
+namesIn :: F.Binding -> [F.Constant]
+namesIn (F.Binding (F.Symbol n _) _) = [n]
+namesIn (F.Binding (F.TupleD ns)  _) = ns
 
-translateStatement :: P.Statement -> Either Declaration Binding
+translateStatement :: P.Statement -> Either Declaration F.Binding
 translateStatement (P.Declare v) = Left (translateVar v)
-translateStatement (P.Assign lval e) = Right (Binding (Symbol n []) body)
+translateStatement (P.Assign lval e) = Right (F.Binding (F.Symbol n []) body)
   where
     e' = translateExpression e
     n  = translateVar (var lval)
@@ -39,7 +39,7 @@ translateStatement (P.Assign lval e) = Right (Binding (Symbol n []) body)
 
     body = case lval of
              P.Variable  _   -> e'
-             P.ArrayElem _ a -> FunApp Store [Const n, translateExpression a, e']
+             P.ArrayElem _ a -> F.Store (F.Const n) (translateExpression a) e'
 translateStatement (P.If c a b) = Right binding
   where
     (thenDeclared, thenBindings) = translateStatements a
@@ -56,48 +56,28 @@ translateStatement (P.If c a b) = Right binding
     -- TODO: for now we assume that there are no unbound declarations;
     --       this assumption must be removed in the future
 
-    constructBranch = foldr Let (FunApp Tuple $ map Const updated)
+    constructBranch = foldr F.Let (F.Tuple $ map F.Const updated)
 
     c' = translateExpression c
-    ite = If c' (constructBranch thenBindings) (constructBranch elseBindings)
-    binding = Binding (TupleD updated) ite
+    ite = F.If c' (constructBranch thenBindings) (constructBranch elseBindings)
+    binding = F.Binding (F.TupleD updated) ite
 
-translateStatements :: [P.Statement] -> ([Declaration], [Binding])
+translateStatements :: [P.Statement] -> ([Declaration], [F.Binding])
 translateStatements = partitionEithers . map translateStatement
 
-translateAssertion :: P.Assertion -> Term
-translateAssertion (P.Assertion e) = translateExpression e
+translateExpression :: P.Expression -> F.Term
+translateExpression (P.IntegerConst i) = F.IntegerConst i 
+translateExpression (P.BoolConst    b) = F.BooleanConst b
+translateExpression (P.Unary  op e)    = F.Unary  op (translateExpression e)
+translateExpression (P.Binary op a b)  = F.Binary op (translateExpression a) (translateExpression b)
+translateExpression (P.IfElse c a b)   = F.If (translateExpression c) (translateExpression a) (translateExpression b)
+translateExpression (P.Eql   a b)      = F.Eql   (translateExpression a) (translateExpression b)
+translateExpression (P.InEql a b)      = F.InEql (translateExpression a) (translateExpression b)
+translateExpression (P.Ref lval)       = translateLValue lval
 
-translateExpression :: P.Expression -> Term
-translateExpression (P.IntegerConst i) = IntegerConst i 
-translateExpression (P.BoolConst    b) = BooleanConst b
-translateExpression (P.Unary op e) =
-  let e' = translateExpression e in
-  case op of 
-    P.Negate   -> Unary Not e'
-    P.Positive -> error "not supported by TPTP"
-    P.Negative -> FunApp Uminus [e']
-translateExpression (P.Binary op a b) =
-  let a' = translateExpression a
-      b' = translateExpression b in
-  case op of
-    P.And      -> Binary And a' b'
-    P.Or       -> Binary Or  a' b'
-    P.Greater  -> FunApp Greater    [a', b']
-    P.Less     -> FunApp Greater    [a', b']
-    P.Geq      -> FunApp Greatereq  [a', b']
-    P.Leq      -> FunApp Lesseq     [a', b']
-    P.Add      -> FunApp Sum        [a', b']
-    P.Subtract -> FunApp Difference [a', b']
-    P.Multiply -> FunApp Product    [a', b']
-translateExpression (P.IfElse c a b) = If (translateExpression c) (translateExpression a) (translateExpression b)
-translateExpression (P.Eql   a b) = Binary Eq   (translateExpression a) (translateExpression b)
-translateExpression (P.InEql a b) = Binary InEq (translateExpression a) (translateExpression b)
-translateExpression (P.Ref lval) = translateLValue lval
+translateLValue :: P.LValue -> F.Term
+translateLValue (P.Variable v)    = F.Const (translateVar v)
+translateLValue (P.ArrayElem v e) = F.Select (F.Const (translateVar v)) (translateExpression e)
 
-translateLValue :: P.LValue -> Term
-translateLValue (P.Variable v)    = Const (translateVar v)
-translateLValue (P.ArrayElem v e) = FunApp Select [Const (translateVar v), translateExpression e]
-
-translateVar :: P.Var -> Constant
-translateVar (P.Var v t) = (map toLower v, t)
+translateVar :: P.Var -> F.Constant
+translateVar (Typed v t) = Typed (map toLower v) t

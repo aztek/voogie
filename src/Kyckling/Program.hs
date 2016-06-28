@@ -1,19 +1,9 @@
 module Kyckling.Program where
 
 import Kyckling.Theory
+import qualified Kyckling.FOOL as F
 
-data Var = Var String Type
-  deriving (Show)
-
-data UnaryOp = Negate
-             | Positive
-             | Negative
-  deriving (Show)
-
-data BinaryOp = And | Or
-              | Greater | Less | Geq | Leq
-              | Add | Subtract | Multiply
-  deriving (Show)
+type Var = Typed Name
 
 data LValue = Variable Var
             | ArrayElem Var Expression
@@ -21,12 +11,12 @@ data LValue = Variable Var
 
 data Expression = IntegerConst Integer
                 | BoolConst Bool
+                | Ref LValue
                 | Unary  UnaryOp    Expression
                 | Binary BinaryOp   Expression Expression
                 | IfElse Expression Expression Expression
-                | Eql Expression Expression
-                | InEql Expression Expression
-                | Ref LValue
+                | Eql    Expression Expression
+                | InEql  Expression Expression
   deriving (Show)
 
 data Statement = Declare Var
@@ -34,7 +24,7 @@ data Statement = Declare Var
                | If Expression [Statement] [Statement]
   deriving (Show)
 
-data Assertion = Assertion Expression
+data Assertion = Assertion F.Formula
   deriving (Show)
 
 data Program = Program [Statement] [Assertion]

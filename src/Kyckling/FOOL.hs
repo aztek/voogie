@@ -2,56 +2,48 @@ module Kyckling.FOOL where
 
 import Kyckling.Theory
 
-data Fun = Sum
-         | Difference
-         | Product
-         | Uminus
-         | Lesseq
-         | Less
-         | Greatereq
-         | Greater
-         | Select
-         | Store
-         | Tuple
+newtype Var = Var Name
   deriving (Show)
 
-data BinaryOp = Impl
-              | And
-              | Or
-              | Eq
-              | InEq
-  deriving (Show)
+type Constant = Typed Name
 
-data UnaryOp = Not
-  deriving (Show)
-
-type Var = String
-
-type Constant = (String, Type)
-
-data TypedVar = TypedVar Var Type
-  deriving (Show)
-
-data Definition = Symbol Constant [TypedVar]
+data Definition = Symbol Constant [Typed Var]
                 | TupleD [Constant]
   deriving (Show)
 
 data Binding = Binding Definition Term
   deriving (Show)
 
-data Quantifier = Forall | Exists
-  deriving (Show)
-
 data Term = IntegerConst Integer
           | BooleanConst Bool
-          | FunApp Fun [Term]
-          | Var Var
+          | Variable (Typed Var)
           | Const Constant
-          | Unary  UnaryOp  Term
+          | Select Term Term
+          | Store Term Term Term
           | Binary BinaryOp Term Term
-          | Quantify Quantifier [TypedVar] Term
+          | Unary UnaryOp Term
+          | Quantify Quantifier [Typed Var] Term
+          | Eql   Term Term
+          | InEql Term Term
+          | Tuple [Term]
           | Let Binding Term
           | If Term Term Term
   deriving (Show)
 
 type Formula = Term
+
+typeOfTerm :: Term -> Type
+typeOfTerm (IntegerConst _) = Integer
+typeOfTerm (BooleanConst _) = Boolean
+typeOfTerm (Variable v) = typeOf v 
+typeOfTerm (Const c) = typeOf c
+typeOfTerm (Select array _) = arrayArgument (typeOfTerm array)
+typeOfTerm (Store array _ _) = typeOfTerm array
+typeOfTerm (Binary op _ _) = binaryOpRange op
+typeOfTerm (Unary  op _) = unaryOpRange op
+typeOfTerm (Quantify{}) = Boolean
+typeOfTerm (Eql   _ _) = Boolean
+typeOfTerm (InEql _ _) = Boolean
+typeOfTerm (Tuple _) = undefined
+typeOfTerm (Let _ t) = typeOfTerm t
+typeOfTerm (If _ a _) = typeOfTerm a

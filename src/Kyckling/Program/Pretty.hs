@@ -1,5 +1,5 @@
 module Kyckling.Program.Pretty (
-  prettyType,
+  F.prettyType,
   prettyLValue,
   prettyExpression,
   prettyProgram
@@ -10,40 +10,18 @@ import Data.List
 import Kyckling.Theory
 import Kyckling.Program
 
-prettyType :: Type -> String
-prettyType Integer = "int"
-prettyType Boolean = "bool"
-prettyType (Array t) = prettyType t ++ "[]"
-
-prettyUnaryOp :: UnaryOp -> String
-prettyUnaryOp Negate   = "!"
-prettyUnaryOp Positive = "+"
-prettyUnaryOp Negative = "-"
-
-prettyBinaryOp :: BinaryOp -> String
-prettyBinaryOp op =
-  case op of
-    And      -> "&&"
-    Or       -> "||"
-    Greater  -> ">"
-    Less     -> "<"
-    Geq      -> ">="
-    Leq      -> "<="
-    Add      -> "+"
-    Subtract -> "-"
-    Multiply -> "*"
+import qualified Kyckling.FOOL.Pretty as F
 
 prettyLValue :: LValue -> String
-prettyLValue (Variable (Var v _)) = v
-prettyLValue (ArrayElem (Var v _) e) = v ++ "[" ++ prettyExpression e ++ "]"
+prettyLValue (Variable  (Typed v _)) = v
+prettyLValue (ArrayElem (Typed v _) e) = v ++ "[" ++ prettyExpression e ++ "]"
 
 prettyExpression :: Expression -> String
 prettyExpression (IntegerConst i)  = show i
-prettyExpression (BoolConst True)  = "true"
-prettyExpression (BoolConst False) = "false"
+prettyExpression (BoolConst b)  = if b then "true" else "false"
 
-prettyExpression (Unary op e)    = prettyExpression e ++ prettyUnaryOp op
-prettyExpression (Binary op a b) = prettyExpression a ++ " " ++ prettyBinaryOp op ++ " " ++ prettyExpression b
+prettyExpression (Unary  op e)   = prettyExpression e ++ F.prettyUnaryOp op
+prettyExpression (Binary op a b) = prettyExpression a ++ " " ++ F.prettyBinaryOp op ++ " " ++ prettyExpression b
 prettyExpression (IfElse a b c)  = prettyExpression a ++ " ? " ++ prettyExpression a ++ " : " ++ prettyExpression b
 
 prettyExpression (Eql   a b) = prettyExpression a ++ " == " ++ prettyExpression b
@@ -58,7 +36,7 @@ els :: Int -> String
 els n = "else "
 
 lbra :: Int -> String
-lbra n = "{" ++ "\n"
+lbra n = "{\n"
 
 rbra :: Int -> String
 rbra n = "\n" ++ toIndent n ++ "} "
@@ -70,7 +48,7 @@ condition :: Int -> String -> String
 condition n c = "if (" ++ c ++ ") "
 
 indented :: Int -> Statement -> String
-indented n (Declare (Var v t)) = toIndent n ++ prettyType t ++ " " ++ v ++ semicolon
+indented n (Declare (Typed v t)) = toIndent n ++ F.prettyType t ++ " " ++ v ++ semicolon
 indented n (Assign lv e) = toIndent n ++ prettyLValue lv ++ " = " ++ prettyExpression e ++ semicolon
 indented n (If c a b) = toIndent n ++ condition n (prettyExpression c) ++ prettyBlock n a ++ prettyElse b
   where
@@ -85,7 +63,7 @@ prettyStatements :: Int -> [Statement] -> String
 prettyStatements n = intercalate "\n" . map (indented n)
 
 prettyAssertion :: Assertion -> String
-prettyAssertion (Assertion e) = "assert " ++ prettyExpression e ++ semicolon
+prettyAssertion (Assertion f) = "assert " ++ F.prettyFormula f ++ semicolon
 
 prettyProgram :: Program -> String
 prettyProgram (Program ss as) = prettyStatements 0 ss ++ "\n" ++ concatMap prettyAssertion as
