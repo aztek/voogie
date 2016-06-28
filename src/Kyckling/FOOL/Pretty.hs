@@ -30,6 +30,9 @@ prettyBinaryOp op =
   case op of
     And      -> "&&"
     Or       -> "||"
+    Imply    -> "=>"
+    Iff      -> "=="
+    Xor      -> "!="
     Greater  -> ">"
     Less     -> "<"
     Geq      -> ">="
