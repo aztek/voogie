@@ -32,18 +32,18 @@ data Term = IntegerConst Integer
 
 type Formula = Term
 
-typeOfTerm :: Term -> Type
-typeOfTerm (IntegerConst _) = Integer
-typeOfTerm (BooleanConst _) = Boolean
-typeOfTerm (Variable v) = typeOf v 
-typeOfTerm (Const c) = typeOf c
-typeOfTerm (Select array _) = arrayArgument (typeOfTerm array)
-typeOfTerm (Store array _ _) = typeOfTerm array
-typeOfTerm (Binary op _ _) = binaryOpRange op
-typeOfTerm (Unary  op _) = unaryOpRange op
-typeOfTerm (Quantify{}) = Boolean
-typeOfTerm (Eql   _ _) = Boolean
-typeOfTerm (InEql _ _) = Boolean
-typeOfTerm (Tuple _) = undefined
-typeOfTerm (Let _ t) = typeOfTerm t
-typeOfTerm (If _ a _) = typeOfTerm a
+instance TypeOf Term where
+  typeOf (IntegerConst _) = Integer
+  typeOf (BooleanConst _) = Boolean
+  typeOf (Variable v) = typeOf v 
+  typeOf (Const c) = typeOf c
+  typeOf (Select array _) = arrayArgument (typeOf array)
+  typeOf (Store array _ _) = typeOf array
+  typeOf (Binary op _ _) = binaryOpRange op
+  typeOf (Unary  op _) = unaryOpRange op
+  typeOf (Quantify{}) = Boolean
+  typeOf (Eql   _ _) = Boolean
+  typeOf (InEql _ _) = Boolean
+  typeOf (Tuple _) = undefined
+  typeOf (Let _ t) = typeOf t
+  typeOf (If _ a _) = typeOf a

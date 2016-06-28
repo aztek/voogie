@@ -67,8 +67,8 @@ analyzeStmt env (AST.Decrement lval) =
   do lv <- analyzeLValue env Integer lval
      return (env, [Assign lv (Binary Subtract (Ref lv) (IntegerConst 1))])
 analyzeStmt env (AST.Update lval AST.Assign e) =
-  do Typed lv t <- analyzeLValue' env lval
-     e' <- analyzeExpr env t e
+  do lv <- analyzeLValue' env lval
+     e' <- analyzeExpr env (typeOf lv) e
      return (env, [Assign lv e'])
 analyzeStmt env (AST.Update lval op e) =
   do lv <- analyzeLValue env d1 lval
@@ -89,7 +89,7 @@ analyzeFormula env = analyzeTerm env Boolean
 
 analyzeTerm :: Env -> Type -> FAST.Term -> Either Error F.Term
 analyzeTerm env t term = do term' <- analyzeTerm' env term
-                            let t' = F.typeOfTerm term'
+                            let t' = typeOf term'
                             if t == t' then return term' else
                               Left $ "expected an expression of the type " ++ prettyType t' ++
                                      " but got " ++ FP.prettyTerm term' ++ " of the type " ++ prettyType t 
@@ -98,11 +98,11 @@ typesCoincide :: F.Term -> F.Term -> Either Error ()
 typesCoincide a b = if t1 == t2 then Right ()
                                 else Left "types mismatch"
   where
-    t1 = F.typeOfTerm a
-    t2 = F.typeOfTerm b
+    t1 = typeOf a
+    t2 = typeOf b
 
 ofType :: F.Term -> Type -> Either Error ()
-ofType a t = if t == F.typeOfTerm a then Right ()
+ofType a t = if t == typeOf a then Right ()
                                   else Left "type mismatch"
 
 
@@ -118,15 +118,15 @@ analyzeTerm' env (FAST.Binary op a b) = F.Binary op <$> analyzeTerm env d1 a <*>
 analyzeTerm' env (FAST.Ternary c a b) = 
   do c' <- analyzeTerm  env Boolean c
      a' <- analyzeTerm' env a
-     b' <- analyzeTerm  env (F.typeOfTerm a') b
+     b' <- analyzeTerm  env (typeOf a') b
      return (F.If c' a' b')
 analyzeTerm' env (FAST.Eql a b) =
   do a' <- analyzeTerm' env a
-     b' <- analyzeTerm  env (F.typeOfTerm a') b
+     b' <- analyzeTerm  env (typeOf a') b
      return (F.Eql a' b')
 analyzeTerm' env (FAST.InEql a b) =
   do a' <- analyzeTerm' env a
-     b' <- analyzeTerm  env (F.typeOfTerm a') b
+     b' <- analyzeTerm  env (typeOf a') b
      return (F.InEql a' b')
 analyzeTerm' env (FAST.Quantified q vars term) = F.Quantify q vars' <$> analyzeTerm env' Boolean term
   where
@@ -138,51 +138,46 @@ analyzeTerm' env (FAST.ArrayElem s i) = F.Select <$> (F.Const <$> lookupArrayNam
 
 
 analyzeLValue :: Env -> Type -> AST.LVal -> Either Error LValue
-analyzeLValue env t lval = do Typed lval' t' <- analyzeLValue' env lval
+analyzeLValue env t lval = do lval' <- analyzeLValue' env lval
+                              let t' = typeOf lval'
                               if t == t' then return lval' else
                                 Left $ "expected an expression of the type " ++ prettyType t' ++
                                        " but got " ++ prettyLValue lval' ++ " of the type " ++ prettyType t 
 
-analyzeLValue' :: Env -> AST.LVal -> Either Error (Typed LValue)
-analyzeLValue' env (AST.Var s) =
-  do name <- lookupName s env
-     return $ fmap (const $ Variable name) name
-analyzeLValue' env (AST.ArrayElem name el) =
-  do el <- analyzeExpr env Integer el
-     t  <- lookupArrayName name env
-     return $ fmap (const $ ArrayElem t el) t
+analyzeLValue' :: Env -> AST.LVal -> Either Error LValue
+analyzeLValue' env (AST.Var s) = Variable <$> lookupName s env
+analyzeLValue' env (AST.ArrayElem s i) = ArrayElem <$> lookupArrayName s env <*> analyzeExpr env Integer i
 
 analyzeExpr :: Env -> Type -> AST.Expr -> Either Error Expression
-analyzeExpr env t e = do Typed e' t' <- analyzeExpr' env e
+analyzeExpr env t e = do e' <- analyzeExpr' env e
+                         let t' = typeOf e'
                          if t == t' then return e' else
                            Left $ "expected an expression of the type " ++ prettyType t' ++
                                   " but got " ++ prettyExpression e' ++ " of the type " ++ prettyType t 
 
-analyzeExpr' :: Env -> AST.Expr -> Either Error (Typed Expression)
-analyzeExpr' _ (AST.IntConst  i) = return $ Typed (IntegerConst i) Integer
-analyzeExpr' _ (AST.BoolConst b) = return $ Typed (BoolConst    b) Boolean
-analyzeExpr' env (AST.LVal lval) =
-  do Typed lv t <- analyzeLValue' env lval
-     return $ Typed (Ref lv) t
-analyzeExpr' env (AST.Unary op e) =
-  do e' <- analyzeExpr env (unaryOpDomain op) e
-     return $ Typed (Unary op e') (unaryOpRange op)
-analyzeExpr' env (AST.Eql a b) =
-  do Typed a' t <- analyzeExpr' env a
-     b' <- analyzeExpr env t b
-     return $ Typed (Eql a' b') Boolean
-analyzeExpr' env (AST.InEql a b) =
-  do Typed a' t <- analyzeExpr' env a
-     b' <- analyzeExpr env t b
-     return $ Typed (InEql a' b') Boolean
+analyzeExpr' :: Env -> AST.Expr -> Either Error Expression
+analyzeExpr' _ (AST.IntConst  i) = return (IntegerConst i)
+analyzeExpr' _ (AST.BoolConst b) = return (BoolConst    b)
+analyzeExpr' env (AST.LVal lval) = Ref <$> analyzeLValue' env lval
+analyzeExpr' env (AST.Unary op e) = Unary op <$> analyzeExpr env d e
+  where
+    d = unaryOpDomain op
 analyzeExpr' env (AST.Binary op a b) =
   do a' <- analyzeExpr env d1 a
      b' <- analyzeExpr env d2 b
-     return $ Typed (Binary op a' b') (binaryOpRange op)
+     return (Binary op a' b')
   where
     (d1, d2) = binaryOpDomain op
+analyzeExpr' env (AST.Eql a b) =
+  do a' <- analyzeExpr' env a
+     b' <- analyzeExpr  env (typeOf a') b
+     return (Eql a' b')
+analyzeExpr' env (AST.InEql a b) =
+  do a' <- analyzeExpr' env a
+     b' <- analyzeExpr  env (typeOf a') b
+     return (InEql a' b')
 analyzeExpr' env (AST.Ternary c a b) =
-  do c' <- analyzeExpr env Boolean c
-     Typed a' t <- analyzeExpr' env a
-     b' <- analyzeExpr env t b
-     return $ Typed (IfElse c' a' b') t
+  do c' <- analyzeExpr  env Boolean c
+     a' <- analyzeExpr' env a
+     b' <- analyzeExpr  env (typeOf a') b
+     return (IfElse c' a' b')

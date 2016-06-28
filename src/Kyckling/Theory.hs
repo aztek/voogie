@@ -15,11 +15,13 @@ type Name = String
 data Typed n = Typed n Type
   deriving (Show, Eq, Functor)
 
-typeOf :: Typed a -> Type
-typeOf (Typed _ t) = t
-
 type Signature = [Typed Name]
 
+class TypeOf a where
+  typeOf :: a -> Type
+
+instance TypeOf (Typed a) where
+  typeOf (Typed _ t) = t
 
 data Quantifier = Forall | Exists
   deriving (Show, Eq)
