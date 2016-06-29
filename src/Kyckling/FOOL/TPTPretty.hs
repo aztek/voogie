@@ -49,6 +49,7 @@ prettyType s =
     Boolean -> "$o"
     Integer -> "$int"
     Array t -> funapp "$array" ["$int", prettyType t]
+    TupleType ts -> tuple (map prettyType ts)
 
 prettyVar :: Var -> String
 prettyVar (Var n) = map toUpper n

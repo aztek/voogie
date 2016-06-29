@@ -44,6 +44,6 @@ instance TypeOf Term where
   typeOf (Quantify{}) = Boolean
   typeOf (Eql   _ _) = Boolean
   typeOf (InEql _ _) = Boolean
-  typeOf (Tuple _) = undefined
+  typeOf (Tuple args) = TupleType (map typeOf args)
   typeOf (Let _ t) = typeOf t
   typeOf (If _ a _) = typeOf a

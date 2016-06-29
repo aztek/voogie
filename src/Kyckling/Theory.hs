@@ -5,6 +5,7 @@ module Kyckling.Theory where
 data Type = Boolean
           | Integer
           | Array Type
+          | TupleType [Type]
   deriving (Show, Eq)
 
 arrayArgument :: Type -> Type
