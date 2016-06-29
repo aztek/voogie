@@ -1,33 +1,31 @@
 module Kyckling.Program.Pretty (
-  F.prettyType,
-  prettyLValue,
-  prettyExpression,
-  prettyProgram
+  pretty
 ) where
 
 import Data.List
 
 import Kyckling.Theory
+import Kyckling.Pretty
 import Kyckling.Program
 
 import qualified Kyckling.FOOL.Pretty as F
 
-prettyLValue :: LValue -> String
-prettyLValue (Variable  (Typed v _)) = v
-prettyLValue (ArrayElem (Typed v _) e) = v ++ "[" ++ prettyExpression e ++ "]"
+instance Pretty LValue where
+  pretty (Variable  (Typed v _)) = v
+  pretty (ArrayElem (Typed v _) e) = v ++ "[" ++ pretty e ++ "]"
 
-prettyExpression :: Expression -> String
-prettyExpression (IntegerConst i) = show i
-prettyExpression (BooleanConst b) = if b then "true" else "false"
+instance Pretty Expression where
+  pretty (IntegerConst i) = show i
+  pretty (BooleanConst b) = if b then "true" else "false"
 
-prettyExpression (Unary  op e)   = prettyExpression e ++ F.prettyUnaryOp op
-prettyExpression (Binary op a b) = prettyExpression a ++ " " ++ F.prettyBinaryOp op ++ " " ++ prettyExpression b
-prettyExpression (IfElse a b c)  = prettyExpression a ++ " ? " ++ prettyExpression a ++ " : " ++ prettyExpression b
+  pretty (Unary  op e)   = pretty e ++ F.pretty op
+  pretty (Binary op a b) = pretty a ++ " " ++ F.pretty op ++ " " ++ pretty b
+  pretty (IfElse a b c)  = pretty a ++ " ? " ++ pretty a ++ " : " ++ pretty b
 
-prettyExpression (Eql   a b) = prettyExpression a ++ " == " ++ prettyExpression b
-prettyExpression (InEql a b) = prettyExpression a ++ " != " ++ prettyExpression b
+  pretty (Eql   a b) = pretty a ++ " == " ++ pretty b
+  pretty (InEql a b) = pretty a ++ " != " ++ pretty b
 
-prettyExpression (Ref lval) = prettyLValue lval
+  pretty (Ref lval) = pretty lval
 
 toIndent :: Int -> String
 toIndent n = replicate (n * 2) ' '
@@ -48,22 +46,22 @@ condition :: Int -> String -> String
 condition n c = "if (" ++ c ++ ") "
 
 indented :: Int -> Statement -> String
-indented n (Declare (Typed v t)) = toIndent n ++ F.prettyType t ++ " " ++ v ++ semicolon
-indented n (Assign lv e) = toIndent n ++ prettyLValue lv ++ " = " ++ prettyExpression e ++ semicolon
-indented n (If c a b) = toIndent n ++ condition n (prettyExpression c) ++ prettyBlock n a ++ prettyElse b
+indented n (Declare (Typed v t)) = toIndent n ++ F.pretty t ++ " " ++ v ++ semicolon
+indented n (Assign lv e) = toIndent n ++ pretty lv ++ " = " ++ pretty e ++ semicolon
+indented n (If c a b) = toIndent n ++ condition n (pretty c) ++ prettyBlock n a ++ prettyElse b
   where
     prettyElse [] = ""
     prettyElse b  = els n ++ prettyBlock n b
     prettyBlock n ss = lbra n ++ prettyStatements (n + 1) ss ++ rbra n
 
-prettyStatement :: Statement -> String
-prettyStatement = indented 0
+instance Pretty Statement where
+  pretty = indented 0
 
 prettyStatements :: Int -> [Statement] -> String
 prettyStatements n = intercalate "\n" . map (indented n)
 
-prettyAssertion :: Assertion -> String
-prettyAssertion (Assertion f) = "assert " ++ F.prettyFormula f ++ semicolon
+instance Pretty Assertion where
+  pretty (Assertion f) = "assert " ++ F.pretty f ++ semicolon
 
-prettyProgram :: Program -> String
-prettyProgram (Program ss as) = prettyStatements 0 ss ++ "\n" ++ concatMap prettyAssertion as
+instance Pretty Program where
+  pretty (Program ss as) = prettyStatements 0 ss ++ "\n" ++ concatMap pretty as
