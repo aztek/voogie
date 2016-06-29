@@ -2,7 +2,7 @@
 
 all:
 	mkdir -p bin obj
-	ghc -Werror -hidir obj -odir obj -isrc -o bin/kyckling src/Kyckling/Main.hs
+	ghc -Werror -fwarn-incomplete-patterns -hidir obj -odir obj -isrc -o bin/kyckling src/Kyckling/Main.hs
 
 hlint:
 	hlint src/

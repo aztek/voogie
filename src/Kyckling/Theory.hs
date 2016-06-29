@@ -9,6 +9,7 @@ data Type = Boolean
 
 arrayArgument :: Type -> Type
 arrayArgument (Array t) = t
+arrayArgument t = error (show t ++ " is not an array")
 
 type Name = String
 
