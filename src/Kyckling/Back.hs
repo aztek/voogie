@@ -15,8 +15,9 @@ translate (P.Program ss as) = (signature, conjecture)
     (declared, bindings) = translateStatements ss
 
     bound = concatMap namesIn bindings
+    nonArrays = filter (\(Typed _ t) -> not $ isArray t)
 
-    signature = nub (declared \\ bound)
+    signature = nub (declared \\ nonArrays bound)
 
     conjecture = foldr F.Let assert bindings
     assert = foldr1 (F.Binary And) (map (\(P.Assertion f) -> f) as)
@@ -24,8 +25,8 @@ translate (P.Program ss as) = (signature, conjecture)
 type Declaration = F.Constant
 
 namesIn :: F.Binding -> [F.Constant]
-namesIn (F.Binding (F.Symbol n _) _) = [n]
-namesIn (F.Binding (F.TupleD ns)  _) = ns
+namesIn (F.Binding (F.Symbol c _) _) = [c]
+namesIn (F.Binding (F.TupleD cs)  _) = cs
 
 translateStatement :: P.Statement -> Either Declaration F.Binding
 translateStatement (P.Declare v) = Left (translateVar v)

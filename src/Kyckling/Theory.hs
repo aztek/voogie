@@ -8,6 +8,10 @@ data Type = Boolean
           | TupleType [Type]
   deriving (Show, Eq)
 
+isArray :: Type -> Bool
+isArray (Array t) = True
+isArray _ = False
+
 arrayArgument :: Type -> Type
 arrayArgument (Array t) = t
 arrayArgument t = error (show t ++ " is not an array")
