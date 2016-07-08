@@ -91,6 +91,7 @@ analyzeStmt env (AST.Update lval op e) =
             AST.Times -> Multiply
             AST.Assign -> undefined -- covered by the previous case
     (d1, d2) = binaryOpDomain op' -- we assume that d1 == range of op'
+analyzeStmt env _ = undefined
 
 analyzeAssert :: Env -> AST.Assert -> Either Error Assertion
 analyzeAssert env (AST.Assert f) = Assertion <$> analyzeFormula env f

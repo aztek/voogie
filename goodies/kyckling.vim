@@ -1,4 +1,4 @@
-syn keyword Keyword     if else assert forall exists
+syn keyword Keyword     if else assert forall exists return
 syn match   kyNumber    /\(+\|-\)\?\(0\|[1-9][0-9]*\)/
 syn match   Type        /\(int\|bool\)\(\[\]\)*/
 syn keyword Boolean     true false

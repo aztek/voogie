@@ -25,6 +25,8 @@ data Stmt = If Expr [Stmt] [Stmt]
           | Increment LVal
           | Decrement LVal
           | Update LVal UpdateOp Expr
+          | Return Expr
+          | FunDef Type Name [(Typed Name)] [Stmt]
   deriving (Show, Eq)
 
 data Assert = Assert F.Formula

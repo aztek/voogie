@@ -15,6 +15,7 @@ language = emptyDef
                             , "true", "false"
                             , "int", "bool"
                             , "assert"
+                            , "return"
                             ]
   , Token.reservedOpNames = [ "+",  "-",  "*"
                             , "+=", "-=", "*=", "=", "++", "--"

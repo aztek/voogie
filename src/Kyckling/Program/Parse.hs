@@ -56,9 +56,11 @@ stmts =  braces (many stmt)
      <|> (:[]) <$> stmt
 
 stmt :: Parser Stmt
-stmt =  updateStmt
+stmt =  try fundefStmt
+    <|> updateStmt
     <|> declareStmt
     <|> ifStmt
+    <|> returnStmt
 
 atomicStmt p = do { s <- p; semi; return s }
 
@@ -79,6 +81,13 @@ declareStmt = atomicStmt $ Declare <$> typ <*> commaSep1 definition
 ifStmt = reserved "if" >> If <$> parens expr <*> stmts <*> elseStmts
   where
     elseStmts = fromMaybe [] <$> optionMaybe (reserved "else" >> stmts)
+
+returnStmt = atomicStmt $ reserved "return" >> Return <$> expr
+
+fundefStmt = FunDef <$> typ <*> identifier <*> args <*> stmts
+  where
+    args = parens (commaSep1 arg)
+    arg  = flip Typed <$> typ <*> identifier
 
 assert = atomicStmt (reserved "assert" >> Assert <$> F.formula)
 
