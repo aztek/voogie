@@ -50,6 +50,7 @@ prettyType s =
     Integer -> "$int"
     Array t -> funapp "$array" ["$int", prettyType t]
     TupleType ts -> tuple (map prettyType ts)
+    EitherType l r -> funapp "$either" [prettyType l, prettyType r]
 
 prettyVar :: Var -> String
 prettyVar (Var n) = map toUpper n

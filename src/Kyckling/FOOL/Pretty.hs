@@ -17,6 +17,7 @@ instance Pretty Type where
   pretty Boolean = "bool"
   pretty (Array t) = pretty t ++ "[]"
   pretty (TupleType ts) = "(" ++ intercalate ", " (map pretty ts) ++ ")"
+  pretty (EitherType l r) = "either(" ++ pretty l ++ ", " ++ pretty r ++ ")"
 
 instance Pretty UnaryOp where
   pretty Negate   = "!"

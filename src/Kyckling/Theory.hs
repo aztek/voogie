@@ -6,6 +6,7 @@ data Type = Boolean
           | Integer
           | Array Type
           | TupleType [Type]
+          | EitherType Type Type
   deriving (Show, Eq)
 
 isArray :: Type -> Bool
