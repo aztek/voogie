@@ -42,7 +42,7 @@ guardType t analyze a = do b <- analyze a
                                     " but got " ++ pretty b ++ " of the type " ++ pretty t 
 
 analyze :: AST.AST -> Either Error Program
-analyze (AST.AST ss as) =
+analyze (AST.AST fs ss as) =
   do (env, ss') <- analyzeStmtList emptyEnv ss
      as' <- mapM (analyzeAssert env) as
      return (Program ss' as')

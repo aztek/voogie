@@ -56,8 +56,7 @@ stmts =  braces (many stmt)
      <|> (:[]) <$> stmt
 
 stmt :: Parser Stmt
-stmt =  try fundefStmt
-    <|> updateStmt
+stmt =  updateStmt
     <|> declareStmt
     <|> ifStmt
     <|> returnStmt
@@ -84,7 +83,7 @@ ifStmt = reserved "if" >> If <$> parens expr <*> stmts <*> elseStmts
 
 returnStmt = atomicStmt $ reserved "return" >> Return <$> expr
 
-fundefStmt = FunDef <$> typ <*> identifier <*> args <*> stmts
+fundef = FunDef <$> typ <*> identifier <*> args <*> stmts
   where
     args = parens (commaSep1 arg)
     arg  = flip Typed <$> typ <*> identifier
@@ -92,7 +91,7 @@ fundefStmt = FunDef <$> typ <*> identifier <*> args <*> stmts
 assert = atomicStmt (reserved "assert" >> Assert <$> F.formula)
 
 ast :: Parser AST
-ast = whiteSpace >> AST <$> many stmt <*> many assert
+ast = whiteSpace >> AST <$> many fundef <*> many stmt <*> many assert
 
 parseAST :: SourceName -> String -> Either ParseError AST
 parseAST = parse ast
