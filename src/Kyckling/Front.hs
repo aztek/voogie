@@ -43,15 +43,22 @@ guardType t analyze a = do b <- analyze a
 
 analyze :: AST.AST -> Either Error Program
 analyze (AST.AST fs ss as) =
-  do (env, ss') <- analyzeStmtList emptyEnv ss
+  do fs' <- analyzeFunDefs fs
+     (env, ss') <- analyzeStmts emptyEnv ss
      as' <- mapM (analyzeAssert env) as
-     return (Program ss' as')
+     return (Program fs' ss' as')
 
-analyzeStmtList :: Env -> [AST.Stmt] -> Either Error (Env, [Statement])
-analyzeStmtList env [] = Right (env, [])
-analyzeStmtList env (s:ss) =
-  do (env',  s')  <- analyzeStmt env s
-     (env'', ss') <- analyzeStmtList env' ss
+analyzeFunDefs :: [AST.FunDef] -> Either Error [FunDef]
+analyzeFunDefs = mapM analyzeFunDef
+
+analyzeFunDef :: AST.FunDef -> Either Error FunDef
+analyzeFunDef (AST.FunDef t n vars stmts) = undefined
+
+analyzeStmts :: Env -> [AST.Stmt] -> Either Error (Env, [Statement])
+analyzeStmts env [] = Right (env, [])
+analyzeStmts env (s:ss) =
+  do (env',  s')  <- analyzeStmt  env  s
+     (env'', ss') <- analyzeStmts env' ss
      return (env'', s' ++ ss')
 
 analyzeStmt :: Env -> AST.Stmt -> Either Error (Env, [Statement])
@@ -66,8 +73,8 @@ analyzeStmt env (AST.Declare t defs) =
     toStmts (n, e) = Declare v : map (Assign (Variable v)) e
       where v = Typed n t
 analyzeStmt env (AST.If c a b) =
-  do (_, a') <- analyzeStmtList env a
-     (_, b') <- analyzeStmtList env b
+  do (_, a') <- analyzeStmts env a
+     (_, b') <- analyzeStmts env b
      c' <- guardType Boolean (analyzeExpr env) c
      return (env, [If c' a' b'])
 analyzeStmt env (AST.Increment lval) =
@@ -91,7 +98,7 @@ analyzeStmt env (AST.Update lval op e) =
             AST.Times -> Multiply
             AST.Assign -> undefined -- covered by the previous case
     (d1, d2) = binaryOpDomain op' -- we assume that d1 == range of op'
-analyzeStmt env _ = undefined
+analyzeStmt env (AST.Return e) = undefined
 
 analyzeAssert :: Env -> AST.Assert -> Either Error Assertion
 analyzeAssert env (AST.Assert f) = Assertion <$> analyzeFormula env f

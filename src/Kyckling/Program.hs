@@ -41,5 +41,8 @@ data Statement = Declare Var
 data Assertion = Assertion F.Formula
   deriving (Show)
 
-data Program = Program [Statement] [Assertion]
+data FunDef = FunDef Int Type Name [Typed Name] [Statement]
+  deriving (Show)
+
+data Program = Program [FunDef] [Statement] [Assertion]
   deriving (Show)

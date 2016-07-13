@@ -91,7 +91,7 @@ fundef = FunDef <$> typ <*> identifier <*> args <*> stmts
 assert = atomicStmt (reserved "assert" >> Assert <$> F.formula)
 
 ast :: Parser AST
-ast = whiteSpace >> AST <$> many fundef <*> many stmt <*> many assert
+ast = whiteSpace >> AST <$> many (try fundef) <*> many stmt <*> many assert
 
 parseAST :: SourceName -> String -> Either ParseError AST
 parseAST = parse ast

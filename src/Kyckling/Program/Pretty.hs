@@ -1,3 +1,6 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FlexibleContexts  #-}
+
 module Kyckling.Program.Pretty (
   pretty
 ) where
@@ -27,41 +30,29 @@ instance Pretty Expression where
 
   pretty (Ref lval) = pretty lval
 
-toIndent :: Int -> String
-toIndent n = replicate (n * 2) ' '
+toIndent :: Integer -> String
+toIndent n = replicate (fromIntegral n * 2) ' '
 
-els :: Int -> String
-els n = "else "
-
-lbra :: Int -> String
-lbra n = "{\n"
-
-rbra :: Int -> String
-rbra n = "\n" ++ toIndent n ++ "} "
-
-semicolon :: String
-semicolon = ";"
-
-condition :: Int -> String -> String
-condition n c = "if (" ++ c ++ ") "
-
-indented :: Int -> Statement -> String
-indented n (Declare (Typed v t)) = toIndent n ++ F.pretty t ++ " " ++ v ++ semicolon
-indented n (Assign lv e) = toIndent n ++ pretty lv ++ " = " ++ pretty e ++ semicolon
-indented n (If c a b) = toIndent n ++ condition n (pretty c) ++ prettyBlock n a ++ prettyElse b
-  where
-    prettyElse [] = ""
-    prettyElse b  = els n ++ prettyBlock n b
-    prettyBlock n ss = lbra n ++ prettyStatements (n + 1) ss ++ rbra n
+atomic :: [String] -> String
+atomic ss = unwords ss ++ ";"
 
 instance Pretty Statement where
-  pretty = indented 0
+  indented n s = toIndent n ++ case s of
+    Declare (Typed v t) -> atomic [F.pretty t, v]
+    Assign lv e -> atomic [pretty lv, "=", pretty e]
+    If c a b -> "if (" ++ pretty c ++ ") " ++
+                  indented n a ++
+                  if null b then "" else "else " ++ indented n b
 
-prettyStatements :: Int -> [Statement] -> String
-prettyStatements n = intercalate "\n" . map (indented n)
+instance Pretty [Statement] where
+  indented n ss = "{\n" ++ intercalate "\n" (map (indented $ n + 1) ss) ++ "\n" ++ toIndent n ++ "} "
+  pretty = intercalate "\n" . map pretty
+
+instance Pretty FunDef where
+  pretty = undefined
 
 instance Pretty Assertion where
-  pretty (Assertion f) = "assert " ++ F.pretty f ++ semicolon
+  pretty (Assertion f) = atomic ["assert", F.pretty f]
 
 instance Pretty Program where
-  pretty (Program ss as) = prettyStatements 0 ss ++ "\n" ++ concatMap pretty as
+  pretty (Program fs ss as) = concatMap pretty fs ++ "\n" ++ pretty ss ++ "\n" ++ concatMap pretty as

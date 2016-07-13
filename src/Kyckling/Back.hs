@@ -9,8 +9,8 @@ import qualified Kyckling.FOOL as F
 import qualified Kyckling.Program as P
 
 translate :: P.Program -> (Signature, F.Formula)
-translate (P.Program ss []) = ([] , F.BooleanConst True)
-translate (P.Program ss as) = (signature, conjecture)
+translate (P.Program fs ss []) = ([] , F.BooleanConst True)
+translate (P.Program fs ss as) = (signature, conjecture)
   where
     (declared, bindings) = translateStatements ss
 
