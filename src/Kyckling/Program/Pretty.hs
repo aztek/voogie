@@ -30,29 +30,26 @@ instance Pretty Expression where
 
   pretty (Ref lval) = pretty lval
 
-toIndent :: Integer -> String
-toIndent n = replicate (fromIntegral n * 2) ' '
-
-atomic :: [String] -> String
-atomic ss = unwords ss ++ ";"
+indent :: Integer -> String
+indent n = replicate (fromIntegral n * 2) ' '
 
 instance Pretty Statement where
-  indented n s = toIndent n ++ case s of
-    Declare (Typed v t) -> atomic [F.pretty t, v]
-    Assign lv e -> atomic [pretty lv, "=", pretty e]
+  indented n s = indent n ++ case s of
+    Declare (Typed v t) -> F.pretty t ++ " " ++ v ++ ";"
+    Assign lv e -> pretty lv ++ " = " ++ pretty e ++ ";"
     If c a b -> "if (" ++ pretty c ++ ") " ++
                   indented n a ++
                   if null b then "" else "else " ++ indented n b
 
 instance Pretty [Statement] where
-  indented n ss = "{\n" ++ intercalate "\n" (map (indented $ n + 1) ss) ++ "\n" ++ toIndent n ++ "} "
+  indented n ss = "{\n" ++ intercalate "\n" (map (indented $ n + 1) ss) ++ "\n" ++ indent n ++ "} "
   pretty = intercalate "\n" . map pretty
 
 instance Pretty FunDef where
   pretty = undefined
 
 instance Pretty Assertion where
-  pretty (Assertion f) = atomic ["assert", F.pretty f]
+  pretty (Assertion f) = "assert " ++ F.pretty f ++ ";"
 
 instance Pretty Program where
   pretty (Program fs ss as) = concatMap pretty fs ++ "\n" ++ pretty ss ++ "\n" ++ concatMap pretty as
