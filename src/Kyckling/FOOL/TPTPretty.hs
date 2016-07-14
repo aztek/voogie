@@ -90,34 +90,46 @@ newline = ('\n' :)
 
 indentedTerm :: Bool -> Int -> Int -> Term -> String
 indentedTerm pp i o t = indent i ++ case t of
-  IntegerConst n  -> show n
-  BooleanConst b  -> if b then "$true" else "$false"
-  Select a i      -> funapp "$select" [prettyTerm a, prettyTerm i]
-  Store  a i e    -> funapp "$store"  [prettyTerm a, prettyTerm i, prettyTerm e]
-  Variable v      -> prettyTypedVar v
-  Const c         -> prettyConstant c
-  Unary op a      -> unary
-                       where (isPrefix, prettyOp) = prettyUnaryOp op
-                             unary = if isPrefix then prettyOp ++ indentedTerm True 0 (o + length prettyOp) a
-                                                 else funapp prettyOp [indentedTerm True 0 (o + length prettyOp + 1) a]
-  Binary op a b   -> if pp then parens binary else binary
-                       where (isInfix, prettyOp) = prettyBinaryOp op
-                             binary = if isInfix then infx (prettyTerm a) prettyOp (prettyTerm b)
-                                                 else funapp prettyOp [prettyTerm a, prettyTerm b]
+  IntegerConst n -> show n
+  BooleanConst b -> if b then "$true" else "$false"
+
+  Select a i   -> funapp "$select" [prettyTerm a, prettyTerm i]
+  Store  a i e -> funapp "$store"  [prettyTerm a, prettyTerm i, prettyTerm e]
+
+  Variable v -> prettyTypedVar v
+  Const c    -> prettyConstant c
+
+  Unary op a    -> if isPrefix then prettyOp ++ indentedTerm True 0 (o + length prettyOp) a
+                               else funapp prettyOp [indentedTerm True 0 (o + length prettyOp + 1) a]
+                     where (isPrefix, prettyOp) = prettyUnaryOp op
+  Binary op a b -> if pp then parens binary else binary
+                     where (isInfix, prettyOp) = prettyBinaryOp op
+                           binary = if isInfix then infx (prettyTerm a) prettyOp (prettyTerm b)
+                                               else funapp prettyOp [prettyTerm a, prettyTerm b]
+
   Quantify q [] t -> indentedTerm pp 0 o t
   Quantify q vs t -> prettyQ ++ " " ++ prettyVars ++ ": " ++ parens (indentedTerm False 0 o' t)
                        where prettyQ = prettyQuantifier q
                              prettyVars = tuple (map prettyTypedVar vs)
                              o' = o + length prettyQ + 1 + length prettyVars + 3
-  Eql   a b       -> infx (prettyTerm a)  "=" (prettyTerm b)
-  InEql a b       -> infx (prettyTerm a) "!=" (prettyTerm b)
-  Tuple ts        -> tuple (map prettyTerm ts)
-  Let b t         -> funapp "$let" [offsetBinding (o + 5) b,
-                                    newline $ indentedTerm False i' o' t]
-                       where (i', o') = if isLet t then (i, o) else (i + 5, o + 5)
-  If c a b        -> funapp "$ite" [indentedTerm False 0 (o + 5) c,
-                                    newline $ indentedTerm False (i + o + 5) (i + o + 5) a,
-                                    newline $ indentedTerm False (i + o + 5) (i + o + 5) b]
+
+  Eql   a b -> infx (prettyTerm a)  "=" (prettyTerm b)
+  InEql a b -> infx (prettyTerm a) "!=" (prettyTerm b)
+
+  Tuple ts -> tuple (map prettyTerm ts)
+
+  Left_  t _  -> funapp "$left"      [prettyTerm t]
+  Right_ _ t  -> funapp "right"      [prettyTerm t]
+  IsLeft t    -> funapp "$isleft"    [prettyTerm t]
+  FromLeft  t -> funapp "$fromleft"  [prettyTerm t]
+  FromRight t -> funapp "$fromright" [prettyTerm t]
+
+  Let b t  -> funapp "$let" [offsetBinding (o + 5) b,
+                             newline $ indentedTerm False i' o' t]
+                where (i', o') = if isLet t then (i, o) else (i + 5, o + 5)
+  If c a b -> funapp "$ite" [indentedTerm False 0 (o + 5) c,
+                             newline $ indentedTerm False (i + o + 5) (i + o + 5) a,
+                             newline $ indentedTerm False (i + o + 5) (i + o + 5) b]
 
 isLet :: Term -> Bool
 isLet (Let _ _) = True

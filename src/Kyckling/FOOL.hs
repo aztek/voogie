@@ -26,6 +26,11 @@ data Term = IntegerConst Integer
           | Eql   Term Term
           | InEql Term Term
           | Tuple [Term]
+          | Left_ Term Type
+          | Right_ Type Term
+          | IsLeft Term
+          | FromLeft Term
+          | FromRight Term
           | Let Binding Term
           | If Term Term Term
   deriving (Show)
@@ -45,5 +50,10 @@ instance TypeOf Term where
   typeOf (Eql   _ _) = Boolean
   typeOf (InEql _ _) = Boolean
   typeOf (Tuple args) = TupleType (map typeOf args)
+  typeOf (Left_  l t) = EitherType (typeOf l) t
+  typeOf (Right_ t r) = EitherType t (typeOf r)
+  typeOf (IsLeft _) = Boolean
+  typeOf (FromLeft  t) = leftArgument  (typeOf t)
+  typeOf (FromRight t) = rightArgument (typeOf t)
   typeOf (Let _ t) = typeOf t
   typeOf (If _ a _) = typeOf a

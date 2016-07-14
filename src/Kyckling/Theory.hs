@@ -17,6 +17,18 @@ arrayArgument :: Type -> Type
 arrayArgument (Array t) = t
 arrayArgument t = error (show t ++ " is not an array")
 
+isEither :: Type -> Bool
+isEither (EitherType{}) = True
+isEither _ = False
+
+eitherArguments :: Type -> (Type, Type)
+eitherArguments (EitherType l r) = (l, r)
+eitherArguments t = error (show t ++ " is not a disjoint union")
+
+leftArgument, rightArgument :: Type -> Type
+leftArgument  = fst . eitherArguments
+rightArgument = snd . eitherArguments
+
 type Name = String
 
 data Typed n = Typed n Type

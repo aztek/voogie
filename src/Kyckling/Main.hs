@@ -17,5 +17,5 @@ main = do args <- getArgs
             Left parsingError -> print parsingError
             Right ast -> case analyze ast of
                            Left typeError -> print typeError
-                           Right code -> putStrLn $ pretty code --let fool = translate code
-                                         -- in putStr $ prettyTPTP fool
+                           Right code -> let fool = translate code
+                                          in putStr $ prettyTPTP fool

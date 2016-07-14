@@ -140,7 +140,7 @@ analyzeStmt env (AST.Update lval op e) =
             AST.Plus  -> Add
             AST.Minus -> Subtract
             AST.Times -> Multiply
-            AST.Assign -> undefined -- covered by the previous case
+            AST.Assign -> error "covered by a case of analyzeStmt"
     (d1, d2) = binaryOpDomain op' -- we assume that d1 == range of op'
 analyzeStmt env (AST.Return e) =
   do e' <- analyzeExpr env e
