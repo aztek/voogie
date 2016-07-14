@@ -36,12 +36,17 @@ instance TypeOf Expression where
 data Statement = Declare Var
                | Assign LValue Expression
                | If Expression [Statement] [Statement]
+               | IfTerminating Expression Bool [Statement] TerminatingStatement
+  deriving (Show)
+
+data TerminatingStatement = Return    [Statement] Expression
+                          | IteReturn [Statement] Expression TerminatingStatement TerminatingStatement
   deriving (Show)
 
 data Assertion = Assertion F.Formula
   deriving (Show)
 
-data FunDef = FunDef Int Type Name [Typed Name] [Statement]
+data FunDef = FunDef Type Name [Typed Name] TerminatingStatement
   deriving (Show)
 
 data Program = Program [FunDef] [Statement] [Assertion]

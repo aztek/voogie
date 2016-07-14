@@ -3,6 +3,7 @@ module Main where
 import System.Environment
 
 import Kyckling.Program.Parse
+import Kyckling.Program.Pretty
 import Kyckling.Front
 import Kyckling.Back
 import Kyckling.FOOL.TPTPretty
@@ -16,5 +17,5 @@ main = do args <- getArgs
             Left parsingError -> print parsingError
             Right ast -> case analyze ast of
                            Left typeError -> print typeError
-                           Right code -> let fool = translate code
-                                          in putStr $ prettyTPTP fool
+                           Right code -> putStrLn $ pretty code --let fool = translate code
+                                         -- in putStr $ prettyTPTP fool

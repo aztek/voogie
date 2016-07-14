@@ -33,23 +33,36 @@ instance Pretty Expression where
 indent :: Integer -> String
 indent n = replicate (fromIntegral n * 2) ' '
 
+braces :: Pretty s => Integer -> s -> String
+braces n s = "{" ++ (if null s' then "" else "\n" ++ s' ++ indent n) ++ "}"
+  where s' = indented (n + 1) s
+
+indentedIte :: (Pretty a, Pretty b) => Integer -> Expression -> a -> b -> String
+indentedIte n c a b = indent n ++ "if (" ++ pretty c ++ ") " ++ braces n a ++ " else " ++ braces n b
+
 instance Pretty Statement where
-  indented n s = indent n ++ case s of
-    Declare (Typed v t) -> F.pretty t ++ " " ++ v ++ ";"
-    Assign lv e -> pretty lv ++ " = " ++ pretty e ++ ";"
-    If c a b -> "if (" ++ pretty c ++ ") " ++
-                  indented n a ++
-                  if null b then "" else "else " ++ indented n b
+  indented n s = case s of
+    Declare (Typed v t) -> indent n ++ F.pretty t ++ " " ++ v ++ ";"
+    Assign lv e -> indent n ++ pretty lv ++ " = " ++ pretty e ++ ";"
+    If c a b -> indentedIte n c a b
+    IfTerminating c False a b -> indentedIte n c a b
+    IfTerminating c True  a b -> indentedIte n c b a
 
 instance Pretty [Statement] where
-  indented n ss = "{\n" ++ intercalate "\n" (map (indented $ n + 1) ss) ++ "\n" ++ indent n ++ "} "
-  pretty = intercalate "\n" . map pretty
+  indented n = unlines . map (indented n)
+
+instance Pretty TerminatingStatement where
+  indented n (Return    ss e)     = indented n ss ++ indent n ++ "return " ++ pretty e ++ ";\n"
+  indented n (IteReturn ss c a b) = indented n ss ++ indentedIte n c a b ++ "\n"
 
 instance Pretty FunDef where
-  pretty = undefined
+  indented n (FunDef t f vars ts) = indent n ++ prettySignature ++ braces n ts
+    where
+      prettySignature = F.pretty t ++ " " ++ f ++ " (" ++ prettyVars ++ ") "
+      prettyVars = intercalate ", " (map (\(Typed n t) -> F.pretty t ++ " " ++ n) vars)
 
 instance Pretty Assertion where
   pretty (Assertion f) = "assert " ++ F.pretty f ++ ";"
 
 instance Pretty Program where
-  pretty (Program fs ss as) = concatMap pretty fs ++ "\n" ++ pretty ss ++ "\n" ++ concatMap pretty as
+  pretty (Program fs ss as) = concatMap pretty fs ++ pretty ss ++ concatMap pretty as

@@ -3,6 +3,7 @@ module Kyckling.Front where
 import Control.Monad
 import Control.Applicative
 import Data.Maybe
+import Data.Bifunctor
 
 import qualified Data.Map as Map
 
@@ -41,10 +42,22 @@ guardType t analyze a = do b <- analyze a
                              Left $ "expected an expression of the type " ++ pretty t' ++
                                     " but got " ++ pretty b ++ " of the type " ++ pretty t 
 
+
+flattenDeclarations :: [AST.Stmt] -> [AST.Stmt]
+flattenDeclarations = foldr ((++) . flattenDeclaration) []
+
+flattenDeclaration :: AST.Stmt -> [AST.Stmt]
+flattenDeclaration (AST.Declare t defs) = concatMap toStmts defs
+  where
+    toStmts (n, e) = AST.Declare t [(n, Nothing)] : maybeToList (fmap (AST.Update (AST.Var n) AST.Assign) e)
+flattenDeclaration (AST.If c a b) = [AST.If c (flattenDeclarations a) (flattenDeclarations b)]
+flattenDeclaration s = [s]
+
+
 analyze :: AST.AST -> Either Error Program
 analyze (AST.AST fs ss as) =
   do fs' <- analyzeFunDefs fs
-     (env, ss') <- analyzeStmts emptyEnv ss
+     (env, ss') <- analyzeNonTerminating emptyEnv (flattenDeclarations ss)
      as' <- mapM (analyzeAssert env) as
      return (Program fs' ss' as')
 
@@ -52,45 +65,76 @@ analyzeFunDefs :: [AST.FunDef] -> Either Error [FunDef]
 analyzeFunDefs = mapM analyzeFunDef
 
 analyzeFunDef :: AST.FunDef -> Either Error FunDef
-analyzeFunDef (AST.FunDef t n vars stmts) = undefined
+analyzeFunDef (AST.FunDef t n vars stmts) =
+  do let env = foldr (\(Typed n t) -> Map.insert n t) emptyEnv vars
+     (_, ts) <- analyzeTerminating env stmts
+     return (FunDef t n vars ts)
 
-analyzeStmts :: Env -> [AST.Stmt] -> Either Error (Env, [Statement])
-analyzeStmts env [] = Right (env, [])
+analyzeTerminating :: Env -> [AST.Stmt] -> Either Error (Env, TerminatingStatement)
+analyzeTerminating env ss =
+  do (env', ss') <- analyzeStmts env ss
+     case ss' of
+       Left  ts  -> return (env', ts)
+       Right ss' -> Left "non-terminating statement in a terminating block"
+
+analyzeNonTerminating :: Env -> [AST.Stmt] -> Either Error (Env, [Statement])
+analyzeNonTerminating env ss =
+  do (env', ss') <- analyzeStmts env ss
+     case ss' of
+       Left  ts  -> Left "terminating statement in a non-terminating block"
+       Right ss' -> return (env', ss')
+
+
+analyzeStmts :: Env -> [AST.Stmt] -> Either Error (Env, Either TerminatingStatement [Statement])
+analyzeStmts env [] = Right (env, Right [])
 analyzeStmts env (s:ss) =
-  do (env',  s')  <- analyzeStmt  env  s
-     (env'', ss') <- analyzeStmts env' ss
-     return (env'', s' ++ ss')
-
-analyzeStmt :: Env -> AST.Stmt -> Either Error (Env, [Statement])
-analyzeStmt env (AST.Declare t defs) =
-  do defs' <- mapM analyzeDef defs
-     let env' = foldr (\(n, _) -> Map.insert n t) env defs'
-     let decl = concatMap toStmts defs'
-     return (env', decl)
+  do (env',  s')  <- analyzeStmt env s
+     case s' of
+       Left ts  -> return (env', Left ts)
+       Right s' -> do (env'', ss') <- analyzeStmts env' ss
+                      return (env'', bimap (appendStatement s') (s':) ss')
   where
-    analyzeDef (n, e) = do e' <- mapM (guardType t (analyzeExpr env)) (maybeToList e)
-                           return (n, e')
-    toStmts (n, e) = Declare v : map (Assign (Variable v)) e
-      where v = Typed n t
+    appendStatement :: Statement -> TerminatingStatement -> TerminatingStatement
+    appendStatement s (Return    ss e)     = Return    (s:ss) e
+    appendStatement s (IteReturn ss c a b) = IteReturn (s:ss) c a b
+
+
+analyzeStmt :: Env -> AST.Stmt -> Either Error (Env, Either TerminatingStatement Statement)
+analyzeStmt env (AST.Declare t [(n, Nothing)]) =
+  if Map.member n env
+  then Left $ "the variable " ++ n ++ " shadows the previous definition"
+  else let env' = Map.insert n t env
+           stmt = Declare (Typed n t)
+        in return (env', Right stmt)
+analyzeStmt env (AST.Declare t _) = error "should be eliminated by flattenDeclaration"
 analyzeStmt env (AST.If c a b) =
   do (_, a') <- analyzeStmts env a
      (_, b') <- analyzeStmts env b
      c' <- guardType Boolean (analyzeExpr env) c
-     return (env, [If c' a' b'])
+     let stmt = case (a', b') of
+                  (Right a', Right b') -> Right $ If c' a' b'
+                  (Right a', Left  b') -> Right $ IfTerminating c' False a' b'
+                  (Left  a', Right b') -> Right $ IfTerminating c' True  b' a'
+                  (Left  a', Left  b') -> Left  $ IteReturn [] c' a' b'
+     return (env, stmt)
 analyzeStmt env (AST.Increment lval) =
   do lv <- guardType Integer (analyzeLValue env) lval
-     return (env, [Assign lv (Binary Add (Ref lv) (IntegerConst 1))])
+     let stmt = Assign lv (Binary Add (Ref lv) (IntegerConst 1))
+     return (env, Right stmt)
 analyzeStmt env (AST.Decrement lval) =
   do lv <- guardType Integer (analyzeLValue env) lval
-     return (env, [Assign lv (Binary Subtract (Ref lv) (IntegerConst 1))])
+     let stmt = Assign lv (Binary Subtract (Ref lv) (IntegerConst 1))
+     return (env, Right stmt)
 analyzeStmt env (AST.Update lval AST.Assign e) =
   do lv <- analyzeLValue env lval
      e' <- guardType (typeOf lv) (analyzeExpr env) e
-     return (env, [Assign lv e'])
+     let stmt = Assign lv e'
+     return (env, Right stmt)
 analyzeStmt env (AST.Update lval op e) =
   do lv <- guardType d1 (analyzeLValue env) lval
      e' <- guardType d2 (analyzeExpr env) e
-     return (env, [Assign lv (Binary op' (Ref lv) e')])
+     let stmt = Assign lv (Binary op' (Ref lv) e')
+     return (env, Right stmt)
   where
     op' = case op of
             AST.Plus  -> Add
@@ -98,7 +142,10 @@ analyzeStmt env (AST.Update lval op e) =
             AST.Times -> Multiply
             AST.Assign -> undefined -- covered by the previous case
     (d1, d2) = binaryOpDomain op' -- we assume that d1 == range of op'
-analyzeStmt env (AST.Return e) = undefined
+analyzeStmt env (AST.Return e) =
+  do e' <- analyzeExpr env e
+     let stmt = Return [] e'
+     return (env, Left stmt)
 
 analyzeAssert :: Env -> AST.Assert -> Either Error Assertion
 analyzeAssert env (AST.Assert f) = Assertion <$> analyzeFormula env f

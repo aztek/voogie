@@ -62,6 +62,7 @@ translateStatement (P.If c a b) = Right binding
     c' = translateExpression c
     ite = F.If c' (constructBranch thenBindings) (constructBranch elseBindings)
     binding = F.Binding (F.TupleD updated) ite
+translateStatement (P.IfTerminating{}) = undefined
 
 translateStatements :: [P.Statement] -> ([Declaration], [F.Binding])
 translateStatements = partitionEithers . map translateStatement
