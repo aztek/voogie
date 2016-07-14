@@ -43,6 +43,10 @@ data TerminatingStatement = Return    [Statement] Expression
                           | IteReturn [Statement] Expression TerminatingStatement TerminatingStatement
   deriving (Show)
 
+instance TypeOf TerminatingStatement where
+  typeOf (Return    _ e) = typeOf e
+  typeOf (IteReturn _ _ a _) = typeOf a
+
 data Assertion = Assertion F.Formula
   deriving (Show)
 
