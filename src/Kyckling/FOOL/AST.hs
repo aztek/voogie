@@ -9,9 +9,9 @@ data Term = IntConst Integer
           | Ternary          Term Term Term
           | Eql   Term Term
           | InEql Term Term
-          | Quantified Quantifier [Typed Name] Term
-          | Constant Name
-          | ArrayElem Name Term
+          | Quantified Quantifier [Typed String] Term
+          | Constant String
+          | ArrayElem String Term
   deriving (Show, Eq)
 
 type Formula = Term

@@ -28,7 +28,7 @@ data Stmt = If Expr [Stmt] [Stmt]
           | Return Expr
   deriving (Show, Eq)
 
-data FunDef = FunDef Type Name [Typed Name] [Stmt]
+data FunDef = FunDef Type String [Typed String] [Stmt]
   deriving (Show, Eq)
 
 data Assert = Assert F.Formula
