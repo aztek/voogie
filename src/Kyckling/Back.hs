@@ -11,11 +11,13 @@ import qualified Kyckling.FOOL as F
 import qualified Kyckling.Program as P
 
 data Binding = Regular F.Binding
+             | MaybeBinding F.Term
              | EitherBinding (NonEmpty F.Constant) F.Term
 
 namesIn :: Binding -> [F.Constant]
 namesIn (Regular (F.Binding (F.Symbol c _) _)) = [c]
 namesIn (Regular (F.Binding (F.TupleD cs)  _)) = NE.toList cs
+namesIn (MaybeBinding _) = []
 namesIn (EitherBinding cs _) = NE.toList cs
 
 translate :: P.Program -> (Signature, F.Formula)
@@ -37,13 +39,17 @@ foldBindings :: F.Term -> [Binding] -> F.Term
 foldBindings = foldr f
   where
     f (Regular b) t = F.Let b t
+    f (MaybeBinding b) t = F.Let binding (F.If (F.IsJust constant) (F.FromJust constant) t)
+      where
+        binding = F.Binding (F.Symbol symbol []) b
+        symbol = Typed "i" (typeOf b)
+        constant = F.Const symbol
     f (EitherBinding vars b) t = F.Let binding (F.If (F.IsLeft constant)
                                                      (F.FromLeft constant)
                                                      (F.Let (F.Binding (F.TupleD vars) (F.FromRight constant)) t))
       where
         binding = F.Binding (F.Symbol symbol []) b
-        typ = EitherType (typeOf t) (typeOf (F.Tuple $ NE.map F.Const vars))
-        symbol = Typed "i" typ
+        symbol = Typed "i" (typeOf b)
         constant = F.Const symbol
 
 type Declaration = F.Constant
@@ -89,24 +95,33 @@ translateStatement (P.If c a b) = Right (Regular binding)
     elseBranch = foldBindings updatedTerm elseBindings
     ite = F.If c' thenBranch elseBranch
     binding = F.Binding (F.TupleD updated) ite
-translateStatement (P.IfTerminating c flp a b) = Right (EitherBinding updated body)
+translateStatement (P.IfTerminating c flp a b) = Right binding
   where
+    c' = translateExpression c
     (thenDeclared, thenBindings) = translateStatements a
     elseTerm = translateTerminating b
 
     bound = nub (concatMap namesIn thenBindings)
     declared = nub thenDeclared
 
-    updated = NE.fromList (bound \\ declared) -- TODO: NEED A CHECK HERE
+    binding = case NE.nonEmpty (bound \\ declared) of
+      Nothing -> MaybeBinding body
+        where
+          thenBranch = foldBindings (F.Nothing_ (typeOf elseTerm)) thenBindings
+          elseBranch = F.Just_ elseTerm
 
-    updatedTerm = F.Tuple (NE.map F.Const updated)
+          ite = if flp then F.If c' else flip (F.If c') 
+          body = ite thenBranch elseBranch
 
-    thenBranch = foldBindings (F.Right_ (typeOf elseTerm) updatedTerm) thenBindings
-    elseBranch = F.Left_ elseTerm (typeOf updatedTerm)
+      Just updated -> EitherBinding updated body
+        where
+          updatedTerm = F.Tuple (NE.map F.Const updated)
 
-    c' = translateExpression c
-    ite = if flp then F.If c' else flip (F.If c') 
-    body = ite thenBranch elseBranch
+          thenBranch = foldBindings (F.Right_ (typeOf elseTerm) updatedTerm) thenBindings
+          elseBranch = F.Left_ elseTerm (typeOf updatedTerm)
+
+          ite = if flp then F.If c' else flip (F.If c') 
+          body = ite thenBranch elseBranch
 
 translateFunDef :: P.FunDef -> Binding
 translateFunDef (P.FunDef t f vars ts) = Regular binding
