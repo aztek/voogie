@@ -8,19 +8,19 @@ import Kyckling.Theory
 newtype Var = Var Name
   deriving (Show)
 
-type Constant = Typed Name
+type Const = Typed Name
 
-data Definition = Symbol Constant [Typed Var]
-                | TupleD (NonEmpty Constant)
+data Definition = Symbol Const [Typed Var]
+                | TupleD (NonEmpty Const)
   deriving (Show)
 
 data Binding = Binding Definition Term
   deriving (Show)
 
-data Term = IntegerConst Integer
-          | BooleanConst Bool
+data Term = IntegerConstant Integer
+          | BooleanConstant Bool
           | Variable (Typed Var)
-          | Const Constant
+          | Constant Const
           | Binary BinaryOp Term Term
           | Unary UnaryOp Term
           | Quantify Quantifier [Typed Var] Term
@@ -48,10 +48,10 @@ data Term = IntegerConst Integer
 type Formula = Term
 
 instance TypeOf Term where
-  typeOf (IntegerConst _) = Integer
-  typeOf (BooleanConst _) = Boolean
+  typeOf (IntegerConstant _) = Integer
+  typeOf (BooleanConstant _) = Boolean
   typeOf (Variable v) = typeOf v 
-  typeOf (Const c) = typeOf c
+  typeOf (Constant c) = typeOf c
   typeOf (Binary op _ _) = binaryOpRange op
   typeOf (Unary  op _) = unaryOpRange op
   typeOf (Quantify{}) = Boolean

@@ -58,15 +58,15 @@ prettyType s =
 prettyVar :: Var -> String
 prettyVar (Var n) = map toUpper n
 
-prettyConstant :: Constant -> String
+prettyConstant :: Const -> String
 prettyConstant (Typed n _) = n
 
-prettyTypedVar :: Typed Var -> String
-prettyTypedVar (Typed v t) = prettyVar v ++ ":" ++ prettyType t
+prettyVariable :: Typed Var -> String
+prettyVariable (Typed v t) = prettyVar v ++ ":" ++ prettyType t
 
 prettyDefinition :: Definition -> String
 prettyDefinition (Symbol c []) = prettyConstant c
-prettyDefinition (Symbol c vs) = funapp (prettyConstant c) (map prettyTypedVar vs)
+prettyDefinition (Symbol c vs) = funapp (prettyConstant c) (map prettyVariable vs)
 prettyDefinition (TupleD es) = tuple (NE.map prettyConstant es)
 
 offsetBinding :: Int -> Binding -> String
@@ -93,11 +93,11 @@ newline = ('\n' :)
 
 indentedTerm :: Bool -> (Int, Int) -> Term -> String
 indentedTerm pp (i, o) t = indent i ++ case t of
-  IntegerConst n -> show n
-  BooleanConst b -> if b then "$true" else "$false"
+  IntegerConstant n -> show n
+  BooleanConstant b -> if b then "$true" else "$false"
 
-  Variable v -> prettyTypedVar v
-  Const c    -> prettyConstant c
+  Variable v -> prettyVariable v
+  Constant c -> prettyConstant c
 
   Unary op a    -> if isPrefix then prettyOp ++ indentedTerm True (0, o + length prettyOp) a
                                else funapp prettyOp [indentedTerm True (0, o + length prettyOp + 1) a]
@@ -110,7 +110,7 @@ indentedTerm pp (i, o) t = indent i ++ case t of
   Quantify q [] t -> indentedTerm pp (0, o) t
   Quantify q vs t -> prettyQ ++ " " ++ prettyVars ++ ": " ++ parens (indentedTerm False (0, o') t)
                        where prettyQ = prettyQuantifier q
-                             prettyVars = "[" ++ list (map prettyTypedVar vs) ++ "]"
+                             prettyVars = "[" ++ list (map prettyVariable vs) ++ "]"
                              o' = o + length prettyQ + 1 + length prettyVars + 3
 
   Equals s a b -> infx (prettyTerm a) (if s == Pos then "=" else "!=") (prettyTerm b)

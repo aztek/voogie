@@ -154,8 +154,8 @@ analyzeFormula :: Env -> F.AST.Term -> Either Error F.Formula
 analyzeFormula env = guardType Boolean (analyzeTerm env)
 
 analyzeTerm :: Env -> F.AST.Term -> Either Error F.Term
-analyzeTerm _ (F.AST.IntConst  i) = return (F.IntegerConst i)
-analyzeTerm _ (F.AST.BoolConst b) = return (F.BooleanConst b)
+analyzeTerm _ (F.AST.IntConst  i) = return (F.IntegerConstant i)
+analyzeTerm _ (F.AST.BoolConst b) = return (F.BooleanConstant b)
 analyzeTerm env (F.AST.Unary op t) = F.Unary op <$> guardType d (analyzeTerm env) t
   where
     d = unaryOpDomain op
@@ -176,8 +176,8 @@ analyzeTerm env (F.AST.Quantified q vars term) = F.Quantify q vars' <$> analyzeF
     -- TODO: check that the variables are disjoint
     env' = foldr (\(Typed v t) -> Map.insert v t) env vars
     vars' = map (fmap F.Var) vars
-analyzeTerm env (F.AST.Constant  s)   = F.Const  <$> lookupName s env
-analyzeTerm env (F.AST.ArrayElem s i) = F.Select <$> (F.Const <$> lookupArrayName s env) <*> guardType Integer (analyzeTerm env) i
+analyzeTerm env (F.AST.Constant  s)   = F.Constant <$> lookupName s env
+analyzeTerm env (F.AST.ArrayElem s i) = F.Select <$> (F.Constant <$> lookupArrayName s env) <*> guardType Integer (analyzeTerm env) i
 
 
 analyzeLValue :: Env -> AST.LVal -> Either Error LValue

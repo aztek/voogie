@@ -12,16 +12,16 @@ import qualified Kyckling.Program as P
 
 data Binding = Regular F.Binding
              | MaybeBinding F.Term
-             | EitherBinding (NonEmpty F.Constant) F.Term
+             | EitherBinding (NonEmpty F.Const) F.Term
 
-namesIn :: Binding -> [F.Constant]
+namesIn :: Binding -> [F.Const]
 namesIn (Regular (F.Binding (F.Symbol c _) _)) = [c]
 namesIn (Regular (F.Binding (F.TupleD cs)  _)) = NE.toList cs
 namesIn (MaybeBinding _) = []
 namesIn (EitherBinding cs _) = NE.toList cs
 
 translate :: P.Program -> (Signature, F.Formula)
-translate (P.Program _  ss []) = ([] , F.BooleanConst True)
+translate (P.Program _  ss []) = ([] , F.BooleanConstant True)
 translate (P.Program fs ss as) = (signature, conjecture)
   where
     funBindings = map translateFunDef fs
@@ -43,16 +43,16 @@ foldBindings = foldr f
       where
         binding = F.Binding (F.Symbol symbol []) b
         symbol = Typed "i" (typeOf b)
-        constant = F.Const symbol
+        constant = F.Constant symbol
     f (EitherBinding vars b) t = F.Let binding (F.If (F.IsLeft constant)
                                                      (F.FromLeft constant)
                                                      (F.Let (F.Binding (F.TupleD vars) (F.FromRight constant)) t))
       where
         binding = F.Binding (F.Symbol symbol []) b
         symbol = Typed "i" (typeOf b)
-        constant = F.Const symbol
+        constant = F.Constant symbol
 
-type Declaration = F.Constant
+type Declaration = F.Const
 
 translateStatements :: [P.Statement] -> ([Declaration], [Binding])
 translateStatements = partitionEithers . map translateStatement
@@ -69,7 +69,7 @@ translateStatement (P.Assign lval e) = Right (Regular binding)
 
     body = case lval of
              P.Variable  _   -> e'
-             P.ArrayElem _ a -> F.Store (F.Const n) (translateExpression a) e'
+             P.ArrayElem _ a -> F.Store (F.Constant n) (translateExpression a) e'
 
     binding = F.Binding (F.Symbol n []) body
 translateStatement (P.If c a b) = Right (Regular binding)
@@ -88,7 +88,7 @@ translateStatement (P.If c a b) = Right (Regular binding)
     -- TODO: for now we assume that there are no unbound declarations;
     --       this assumption must be removed in the future
 
-    updatedTerm = F.Tuple (NE.map F.Const updated)
+    updatedTerm = F.Tuple (NE.map F.Constant updated)
 
     c' = translateExpression c
     thenBranch = foldBindings updatedTerm thenBindings
@@ -115,7 +115,7 @@ translateStatement (P.IfTerminating c flp a b) = Right binding
 
       Just updated -> EitherBinding updated body
         where
-          updatedTerm = F.Tuple (NE.map F.Const updated)
+          updatedTerm = F.Tuple (NE.map F.Constant updated)
 
           thenBranch = foldBindings (F.Right_ (typeOf elseTerm) updatedTerm) thenBindings
           elseBranch = F.Left_ elseTerm (typeOf updatedTerm)
@@ -139,17 +139,17 @@ translateTerminating (P.IteReturn ss c a b) = foldBindings (F.If c' a' b')      
     c' = translateExpression c
 
 translateExpression :: P.Expression -> F.Term
-translateExpression (P.IntegerConst i) = F.IntegerConst i 
-translateExpression (P.BooleanConst b) = F.BooleanConst b
-translateExpression (P.Unary  op e)    = F.Unary  op (translateExpression e)
-translateExpression (P.Binary op a b)  = F.Binary op (translateExpression a) (translateExpression b)
-translateExpression (P.IfElse c a b)   = F.If (translateExpression c) (translateExpression a) (translateExpression b)
-translateExpression (P.Equals s a b)   = F.Equals s (translateExpression a) (translateExpression b)
-translateExpression (P.Ref lval)       = translateLValue lval
+translateExpression (P.IntegerConst i) = F.IntegerConstant i 
+translateExpression (P.BooleanConst b) = F.BooleanConstant b
+translateExpression (P.Unary  op e)   = F.Unary  op (translateExpression e)
+translateExpression (P.Binary op a b) = F.Binary op (translateExpression a) (translateExpression b)
+translateExpression (P.IfElse c a b)  = F.If (translateExpression c) (translateExpression a) (translateExpression b)
+translateExpression (P.Equals s a b)  = F.Equals s (translateExpression a) (translateExpression b)
+translateExpression (P.Ref lval)      = translateLValue lval
 
 translateLValue :: P.LValue -> F.Term
-translateLValue (P.Variable v)    = F.Const (translateVar v)
-translateLValue (P.ArrayElem v e) = F.Select (F.Const (translateVar v)) (translateExpression e)
+translateLValue (P.Variable v)    = F.Constant (translateVar v)
+translateLValue (P.ArrayElem v e) = F.Select (F.Constant (translateVar v)) (translateExpression e)
 
-translateVar :: P.Var -> F.Constant
+translateVar :: P.Var -> F.Const
 translateVar (Typed v t) = Typed (map toLower v) t
