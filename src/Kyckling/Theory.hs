@@ -2,10 +2,12 @@
 
 module Kyckling.Theory where
 
+import Data.List.NonEmpty
+
 data Type = Boolean
           | Integer
           | Array Type
-          | TupleType [Type]
+          | TupleType (NonEmpty Type)
           | EitherType Type Type
   deriving (Show, Eq)
 

@@ -3,6 +3,7 @@ module Kyckling.FOOL.Pretty (
 ) where
 
 import Data.List
+import qualified Data.List.NonEmpty as NE
 
 import Kyckling.Theory
 import Kyckling.Pretty
@@ -16,7 +17,7 @@ instance Pretty Type where
   pretty Integer = "int"
   pretty Boolean = "bool"
   pretty (Array t) = pretty t ++ "[]"
-  pretty (TupleType ts) = "(" ++ intercalate ", " (map pretty ts) ++ ")"
+  pretty (TupleType ts) = "(" ++ intercalate ", " (NE.toList $ NE.map pretty ts) ++ ")"
   pretty (EitherType l r) = "either(" ++ pretty l ++ ", " ++ pretty r ++ ")"
 
 instance Pretty UnaryOp where

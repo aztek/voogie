@@ -1,5 +1,8 @@
 module Kyckling.FOOL where
 
+import qualified Data.List.NonEmpty as NE
+import Data.List.NonEmpty (NonEmpty)
+
 import Kyckling.Theory
 
 newtype Var = Var Name
@@ -8,7 +11,7 @@ newtype Var = Var Name
 type Constant = Typed Name
 
 data Definition = Symbol Constant [Typed Var]
-                | TupleD [Constant]
+                | TupleD (NonEmpty Constant)
   deriving (Show)
 
 data Binding = Binding Definition Term
@@ -25,7 +28,7 @@ data Term = IntegerConst Integer
           | Quantify Quantifier [Typed Var] Term
           | Eql   Term Term
           | InEql Term Term
-          | Tuple [Term]
+          | Tuple (NonEmpty Term)
           | Left_ Term Type
           | Right_ Type Term
           | IsLeft Term
@@ -49,7 +52,7 @@ instance TypeOf Term where
   typeOf (Quantify{}) = Boolean
   typeOf (Eql   _ _) = Boolean
   typeOf (InEql _ _) = Boolean
-  typeOf (Tuple args) = TupleType (map typeOf args)
+  typeOf (Tuple args) = TupleType (NE.map typeOf args)
   typeOf (Left_  l t) = EitherType (typeOf l) t
   typeOf (Right_ t r) = EitherType t (typeOf r)
   typeOf (IsLeft _) = Boolean

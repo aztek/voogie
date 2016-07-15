@@ -3,6 +3,8 @@ module Kyckling.FOOL.TPTPretty (
 ) where
 
 import Data.List
+import qualified Data.List.NonEmpty as NE
+import Data.List.NonEmpty (NonEmpty)
 import Data.Char
 
 import Kyckling.Theory
@@ -11,8 +13,8 @@ import Kyckling.FOOL
 list :: [String] -> String
 list = intercalate ", "
 
-tuple :: [String] -> String
-tuple es = "[" ++ list es ++ "]"
+tuple :: NonEmpty String -> String
+tuple es = "[" ++ (intercalate ", " $ NE.toList es) ++ "]"
 
 parens :: String -> String
 parens s = "(" ++ s ++ ")"
@@ -49,7 +51,7 @@ prettyType s =
     Boolean -> "$o"
     Integer -> "$int"
     Array t -> funapp "$array" ["$int", prettyType t]
-    TupleType ts -> tuple (map prettyType ts)
+    TupleType ts -> tuple (NE.map prettyType ts)
     EitherType l r -> funapp "$either" [prettyType l, prettyType r]
 
 prettyVar :: Var -> String
@@ -64,7 +66,7 @@ prettyTypedVar (Typed v t) = prettyVar v ++ ":" ++ prettyType t
 prettyDefinition :: Definition -> String
 prettyDefinition (Symbol c []) = prettyConstant c
 prettyDefinition (Symbol c vs) = funapp (prettyConstant c) (map prettyTypedVar vs)
-prettyDefinition (TupleD es) = tuple (map prettyConstant es)
+prettyDefinition (TupleD es) = tuple (NE.map prettyConstant es)
 
 offsetBinding :: Int -> Binding -> String
 offsetBinding o (Binding d t) = d' ++ " := " ++ indentedTerm False (0, o + length d' + 4) t
@@ -110,13 +112,13 @@ indentedTerm pp (i, o) t = indent i ++ case t of
   Quantify q [] t -> indentedTerm pp (0, o) t
   Quantify q vs t -> prettyQ ++ " " ++ prettyVars ++ ": " ++ parens (indentedTerm False (0, o') t)
                        where prettyQ = prettyQuantifier q
-                             prettyVars = tuple (map prettyTypedVar vs)
+                             prettyVars = "[" ++ list (map prettyTypedVar vs) ++ "]"
                              o' = o + length prettyQ + 1 + length prettyVars + 3
 
   Eql   a b -> infx (prettyTerm a)  "=" (prettyTerm b)
   InEql a b -> infx (prettyTerm a) "!=" (prettyTerm b)
 
-  Tuple ts -> tuple (map prettyTerm ts)
+  Tuple ts -> tuple (NE.map prettyTerm ts)
 
   Left_  t _  -> funapp "$left"      [prettyTerm t]
   Right_ _ t  -> funapp "$right"     [prettyTerm t]

@@ -3,18 +3,20 @@ module Kyckling.Back where
 import Data.Char
 import Data.Either
 import Data.List
+import qualified Data.List.NonEmpty as NE
+import Data.List.NonEmpty (NonEmpty)
 
 import Kyckling.Theory
 import qualified Kyckling.FOOL as F
 import qualified Kyckling.Program as P
 
 data Binding = Regular F.Binding
-             | EitherBinding [F.Constant] F.Term
+             | EitherBinding (NonEmpty F.Constant) F.Term
 
 namesIn :: Binding -> [F.Constant]
 namesIn (Regular (F.Binding (F.Symbol c _) _)) = [c]
-namesIn (Regular (F.Binding (F.TupleD cs)  _)) = cs
-namesIn (EitherBinding cs _) = cs
+namesIn (Regular (F.Binding (F.TupleD cs)  _)) = NE.toList cs
+namesIn (EitherBinding cs _) = NE.toList cs
 
 translate :: P.Program -> (Signature, F.Formula)
 translate (P.Program _  ss []) = ([] , F.BooleanConst True)
@@ -40,7 +42,7 @@ foldBindings = foldr f
                                                      (F.Let (F.Binding (F.TupleD vars) (F.FromRight constant)) t))
       where
         binding = F.Binding (F.Symbol symbol []) b
-        typ = EitherType (typeOf t) (typeOf (F.Tuple $ map F.Const vars))
+        typ = EitherType (typeOf t) (typeOf (F.Tuple $ NE.map F.Const vars))
         symbol = Typed "i" typ
         constant = F.Const symbol
 
@@ -75,12 +77,12 @@ translateStatement (P.If c a b) = Right (Regular binding)
 
     declared = nub (thenDeclared ++ elseDeclared)
 
-    updated = bound \\ declared
+    updated = NE.fromList (bound \\ declared) -- TODO: NEED A CHECK HERE
 
     -- TODO: for now we assume that there are no unbound declarations;
     --       this assumption must be removed in the future
 
-    updatedTerm = F.Tuple (map F.Const updated)
+    updatedTerm = F.Tuple (NE.map F.Const updated)
 
     c' = translateExpression c
     thenBranch = foldBindings updatedTerm thenBindings
@@ -95,9 +97,9 @@ translateStatement (P.IfTerminating c flp a b) = Right (EitherBinding updated bo
     bound = nub (concatMap namesIn thenBindings)
     declared = nub thenDeclared
 
-    updated = bound \\ declared
+    updated = NE.fromList (bound \\ declared) -- TODO: NEED A CHECK HERE
 
-    updatedTerm = F.Tuple (map F.Const updated)
+    updatedTerm = F.Tuple (NE.map F.Const updated)
 
     thenBranch = foldBindings (F.Right_ (typeOf elseTerm) updatedTerm) thenBindings
     elseBranch = F.Left_ elseTerm (typeOf updatedTerm)
