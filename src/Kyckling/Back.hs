@@ -3,22 +3,24 @@ module Kyckling.Back where
 import Data.Char
 import Data.Either
 import Data.List
+
 import qualified Data.List.NonEmpty as NE
-import Data.List.NonEmpty (NonEmpty)
 
 import Kyckling.Theory
 import qualified Kyckling.FOOL as F
+import qualified Kyckling.FOOL.Tuple as F.Tuple
+
 import qualified Kyckling.Program as P
 
 data Binding = Regular F.Binding
              | MaybeBinding F.Term
-             | EitherBinding (NonEmpty F.Const) F.Term
+             | EitherBinding (F.Tuple.Tuple F.Const) F.Term
 
 namesIn :: Binding -> [F.Const]
 namesIn (Regular (F.Binding (F.Symbol c _) _)) = [c]
-namesIn (Regular (F.Binding (F.TupleD cs)  _)) = NE.toList cs
+namesIn (Regular (F.Binding (F.TupleD cs)  _)) = F.Tuple.toList cs
 namesIn (MaybeBinding _) = []
-namesIn (EitherBinding cs _) = NE.toList cs
+namesIn (EitherBinding cs _) = F.Tuple.toList cs
 
 translate :: P.Program -> (Signature, F.Formula)
 translate (P.Program _  ss []) = ([] , F.BooleanConstant True)
@@ -83,12 +85,17 @@ translateStatement (P.If c a b) = Right (Regular binding)
 
     declared = nub (thenDeclared ++ elseDeclared)
 
-    updated = NE.fromList (bound \\ declared) -- TODO: NEED A CHECK HERE
+    updated = case NE.nonEmpty (bound \\ declared) of
+                Nothing -> error "NOT IMPLEMENTED"
+                Just updated ->
+                  case F.Tuple.nonUnit updated of
+                    Left x -> error "NOT IMPLEMENTED"
+                    Right updated -> updated
 
     -- TODO: for now we assume that there are no unbound declarations;
     --       this assumption must be removed in the future
 
-    updatedTerm = F.Tuple (NE.map F.Constant updated)
+    updatedTerm = F.TupleLiteral (fmap F.Constant updated)
 
     c' = translateExpression c
     thenBranch = foldBindings updatedTerm thenBindings
@@ -113,15 +120,18 @@ translateStatement (P.IfTerminating c flp a b) = Right binding
           ite = if flp then F.If c' else flip (F.If c') 
           body = ite thenBranch elseBranch
 
-      Just updated -> EitherBinding updated body
-        where
-          updatedTerm = F.Tuple (NE.map F.Constant updated)
+      Just updated ->
+        case F.Tuple.nonUnit updated of
+          Left x -> error "NOT IMPLEMENTED"
+          Right updated -> EitherBinding updated body
+            where
+              updatedTerm = F.TupleLiteral (fmap F.Constant updated)
 
-          thenBranch = foldBindings (F.Right_ (typeOf elseTerm) updatedTerm) thenBindings
-          elseBranch = F.Left_ elseTerm (typeOf updatedTerm)
+              thenBranch = foldBindings (F.Right_ (typeOf elseTerm) updatedTerm) thenBindings
+              elseBranch = F.Left_ elseTerm (typeOf updatedTerm)
 
-          ite = if flp then F.If c' else flip (F.If c') 
-          body = ite thenBranch elseBranch
+              ite = if flp then F.If c' else flip (F.If c') 
+              body = ite thenBranch elseBranch
 
 translateFunDef :: P.FunDef -> Binding
 translateFunDef (P.FunDef t f vars ts) = Regular binding

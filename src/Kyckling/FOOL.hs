@@ -1,7 +1,6 @@
 module Kyckling.FOOL where
 
-import qualified Data.List.NonEmpty as NE
-import Data.List.NonEmpty (NonEmpty)
+import Kyckling.FOOL.Tuple (Tuple)
 
 import Kyckling.Theory
 
@@ -11,7 +10,7 @@ newtype Var = Var Name
 type Const = Typed Name
 
 data Definition = Symbol Const [Typed Var]
-                | TupleD (NonEmpty Const)
+                | TupleD (Tuple Const)
   deriving (Show)
 
 data Binding = Binding Definition Term
@@ -31,7 +30,7 @@ data Term = IntegerConstant Integer
           | Select Term Term
           | Store Term Term Term
           -- Tuples
-          | Tuple (NonEmpty Term)
+          | TupleLiteral (Tuple Term)
           -- Maybe
           | Nothing_ Type
           | Just_ Term
@@ -62,7 +61,7 @@ instance TypeOf Term where
   typeOf (Select array _) = arrayArgument (typeOf array)
   typeOf (Store array _ _) = typeOf array
 
-  typeOf (Tuple args) = TupleType (NE.map typeOf args)
+  typeOf (TupleLiteral args) = TupleType (fmap typeOf args)
 
   typeOf (Nothing_ t) = MaybeType t
   typeOf (Just_ t)    = MaybeType (typeOf t)

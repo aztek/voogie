@@ -3,8 +3,8 @@ module Kyckling.FOOL.TPTPretty (
 ) where
 
 import Data.List
-import qualified Data.List.NonEmpty as NE
-import Data.List.NonEmpty (NonEmpty)
+import qualified Kyckling.FOOL.Tuple as Tuple
+import Kyckling.FOOL.Tuple (Tuple)
 import Data.Char
 
 import Kyckling.Theory
@@ -13,8 +13,8 @@ import Kyckling.FOOL
 list :: [String] -> String
 list = intercalate ", "
 
-tuple :: NonEmpty String -> String
-tuple es = "[" ++ (intercalate ", " $ NE.toList es) ++ "]"
+tuple :: Tuple String -> String
+tuple es = "[" ++ (intercalate ", " $ Tuple.toList es) ++ "]"
 
 parens :: String -> String
 parens s = "(" ++ s ++ ")"
@@ -51,7 +51,7 @@ prettyType s =
     Boolean -> "$o"
     Integer -> "$int"
     Array t -> funapp "$array" ["$int", prettyType t]
-    TupleType ts -> tuple (NE.map prettyType ts)
+    TupleType ts -> tuple (fmap prettyType ts)
     MaybeType t -> funapp "$maybe" [prettyType t]
     EitherType l r -> funapp "$either" [prettyType l, prettyType r]
 
@@ -67,7 +67,7 @@ prettyVariable (Typed v t) = prettyVar v ++ ":" ++ prettyType t
 prettyDefinition :: Definition -> String
 prettyDefinition (Symbol c []) = prettyConstant c
 prettyDefinition (Symbol c vs) = funapp (prettyConstant c) (map prettyVariable vs)
-prettyDefinition (TupleD es) = tuple (NE.map prettyConstant es)
+prettyDefinition (TupleD es) = tuple (fmap prettyConstant es)
 
 offsetBinding :: Int -> Binding -> String
 offsetBinding o (Binding d t) = d' ++ " := " ++ indentedTerm False (0, o + length d' + 4) t
@@ -126,7 +126,7 @@ indentedTerm pp (i, o) t = indent i ++ case t of
   Select a i   -> funapp "$select" [prettyTerm a, prettyTerm i]
   Store  a i e -> funapp "$store"  [prettyTerm a, prettyTerm i, prettyTerm e]
 
-  Tuple ts -> tuple (NE.map prettyTerm ts)
+  TupleLiteral ts -> tuple (fmap prettyTerm ts)
 
   Nothing_ _ -> "$nothing"
   Just_ t    -> funapp "$just"     [prettyTerm t]

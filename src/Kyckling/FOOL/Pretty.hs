@@ -3,11 +3,11 @@ module Kyckling.FOOL.Pretty (
 ) where
 
 import Data.List
-import qualified Data.List.NonEmpty as NE
 
 import Kyckling.Theory
 import Kyckling.Pretty
 import Kyckling.FOOL
+import qualified Kyckling.FOOL.Tuple as Tuple
 
 instance Pretty Quantifier where
   pretty Forall = "forall"
@@ -17,7 +17,7 @@ instance Pretty Type where
   pretty Integer = "int"
   pretty Boolean = "bool"
   pretty (Array t) = pretty t ++ "[]"
-  pretty (TupleType ts) = "(" ++ intercalate ", " (NE.toList $ NE.map pretty ts) ++ ")"
+  pretty (TupleType ts) = "(" ++ intercalate ", " (Tuple.toList $ fmap pretty ts) ++ ")"
   pretty (MaybeType t) = "maybe(" ++ pretty t ++ ")"
   pretty (EitherType l r) = "either(" ++ pretty l ++ ", " ++ pretty r ++ ")"
 
