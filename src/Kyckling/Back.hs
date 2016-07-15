@@ -8,11 +8,13 @@ import Kyckling.Theory
 import qualified Kyckling.FOOL as F
 import qualified Kyckling.Program as P
 
-type Binding = (Bool, F.Binding)
+data Binding = Regular F.Binding
+             | EitherBinding [F.Constant] F.Term
 
 namesIn :: Binding -> [F.Constant]
-namesIn (_, F.Binding (F.Symbol c _) _) = [c]
-namesIn (_, F.Binding (F.TupleD cs)  _) = cs
+namesIn (Regular (F.Binding (F.Symbol c _) _)) = [c]
+namesIn (Regular (F.Binding (F.TupleD cs)  _)) = cs
+namesIn (EitherBinding cs _) = cs
 
 translate :: P.Program -> (Signature, F.Formula)
 translate (P.Program _  ss []) = ([] , F.BooleanConst True)
@@ -30,10 +32,17 @@ translate (P.Program fs ss as) = (signature, conjecture)
     conjecture = foldBindings assert (funBindings ++ bindings)
 
 foldBindings :: F.Term -> [Binding] -> F.Term
-foldBindings = foldr (\(s, b) -> if s then f b else F.Let b)
+foldBindings = foldr f
   where
-    f (F.Binding (F.TupleD vars) t) = undefined
-    f _ = error "invariant violation"
+    f (Regular b) t = F.Let b t
+    f (EitherBinding vars b) t = F.Let binding (F.If (F.IsLeft constant)
+                                                     (F.FromLeft constant)
+                                                     (F.Let (F.Binding (F.TupleD vars) (F.FromRight constant)) t))
+      where
+        binding = F.Binding (F.Symbol symbol []) b
+        typ = EitherType (typeOf t) (typeOf (F.Tuple $ map F.Const vars))
+        symbol = Typed "i" typ
+        constant = F.Const symbol
 
 type Declaration = F.Constant
 
@@ -42,7 +51,7 @@ translateStatements = partitionEithers . map translateStatement
 
 translateStatement :: P.Statement -> Either Declaration Binding
 translateStatement (P.Declare v) = Left (translateVar v)
-translateStatement (P.Assign lval e) = Right (False, F.Binding (F.Symbol n []) body)
+translateStatement (P.Assign lval e) = Right (Regular binding)
   where
     e' = translateExpression e
     n  = translateVar (var lval)
@@ -53,7 +62,9 @@ translateStatement (P.Assign lval e) = Right (False, F.Binding (F.Symbol n []) b
     body = case lval of
              P.Variable  _   -> e'
              P.ArrayElem _ a -> F.Store (F.Const n) (translateExpression a) e'
-translateStatement (P.If c a b) = Right (False, binding)
+
+    binding = F.Binding (F.Symbol n []) body
+translateStatement (P.If c a b) = Right (Regular binding)
   where
     (thenDeclared, thenBindings) = translateStatements a
     (elseDeclared, elseBindings) = translateStatements b
@@ -69,35 +80,38 @@ translateStatement (P.If c a b) = Right (False, binding)
     -- TODO: for now we assume that there are no unbound declarations;
     --       this assumption must be removed in the future
 
-    constructBranch = foldBindings (F.Tuple $ map F.Const updated)
+    updatedTerm = F.Tuple (map F.Const updated)
 
     c' = translateExpression c
-    ite = F.If c' (constructBranch thenBindings) (constructBranch elseBindings)
+    thenBranch = foldBindings updatedTerm thenBindings
+    elseBranch = foldBindings updatedTerm elseBindings
+    ite = F.If c' thenBranch elseBranch
     binding = F.Binding (F.TupleD updated) ite
-translateStatement (P.IfTerminating c flp a b) = Right (True, binding)
+translateStatement (P.IfTerminating c flp a b) = Right (EitherBinding updated body)
   where
     (thenDeclared, thenBindings) = translateStatements a
     elseTerm = translateTerminating b
-    c' = translateExpression c
 
     bound = nub (concatMap namesIn thenBindings)
     declared = nub thenDeclared
 
     updated = bound \\ declared
 
-    updatedTerm = F.Tuple $ map F.Const updated
+    updatedTerm = F.Tuple (map F.Const updated)
 
     thenBranch = foldBindings (F.Right_ (typeOf elseTerm) updatedTerm) thenBindings
     elseBranch = F.Left_ elseTerm (typeOf updatedTerm)
 
-    ite = if flp then F.If c' elseBranch thenBranch else F.If c' thenBranch elseBranch
-    binding = F.Binding (F.TupleD updated) ite
+    c' = translateExpression c
+    ite = if flp then F.If c' else flip (F.If c') 
+    body = ite thenBranch elseBranch
 
 translateFunDef :: P.FunDef -> Binding
-translateFunDef (P.FunDef t f vars ts) = (False, F.Binding symbol (translateTerminating ts))
+translateFunDef (P.FunDef t f vars ts) = Regular binding
   where
     symbol = F.Symbol (Typed f t) vars'
     vars' = map (fmap F.Var) vars
+    binding = F.Binding symbol (translateTerminating ts)
 
 translateTerminating :: P.TerminatingStatement -> F.Term
 translateTerminating (P.Return    ss e)     = foldBindings (translateExpression e) (snd $ translateStatements ss)
