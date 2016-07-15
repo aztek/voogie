@@ -67,7 +67,7 @@ prettyDefinition (Symbol c vs) = funapp (prettyConstant c) (map prettyTypedVar v
 prettyDefinition (TupleD es) = tuple (map prettyConstant es)
 
 offsetBinding :: Int -> Binding -> String
-offsetBinding o (Binding d t) = d' ++ " := " ++ indentedTerm False 0 (o + length d' + 4) t
+offsetBinding o (Binding d t) = d' ++ " := " ++ indentedTerm False (0, o + length d' + 4) t
   where d' = prettyDefinition d
 
 prettyBinding :: Binding -> String
@@ -88,8 +88,8 @@ infx a op b = a ++ " " ++ op ++ " " ++ b
 newline :: String -> String
 newline = ('\n' :)
 
-indentedTerm :: Bool -> Int -> Int -> Term -> String
-indentedTerm pp i o t = indent i ++ case t of
+indentedTerm :: Bool -> (Int, Int) -> Term -> String
+indentedTerm pp (i, o) t = indent i ++ case t of
   IntegerConst n -> show n
   BooleanConst b -> if b then "$true" else "$false"
 
@@ -99,16 +99,16 @@ indentedTerm pp i o t = indent i ++ case t of
   Variable v -> prettyTypedVar v
   Const c    -> prettyConstant c
 
-  Unary op a    -> if isPrefix then prettyOp ++ indentedTerm True 0 (o + length prettyOp) a
-                               else funapp prettyOp [indentedTerm True 0 (o + length prettyOp + 1) a]
+  Unary op a    -> if isPrefix then prettyOp ++ indentedTerm True (0, o + length prettyOp) a
+                               else funapp prettyOp [indentedTerm True (0, o + length prettyOp + 1) a]
                      where (isPrefix, prettyOp) = prettyUnaryOp op
   Binary op a b -> if pp then parens binary else binary
                      where (isInfix, prettyOp) = prettyBinaryOp op
                            binary = if isInfix then infx (prettyTerm a) prettyOp (prettyTerm b)
                                                else funapp prettyOp [prettyTerm a, prettyTerm b]
 
-  Quantify q [] t -> indentedTerm pp 0 o t
-  Quantify q vs t -> prettyQ ++ " " ++ prettyVars ++ ": " ++ parens (indentedTerm False 0 o' t)
+  Quantify q [] t -> indentedTerm pp (0, o) t
+  Quantify q vs t -> prettyQ ++ " " ++ prettyVars ++ ": " ++ parens (indentedTerm False (0, o') t)
                        where prettyQ = prettyQuantifier q
                              prettyVars = tuple (map prettyTypedVar vs)
                              o' = o + length prettyQ + 1 + length prettyVars + 3
@@ -119,24 +119,25 @@ indentedTerm pp i o t = indent i ++ case t of
   Tuple ts -> tuple (map prettyTerm ts)
 
   Left_  t _  -> funapp "$left"      [prettyTerm t]
-  Right_ _ t  -> funapp "right"      [prettyTerm t]
+  Right_ _ t  -> funapp "$right"     [prettyTerm t]
   IsLeft t    -> funapp "$isleft"    [prettyTerm t]
   FromLeft  t -> funapp "$fromleft"  [prettyTerm t]
   FromRight t -> funapp "$fromright" [prettyTerm t]
 
   Let b t  -> funapp "$let" [offsetBinding (o + 5) b,
-                             newline $ indentedTerm False i' o' t]
-                where (i', o') = if isLet t then (i, o) else (i + 5, o + 5)
-  If c a b -> funapp "$ite" [indentedTerm False 0 (o + 5) c,
-                             newline $ indentedTerm False (i + o + 5) (i + o + 5) a,
-                             newline $ indentedTerm False (i + o + 5) (i + o + 5) b]
+                             newline $ indentedTerm False io t]
+                where io = if isLet t then (o, o) else (o + 5, o + 5)
+  If c a b -> funapp "$ite" [indentedTerm False (0, 0) c,
+                             newline $ indentedTerm False io a,
+                             newline $ indentedTerm False io b]
+                where io = (o + 5, o + 5)
 
 isLet :: Term -> Bool
 isLet (Let _ _) = True
 isLet _ = False
 
 prettyTerm :: Term -> String
-prettyTerm = indentedTerm False 0 0
+prettyTerm = indentedTerm False (0, 0)
 
 thf :: String -> String -> String -> String
 thf n it s = funapp "thf" [n, it, s] ++ ".\n"
@@ -145,7 +146,7 @@ prettyTypeDeclaration :: Typed Name -> String
 prettyTypeDeclaration (Typed n t) = thf n "type" (n ++ ": " ++ prettyType t)
 
 prettyConjecture :: Formula -> String
-prettyConjecture f = thf "asserts" "conjecture" (newline $ indentedTerm False 4 4 f)
+prettyConjecture f = thf "asserts" "conjecture" (newline $ indentedTerm False (4, 4) f)
 
 prettyTPTP :: (Signature, Formula) -> String
 prettyTPTP (sds, c) = concatMap prettyTypeDeclaration sds ++ prettyConjecture c
