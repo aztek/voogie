@@ -19,8 +19,7 @@ data Expression = IntegerConst Integer
                 | Unary  UnaryOp    Expression
                 | Binary BinaryOp   Expression Expression
                 | IfElse Expression Expression Expression
-                | Eql    Expression Expression
-                | InEql  Expression Expression
+                | Equals Sign Expression Expression
   deriving (Show)
 
 instance TypeOf Expression where
@@ -30,8 +29,7 @@ instance TypeOf Expression where
   typeOf (Unary op _) = unaryOpRange op
   typeOf (Binary op _ _) = binaryOpRange op
   typeOf (IfElse _ a _) = typeOf a
-  typeOf (Eql{})   = Boolean
-  typeOf (InEql{}) = Boolean
+  typeOf (Equals{}) = Boolean
 
 data Statement = Declare Var
                | Assign LValue Expression

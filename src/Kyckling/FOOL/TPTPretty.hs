@@ -113,8 +113,7 @@ indentedTerm pp (i, o) t = indent i ++ case t of
                              prettyVars = "[" ++ list (map prettyTypedVar vs) ++ "]"
                              o' = o + length prettyQ + 1 + length prettyVars + 3
 
-  Eql   a b -> infx (prettyTerm a)  "=" (prettyTerm b)
-  InEql a b -> infx (prettyTerm a) "!=" (prettyTerm b)
+  Equals s a b -> infx (prettyTerm a) (if s == Pos then "=" else "!=") (prettyTerm b)
 
   Let b t  -> funapp "$let" [offsetBinding (o + 5) b,
                              newline $ indentedTerm False io t]

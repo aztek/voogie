@@ -24,8 +24,7 @@ data Term = IntegerConst Integer
           | Binary BinaryOp Term Term
           | Unary UnaryOp Term
           | Quantify Quantifier [Typed Var] Term
-          | Eql   Term Term
-          | InEql Term Term
+          | Equals Sign Term Term
           | Let Binding Term
           | If Term Term Term
           -- Arrays
@@ -56,8 +55,7 @@ instance TypeOf Term where
   typeOf (Binary op _ _) = binaryOpRange op
   typeOf (Unary  op _) = unaryOpRange op
   typeOf (Quantify{}) = Boolean
-  typeOf (Eql   _ _) = Boolean
-  typeOf (InEql _ _) = Boolean
+  typeOf (Equals _ _ _) = Boolean
   typeOf (Let _ t) = typeOf t
   typeOf (If _ a _) = typeOf a
 

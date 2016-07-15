@@ -25,8 +25,7 @@ instance Pretty Expression where
   pretty (Binary op a b) = pretty a ++ " " ++ F.pretty op ++ " " ++ pretty b
   pretty (IfElse a b c)  = pretty a ++ " ? " ++ pretty a ++ " : " ++ pretty b
 
-  pretty (Eql   a b) = pretty a ++ " == " ++ pretty b
-  pretty (InEql a b) = pretty a ++ " != " ++ pretty b
+  pretty (Equals s a b) = pretty a ++ (if s == Pos then " == " else " != ") ++ pretty b
 
   pretty (Ref lval) = pretty lval
 

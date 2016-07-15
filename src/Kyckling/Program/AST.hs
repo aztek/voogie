@@ -12,8 +12,7 @@ data Expr = IntConst Integer
           | Unary   UnaryOp  Expr
           | Binary  BinaryOp Expr Expr
           | Ternary          Expr Expr Expr
-          | Eql   Expr Expr
-          | InEql Expr Expr
+          | Equals Sign Expr Expr
           | LVal LVal
   deriving (Show, Eq)
 

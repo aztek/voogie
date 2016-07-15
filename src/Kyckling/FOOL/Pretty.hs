@@ -51,7 +51,6 @@ instance Pretty Term where
   pretty (Unary op t) = pretty op ++ pretty t
   pretty (Quantify q vars t) = pretty q ++ " (" ++ intercalate ", " (map p vars) ++ ")" ++ pretty t
     where p (Typed (Var v) t) = pretty t ++ " " ++ v
-  pretty (Eql   a b) = pretty a ++ " == " ++ pretty b
-  pretty (InEql a b) = pretty a ++ " != " ++ pretty b
-  pretty (If  c a b) = pretty c ++ " ? "  ++ pretty a ++ " : " ++ pretty b
+  pretty (Equals s a b) = pretty a ++ (if s == Pos then " == " else " != ") ++ pretty b
+  pretty (If c a b) = pretty c ++ " ? "  ++ pretty a ++ " : " ++ pretty b
   pretty t = error $ "no pretty syntax for " ++ show t

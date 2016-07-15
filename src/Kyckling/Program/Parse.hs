@@ -35,8 +35,8 @@ operators = [ [prefix "-"  (Unary  Negative)          ,
                binary "<"  (Binary Less    ) AssocNone,
                binary ">=" (Binary Geq     ) AssocNone,
                binary "<=" (Binary Leq     ) AssocNone]
-            , [binary "=="  Eql              AssocLeft,
-               binary "!="  InEql            AssocLeft]
+            , [binary "==" (Equals Pos     ) AssocLeft,
+               binary "!=" (Equals Neg     ) AssocLeft]
             , [prefix "!"  (Unary  Negate  )          ]
             , [binary "&&" (Binary And     ) AssocLeft,
                binary "||" (Binary Or      ) AssocLeft]

@@ -100,3 +100,6 @@ binaryOpDomain = fst . binaryOpTypes
 
 binaryOpRange :: BinaryOp -> Type
 binaryOpRange = snd . binaryOpTypes
+
+data Sign = Pos | Neg
+  deriving (Show, Eq)

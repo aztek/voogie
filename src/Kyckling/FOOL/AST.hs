@@ -7,8 +7,7 @@ data Term = IntConst Integer
           | Unary   UnaryOp  Term
           | Binary  BinaryOp Term Term
           | Ternary          Term Term Term
-          | Eql   Term Term
-          | InEql Term Term
+          | Equals Sign Term Term
           | Quantified Quantifier [Typed String] Term
           | Constant String
           | ArrayElem String Term

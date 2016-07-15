@@ -167,14 +167,10 @@ analyzeTerm env (F.AST.Ternary c a b) =
      a' <- analyzeTerm env a
      b' <- guardType (typeOf a') (analyzeTerm env) b
      return (F.If c' a' b')
-analyzeTerm env (F.AST.Eql a b) =
+analyzeTerm env (F.AST.Equals s a b) =
   do a' <- analyzeTerm env a
      b' <- guardType (typeOf a') (analyzeTerm env) b
-     return (F.Eql a' b')
-analyzeTerm env (F.AST.InEql a b) =
-  do a' <- analyzeTerm env a
-     b' <- guardType (typeOf a') (analyzeTerm env) b
-     return (F.InEql a' b')
+     return (F.Equals s a' b')
 analyzeTerm env (F.AST.Quantified q vars term) = F.Quantify q vars' <$> analyzeFormula env' term
   where
     -- TODO: check that the variables are disjoint
@@ -202,14 +198,10 @@ analyzeExpr env (AST.Binary op a b) =
      return (Binary op a' b')
   where
     (d1, d2) = binaryOpDomain op
-analyzeExpr env (AST.Eql a b) =
+analyzeExpr env (AST.Equals s a b) =
   do a' <- analyzeExpr env a
      b' <- guardType (typeOf a') (analyzeExpr env) b
-     return (Eql a' b')
-analyzeExpr env (AST.InEql a b) =
-  do a' <- analyzeExpr env a
-     b' <- guardType (typeOf a') (analyzeExpr env) b
-     return (InEql a' b')
+     return (Equals s a' b')
 analyzeExpr env (AST.Ternary c a b) =
   do c' <- guardType Boolean (analyzeExpr env) c
      a' <- analyzeExpr env a
