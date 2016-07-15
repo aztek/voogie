@@ -139,8 +139,8 @@ translateTerminating (P.IteReturn ss c a b) = foldBindings (F.If c' a' b')      
     c' = translateExpression c
 
 translateExpression :: P.Expression -> F.Term
-translateExpression (P.IntegerConst i) = F.IntegerConstant i 
-translateExpression (P.BooleanConst b) = F.BooleanConstant b
+translateExpression (P.IntegerLiteral i) = F.IntegerConstant i 
+translateExpression (P.BooleanLiteral b) = F.BooleanConstant b
 translateExpression (P.Unary  op e)   = F.Unary  op (translateExpression e)
 translateExpression (P.Binary op a b) = F.Binary op (translateExpression a) (translateExpression b)
 translateExpression (P.IfElse c a b)  = F.If (translateExpression c) (translateExpression a) (translateExpression b)

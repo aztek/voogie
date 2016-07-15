@@ -18,8 +18,8 @@ instance Pretty LValue where
   pretty (ArrayElem (Typed v _) e) = v ++ "[" ++ pretty e ++ "]"
 
 instance Pretty Expression where
-  pretty (IntegerConst i) = show i
-  pretty (BooleanConst b) = if b then "true" else "false"
+  pretty (IntegerLiteral i) = show i
+  pretty (BooleanLiteral b) = if b then "true" else "false"
 
   pretty (Unary  op e)   = pretty e ++ F.pretty op
   pretty (Binary op a b) = pretty a ++ " " ++ F.pretty op ++ " " ++ pretty b

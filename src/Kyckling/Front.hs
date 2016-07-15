@@ -119,11 +119,11 @@ analyzeStmt env (AST.If c a b) =
      return (env, stmt)
 analyzeStmt env (AST.Increment lval) =
   do lv <- guardType Integer (analyzeLValue env) lval
-     let stmt = Assign lv (Binary Add (Ref lv) (IntegerConst 1))
+     let stmt = Assign lv (Binary Add (Ref lv) (IntegerLiteral 1))
      return (env, Right stmt)
 analyzeStmt env (AST.Decrement lval) =
   do lv <- guardType Integer (analyzeLValue env) lval
-     let stmt = Assign lv (Binary Subtract (Ref lv) (IntegerConst 1))
+     let stmt = Assign lv (Binary Subtract (Ref lv) (IntegerLiteral 1))
      return (env, Right stmt)
 analyzeStmt env (AST.Update lval AST.Assign e) =
   do lv <- analyzeLValue env lval
@@ -186,8 +186,8 @@ analyzeLValue env (AST.ArrayElem s i) = ArrayElem <$> lookupArrayName s env <*> 
 
 
 analyzeExpr :: Env -> AST.Expr -> Either Error Expression
-analyzeExpr _ (AST.IntConst  i) = return (IntegerConst i)
-analyzeExpr _ (AST.BoolConst b) = return (BooleanConst b)
+analyzeExpr _ (AST.IntConst  i) = return (IntegerLiteral i)
+analyzeExpr _ (AST.BoolConst b) = return (BooleanLiteral b)
 analyzeExpr env (AST.LVal lval) = Ref <$> analyzeLValue env lval
 analyzeExpr env (AST.Unary op e) = Unary op <$> guardType d (analyzeExpr env) e
   where
