@@ -18,6 +18,7 @@ instance Pretty Type where
   pretty Boolean = "bool"
   pretty (Array t) = pretty t ++ "[]"
   pretty (TupleType ts) = "(" ++ intercalate ", " (NE.toList $ NE.map pretty ts) ++ ")"
+  pretty (MaybeType t) = "maybe(" ++ pretty t ++ ")"
   pretty (EitherType l r) = "either(" ++ pretty l ++ ", " ++ pretty r ++ ")"
 
 instance Pretty UnaryOp where

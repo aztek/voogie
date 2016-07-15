@@ -8,6 +8,7 @@ data Type = Boolean
           | Integer
           | Array Type
           | TupleType (NonEmpty Type)
+          | MaybeType Type
           | EitherType Type Type
   deriving (Show, Eq)
 
@@ -18,6 +19,14 @@ isArray _ = False
 arrayArgument :: Type -> Type
 arrayArgument (Array t) = t
 arrayArgument t = error (show t ++ " is not an array")
+
+isMaybe :: Type -> Bool
+isMaybe (MaybeType _) = True
+isMaybe _ = False
+
+maybeArgument :: Type -> Type
+maybeArgument (MaybeType t) = t
+maybeArgument t = error (show t ++ " is not a maybe")
 
 isEither :: Type -> Bool
 isEither (EitherType{}) = True

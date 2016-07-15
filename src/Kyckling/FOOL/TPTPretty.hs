@@ -52,6 +52,7 @@ prettyType s =
     Integer -> "$int"
     Array t -> funapp "$array" ["$int", prettyType t]
     TupleType ts -> tuple (NE.map prettyType ts)
+    MaybeType t -> funapp "$maybe" [prettyType t]
     EitherType l r -> funapp "$either" [prettyType l, prettyType r]
 
 prettyVar :: Var -> String
