@@ -12,15 +12,18 @@ import qualified Kyckling.FOOL.Tuple as F.Tuple
 
 import qualified Kyckling.Program as P
 
-data Binding = Regular F.Binding
+data Binding = Regular F.Definition F.Term
              | MaybeBinding F.Term
-             | EitherBinding (F.Tuple.Tuple F.Const) F.Term
+             | EitherBinding F.Definition F.Term
 
 namesIn :: Binding -> [F.Const]
-namesIn (Regular (F.Binding (F.Symbol c _) _)) = [c]
-namesIn (Regular (F.Binding (F.TupleD cs)  _)) = F.Tuple.toList cs
+namesIn (Regular def _) = namesInDefinition def
 namesIn (MaybeBinding _) = []
-namesIn (EitherBinding cs _) = F.Tuple.toList cs
+namesIn (EitherBinding def _) = namesInDefinition def
+
+namesInDefinition :: F.Definition -> [F.Const]
+namesInDefinition (F.Symbol c _) = [c]
+namesInDefinition (F.TupleD cs)  = F.Tuple.toList cs
 
 translate :: P.Program -> (Signature, F.Formula)
 translate (P.Program _  ss []) = ([] , F.BooleanConstant True)
@@ -40,19 +43,19 @@ translate (P.Program fs ss as) = (signature, conjecture)
 foldBindings :: F.Term -> [Binding] -> F.Term
 foldBindings = foldr f
   where
-    f (Regular b) t = F.Let b t
-    f (MaybeBinding b) t = F.Let binding (F.If (F.IsJust constant) (F.FromJust constant) t)
+    f (Regular def b) = F.Let (F.Binding def b)
+    f (MaybeBinding b) = F.Let maybeBinding . F.If (F.IsJust constant) (F.FromJust constant)
       where
-        binding = F.Binding (F.Symbol symbol []) b
+        maybeBinding = F.Binding (F.Symbol symbol []) b
         symbol = Typed "i" (typeOf b)
         constant = F.Constant symbol
-    f (EitherBinding vars b) t = F.Let binding (F.If (F.IsLeft constant)
-                                                     (F.FromLeft constant)
-                                                     (F.Let (F.Binding (F.TupleD vars) (F.FromRight constant)) t))
+    f (EitherBinding def b) = F.Let eitherBinding . F.If (F.IsLeft constant) (F.FromLeft constant) . F.Let defBinding
       where
-        binding = F.Binding (F.Symbol symbol []) b
+        eitherBinding = F.Binding (F.Symbol symbol []) b
         symbol = Typed "i" (typeOf b)
         constant = F.Constant symbol
+
+        defBinding = F.Binding def (F.FromRight constant)
 
 type Declaration = F.Const
 
@@ -61,7 +64,7 @@ translateStatements = partitionEithers . map translateStatement
 
 translateStatement :: P.Statement -> Either Declaration Binding
 translateStatement (P.Declare v) = Left (translateVar v)
-translateStatement (P.Assign lval e) = Right (Regular binding)
+translateStatement (P.Assign lval e) = Right binding
   where
     e' = translateExpression e
     n  = translateVar (var lval)
@@ -73,8 +76,8 @@ translateStatement (P.Assign lval e) = Right (Regular binding)
              P.Variable  _   -> e'
              P.ArrayElem _ a -> F.Store (F.Constant n) (translateExpression a) e'
 
-    binding = F.Binding (F.Symbol n []) body
-translateStatement (P.If c a b) = Right (Regular binding)
+    binding = Regular (F.Symbol n []) body
+translateStatement (P.If c a b) = Right binding
   where
     (thenDeclared, thenBindings) = translateStatements a
     (elseDeclared, elseBindings) = translateStatements b
@@ -85,60 +88,54 @@ translateStatement (P.If c a b) = Right (Regular binding)
 
     declared = nub (thenDeclared ++ elseDeclared)
 
-    updated = case NE.nonEmpty (bound \\ declared) of
-                Nothing -> error "NOT IMPLEMENTED"
-                Just updated ->
-                  case F.Tuple.nonUnit updated of
-                    Left x -> error "NOT IMPLEMENTED"
-                    Right updated -> updated
-
     -- TODO: for now we assume that there are no unbound declarations;
     --       this assumption must be removed in the future
 
-    updatedTerm = F.TupleLiteral (fmap F.Constant updated)
+    ite = F.If (translateExpression c)
 
-    c' = translateExpression c
+    (def, updatedTerm) = case NE.nonEmpty (bound \\ declared) of
+      Nothing -> error "invariant violation" -- TODO: can it really never happen?
+      Just updated ->
+        case F.Tuple.nonUnit updated of
+          Left var      -> (F.Symbol var [],  F.Constant var)
+          Right updated -> (F.TupleD updated, F.TupleLiteral (fmap F.Constant updated))
+
     thenBranch = foldBindings updatedTerm thenBindings
     elseBranch = foldBindings updatedTerm elseBindings
-    ite = F.If c' thenBranch elseBranch
-    binding = F.Binding (F.TupleD updated) ite
+    body = ite thenBranch elseBranch
+    binding = Regular def body
+
 translateStatement (P.IfTerminating c flp a b) = Right binding
   where
-    c' = translateExpression c
     (thenDeclared, thenBindings) = translateStatements a
     elseTerm = translateTerminating b
 
     bound = nub (concatMap namesIn thenBindings)
     declared = nub thenDeclared
 
+    ite = if flp then f else flip f 
+      where f = F.If (translateExpression c)
+
     binding = case NE.nonEmpty (bound \\ declared) of
       Nothing -> MaybeBinding body
         where
           thenBranch = foldBindings (F.Nothing_ (typeOf elseTerm)) thenBindings
           elseBranch = F.Just_ elseTerm
-
-          ite = if flp then F.If c' else flip (F.If c') 
           body = ite thenBranch elseBranch
 
-      Just updated ->
-        case F.Tuple.nonUnit updated of
-          Left x -> error "NOT IMPLEMENTED"
-          Right updated -> EitherBinding updated body
-            where
-              updatedTerm = F.TupleLiteral (fmap F.Constant updated)
-
-              thenBranch = foldBindings (F.Right_ (typeOf elseTerm) updatedTerm) thenBindings
-              elseBranch = F.Left_ elseTerm (typeOf updatedTerm)
-
-              ite = if flp then F.If c' else flip (F.If c') 
-              body = ite thenBranch elseBranch
+      Just updated -> EitherBinding def body
+        where
+          (def, updatedTerm) = case F.Tuple.nonUnit updated of
+            Left var      -> (F.Symbol var [],  F.Constant var)
+            Right updated -> (F.TupleD updated, F.TupleLiteral (fmap F.Constant updated))
+          thenBranch = foldBindings (F.Right_ (typeOf elseTerm) updatedTerm) thenBindings
+          elseBranch = F.Left_ elseTerm (typeOf updatedTerm)
+          body = ite thenBranch elseBranch
 
 translateFunDef :: P.FunDef -> Binding
-translateFunDef (P.FunDef t f vars ts) = Regular binding
+translateFunDef (P.FunDef t f vars ts) = Regular symbol (translateTerminating ts)
   where
-    symbol = F.Symbol (Typed f t) vars'
-    vars' = map (fmap F.Var) vars
-    binding = F.Binding symbol (translateTerminating ts)
+    symbol = F.Symbol (Typed f t) (map (fmap F.Var) vars)
 
 translateTerminating :: P.TerminatingStatement -> F.Term
 translateTerminating (P.Return    ss e)     = foldBindings (translateExpression e) (snd $ translateStatements ss)
