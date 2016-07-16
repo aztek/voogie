@@ -2,11 +2,11 @@ module Kyckling.Back where
 
 import Data.Char
 import Data.Either
-import Data.List
 import qualified Data.Set as S
-import Data.Set (Set)
+import Data.Set (Set, (\\), union)
 
 import qualified Data.List.NonEmpty as NE
+import Data.List.NonEmpty (NonEmpty)
 
 import Kyckling.Theory
 import qualified Kyckling.FOOL as F
@@ -18,27 +18,27 @@ data Binding = Regular F.Definition F.Term
              | MaybeBinding F.Term
              | EitherBinding F.Definition F.Term
 
-namesIn :: Binding -> [F.Const]
+namesIn :: Binding -> Set F.Const
 namesIn (Regular def _) = namesInDefinition def
-namesIn (MaybeBinding _) = []
+namesIn (MaybeBinding _) = S.empty
 namesIn (EitherBinding def _) = namesInDefinition def
 
-namesInDefinition :: F.Definition -> [F.Const]
-namesInDefinition (F.Symbol c _) = [c]
-namesInDefinition (F.TupleD cs)  = F.Tuple.toList cs
+namesInDefinition :: F.Definition -> Set F.Const
+namesInDefinition (F.Symbol c _) = S.singleton c
+namesInDefinition (F.TupleD cs)  = S.fromList (F.Tuple.toList cs)
 
 translate :: P.Program -> (Signature, F.Formula)
 translate (P.Program fs ss as) = case NE.nonEmpty as of
   Nothing -> (S.empty, F.BooleanConstant True)
-  Just as -> (S.fromList signature, conjecture)
+  Just as -> (signature, conjecture)
     where
       funBindings = map translateFunDef fs
       (declared, bindings) = translateStatements ss
 
-      bound = concatMap namesIn bindings
-      nonArrays = filter (not . isArray . typeOf)
+      bound = S.unions (fmap namesIn bindings)
+      nonArrays = S.filter (not . isArray . typeOf)
 
-      signature = nub (declared \\ nonArrays bound)
+      signature = declared \\ nonArrays bound
 
       assert = foldr1 (F.Binary And) (fmap (\(P.Assertion f) -> f) as)
       conjecture = foldBindings assert (funBindings ++ bindings)
@@ -62,8 +62,10 @@ foldBindings = foldr f
 
 type Declaration = F.Const
 
-translateStatements :: [P.Statement] -> ([Declaration], [Binding])
-translateStatements = partitionEithers . map translateStatement
+translateStatements :: [P.Statement] -> (Set Declaration, [Binding])
+translateStatements ss = (S.fromList ds, bs)
+  where
+    (ds, bs) = partitionEithers (map translateStatement ss)
 
 translateStatement :: P.Statement -> Either Declaration Binding
 translateStatement (P.Declare v) = Left (translateVar v)
@@ -82,58 +84,51 @@ translateStatement (P.Assign lval e) = Right binding
     binding = Regular (F.Symbol n []) body
 translateStatement (P.If c a b) = Right binding
   where
+    c' = translateExpression c
+
     (thenDeclared, thenBindings) = translateStatements a
-    (elseDeclared, elseBindings) = translateStatements b
-
-    thenBound = concatMap namesIn thenBindings
-    elseBound = concatMap namesIn elseBindings
-    bound = nub (thenBound ++ elseBound)
-
-    declared = nub (thenDeclared ++ elseDeclared)
+    (elseDeclared, elseBindings) = either translateStatements (const (S.empty, [])) b
 
     -- TODO: for now we assume that there are no unbound declarations;
     --       this assumption must be removed in the future
 
-    ite = F.If (translateExpression c)
+    undeclared = S.toList (bound \\ declared)
+      where
+        bound = thenBound `union` elseBound
+        thenBound = S.unions (fmap namesIn thenBindings)
+        elseBound = S.unions (fmap namesIn elseBindings)
+        declared = thenDeclared `union` elseDeclared
 
-    (def, updatedTerm) = case NE.nonEmpty (bound \\ declared) of
-      Nothing -> error "invariant violation" -- TODO: can it really never happen?
-      Just updated ->
-        case F.Tuple.nonUnit updated of
-          Left var      -> (F.Symbol var [],  F.Constant var)
-          Right updated -> (F.TupleD updated, F.TupleLiteral (fmap F.Constant updated))
-
-    thenBranch = foldBindings updatedTerm thenBindings
-    elseBranch = foldBindings updatedTerm elseBindings
-    body = ite thenBranch elseBranch
-    binding = Regular def body
-
-translateStatement (P.IfTerminating c flp a b) = Right binding
-  where
-    (thenDeclared, thenBindings) = translateStatements a
-    elseTerm = translateTerminating b
-
-    bound = nub (concatMap namesIn thenBindings)
-    declared = nub thenDeclared
-
-    ite = if flp then f else flip f 
-      where f = F.If (translateExpression c)
-
-    binding = case NE.nonEmpty (bound \\ declared) of
-      Nothing -> MaybeBinding body
+    binding = case b of
+      Left b -> Regular (toDefinition updated) (F.If c' thenBranch elseBranch)
         where
-          thenBranch = foldBindings (F.Nothing_ (typeOf elseTerm)) thenBindings
-          elseBranch = F.Just_ elseTerm
-          body = ite thenBranch elseBranch
+          updated = NE.fromList undeclared
+          updatedTerm = toTerm updated
+          thenBranch = foldBindings updatedTerm thenBindings
+          elseBranch = foldBindings updatedTerm elseBindings
 
-      Just updated -> EitherBinding def body
+      Right (flp, b) ->
+        case NE.nonEmpty undeclared of
+          Nothing -> MaybeBinding (ite thenBranch elseBranch)
+            where
+              thenBranch = foldBindings (F.Nothing_ returnType) thenBindings
+              elseBranch = F.Just_ returnTerm
+
+          Just updated -> EitherBinding (toDefinition updated) (ite thenBranch elseBranch)
+            where
+              updatedTerm = toTerm updated
+              thenBranch = foldBindings (F.Right_ returnType updatedTerm) thenBindings
+              elseBranch = F.Left_ returnTerm (typeOf updatedTerm)
         where
-          (def, updatedTerm) = case F.Tuple.nonUnit updated of
-            Left var      -> (F.Symbol var [],  F.Constant var)
-            Right updated -> (F.TupleD updated, F.TupleLiteral (fmap F.Constant updated))
-          thenBranch = foldBindings (F.Right_ (typeOf elseTerm) updatedTerm) thenBindings
-          elseBranch = F.Left_ elseTerm (typeOf updatedTerm)
-          body = ite thenBranch elseBranch
+          ite = if flp then F.If c' else flip (F.If c')
+          returnTerm = translateTerminating b
+          returnType = typeOf returnTerm
+
+    toDefinition :: NonEmpty F.Const -> F.Definition
+    toDefinition = either (flip F.Symbol []) F.TupleD . F.Tuple.nonUnit
+
+    toTerm :: NonEmpty F.Const -> F.Term
+    toTerm = either F.Constant (F.TupleLiteral . fmap F.Constant) . F.Tuple.nonUnit
 
 translateFunDef :: P.FunDef -> Binding
 translateFunDef (P.FunDef t f vars ts) = Regular symbol (translateTerminating ts)

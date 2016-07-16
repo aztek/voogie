@@ -112,9 +112,9 @@ analyzeStmt env (AST.If c a b) =
      (_, b') <- analyzeStmts env b
      c' <- guardType Boolean (analyzeExpr env) c
      let stmt = case (a', b') of
-                  (Right a', Right b') -> Right $ If c' a' b'
-                  (Right a', Left  b') -> Right $ IfTerminating c' False a' b'
-                  (Left  a', Right b') -> Right $ IfTerminating c' True  b' a'
+                  (Right a', Right b') -> Right $ If c' a' (Left b')
+                  (Right a', Left  b') -> Right $ If c' a' (Right (False, b'))
+                  (Left  a', Right b') -> Right $ If c' b' (Right (True,  a'))
                   (Left  a', Left  b') -> Left  $ IteReturn [] c' a' b'
      return (env, stmt)
 analyzeStmt env (AST.Increment lval) =

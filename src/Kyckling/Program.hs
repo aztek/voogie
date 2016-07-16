@@ -33,8 +33,7 @@ instance TypeOf Expression where
 
 data Statement = Declare Var
                | Assign LValue Expression
-               | If Expression [Statement] [Statement]
-               | IfTerminating Expression Bool [Statement] TerminatingStatement
+               | If Expression [Statement] (Either [Statement] (Bool, TerminatingStatement))
   deriving (Show)
 
 data TerminatingStatement = Return    [Statement] Expression

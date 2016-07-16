@@ -43,9 +43,9 @@ instance Pretty Statement where
   indented n s = case s of
     Declare (Typed v t) -> indent n ++ F.pretty t ++ " " ++ v ++ ";"
     Assign lv e -> indent n ++ pretty lv ++ " = " ++ pretty e ++ ";"
-    If c a b -> indentedIte n c a b
-    IfTerminating c False a b -> indentedIte n c a b
-    IfTerminating c True  a b -> indentedIte n c b a
+    If c a (Left b) -> indentedIte n c a b
+    If c a (Right (False, b)) -> indentedIte n c a b
+    If c a (Right (True,  b)) -> indentedIte n c b a
 
 instance Pretty [Statement] where
   indented n = unlines . map (indented n)
