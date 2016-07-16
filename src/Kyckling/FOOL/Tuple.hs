@@ -7,7 +7,7 @@ import qualified Data.List.NonEmpty as NE
 import Data.List.NonEmpty (NonEmpty)
 
 data Tuple a = a :| NonEmpty a
-  deriving (Eq, Show, Functor)
+  deriving (Eq, Show, Ord, Functor)
 
 toList :: Tuple a -> [a]
 toList (a :| ne) = a : NE.toList ne

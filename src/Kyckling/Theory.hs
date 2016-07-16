@@ -2,6 +2,8 @@
 
 module Kyckling.Theory where
 
+import Data.Set
+
 import Kyckling.FOOL.Tuple (Tuple)
 
 data Type = Boolean
@@ -10,7 +12,7 @@ data Type = Boolean
           | TupleType (Tuple Type)
           | MaybeType Type
           | EitherType Type Type
-  deriving (Show, Eq)
+  deriving (Show, Eq, Ord)
 
 isArray :: Type -> Bool
 isArray (Array t) = True
@@ -43,9 +45,9 @@ rightArgument = snd . eitherArguments
 type Name = String
 
 data Typed n = Typed n Type
-  deriving (Show, Eq, Functor)
+  deriving (Show, Eq, Ord, Functor)
 
-type Signature = [Typed Name]
+type Signature = Set (Typed Name)
 
 class TypeOf a where
   typeOf :: a -> Type

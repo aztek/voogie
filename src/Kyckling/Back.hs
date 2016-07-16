@@ -3,6 +3,8 @@ module Kyckling.Back where
 import Data.Char
 import Data.Either
 import Data.List
+import qualified Data.Set as S
+import Data.Set (Set)
 
 import qualified Data.List.NonEmpty as NE
 
@@ -27,8 +29,8 @@ namesInDefinition (F.TupleD cs)  = F.Tuple.toList cs
 
 translate :: P.Program -> (Signature, F.Formula)
 translate (P.Program fs ss as) = case NE.nonEmpty as of
-  Nothing -> ([] , F.BooleanConstant True)
-  Just as -> (signature, conjecture)
+  Nothing -> (S.empty, F.BooleanConstant True)
+  Just as -> (S.fromList signature, conjecture)
     where
       funBindings = map translateFunDef fs
       (declared, bindings) = translateStatements ss
