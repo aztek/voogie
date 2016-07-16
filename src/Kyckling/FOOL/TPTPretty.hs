@@ -14,7 +14,7 @@ list :: [String] -> String
 list = intercalate ", "
 
 tuple :: Tuple String -> String
-tuple es = "[" ++ (intercalate ", " $ Tuple.toList es) ++ "]"
+tuple es = "[" ++ intercalate ", " (Tuple.toList es) ++ "]"
 
 parens :: String -> String
 parens s = "(" ++ s ++ ")"

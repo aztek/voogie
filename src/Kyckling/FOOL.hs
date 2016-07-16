@@ -54,7 +54,7 @@ instance TypeOf Term where
   typeOf (Binary op _ _) = binaryOpRange op
   typeOf (Unary  op _) = unaryOpRange op
   typeOf (Quantify{}) = Boolean
-  typeOf (Equals _ _ _) = Boolean
+  typeOf (Equals{}) = Boolean
   typeOf (Let _ t) = typeOf t
   typeOf (If _ a _) = typeOf a
 
