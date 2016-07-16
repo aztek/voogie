@@ -26,19 +26,20 @@ namesInDefinition (F.Symbol c _) = [c]
 namesInDefinition (F.TupleD cs)  = F.Tuple.toList cs
 
 translate :: P.Program -> (Signature, F.Formula)
-translate (P.Program _  ss []) = ([] , F.BooleanConstant True)
-translate (P.Program fs ss as) = (signature, conjecture)
-  where
-    funBindings = map translateFunDef fs
-    (declared, bindings) = translateStatements ss
+translate (P.Program fs ss as) = case NE.nonEmpty as of
+  Nothing -> ([] , F.BooleanConstant True)
+  Just as -> (signature, conjecture)
+    where
+      funBindings = map translateFunDef fs
+      (declared, bindings) = translateStatements ss
 
-    bound = concatMap namesIn bindings
-    nonArrays = filter (\(Typed _ t) -> not $ isArray t)
+      bound = concatMap namesIn bindings
+      nonArrays = filter (not . isArray . typeOf)
 
-    signature = nub (declared \\ nonArrays bound)
+      signature = nub (declared \\ nonArrays bound)
 
-    assert = foldr1 (F.Binary And) (map (\(P.Assertion f) -> f) as)
-    conjecture = foldBindings assert (funBindings ++ bindings)
+      assert = foldr1 (F.Binary And) (fmap (\(P.Assertion f) -> f) as)
+      conjecture = foldBindings assert (funBindings ++ bindings)
 
 foldBindings :: F.Term -> [Binding] -> F.Term
 foldBindings = foldr f

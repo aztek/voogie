@@ -17,7 +17,7 @@ instance Pretty Type where
   pretty Integer = "int"
   pretty Boolean = "bool"
   pretty (Array t) = pretty t ++ "[]"
-  pretty (TupleType ts) = "(" ++ intercalate ", " (Tuple.toList $ fmap pretty ts) ++ ")"
+  pretty (TupleType ts) = "(" ++ Tuple.intercalate ", " (fmap pretty ts) ++ ")"
   pretty (MaybeType t) = "maybe(" ++ pretty t ++ ")"
   pretty (EitherType l r) = "either(" ++ pretty l ++ ", " ++ pretty r ++ ")"
 
