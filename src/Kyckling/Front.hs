@@ -92,11 +92,11 @@ analyzeStmts env (s:ss) =
      case s' of
        Left ts  -> return (env', Left ts)
        Right s' -> do (env'', ss') <- analyzeStmts env' ss
-                      return (env'', bimap (appendStatement s') (s':) ss')
+                      return (env'', bimap (s'|:) (s':) ss')
   where
-    appendStatement :: Statement -> TerminatingStatement -> TerminatingStatement
-    appendStatement s (Return    ss e)     = Return    (s:ss) e
-    appendStatement s (IteReturn ss c a b) = IteReturn (s:ss) c a b
+    (|:) :: Statement -> TerminatingStatement -> TerminatingStatement
+    s |: Return    ss e     = Return    (s:ss) e
+    s |: IteReturn ss c a b = IteReturn (s:ss) c a b
 
 
 analyzeStmt :: Env -> AST.Stmt -> Either Error (Env, Either TerminatingStatement Statement)
