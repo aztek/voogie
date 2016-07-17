@@ -6,6 +6,7 @@ import Data.Maybe
 import Data.Bifunctor
 
 import qualified Data.Map as Map
+import Data.Map (Map)
 
 import Kyckling.Theory
 import Kyckling.Pretty
@@ -19,21 +20,34 @@ import qualified Kyckling.FOOL.Pretty as F.P
 
 type Error = String
 
-type Env = Map.Map String Type
+data FunType = FunType [Type] Type
+
+data Env = Env (Map Name FunType) (Map Name Type)
 
 emptyEnv :: Env
-emptyEnv = Map.empty
+emptyEnv = Env Map.empty Map.empty
 
-lookupName :: String -> Env -> Either Error (Typed Name)
-lookupName name env = case Map.lookup name env of
-                        Nothing  -> Left  ("undefined variable " ++ name)
-                        Just typ -> Right (Typed name typ)
+lookupVariable :: Name -> Env -> Either Error (Typed Name)
+lookupVariable name (Env _ vs) = case Map.lookup name vs of
+                                   Nothing  -> Left  ("undefined variable " ++ name)
+                                   Just typ -> Right (Typed name typ)
 
-lookupArrayName :: String -> Env -> Either Error (Typed Name)
-lookupArrayName name env = do name <- lookupName name env
+lookupArrayName :: Name -> Env -> Either Error (Typed Name)
+lookupArrayName name env = do name <- lookupVariable name env
                               case typeOf name of
                                 Array _   -> Right name
                                 otherwise -> Left "not an array"
+
+lookupFunction :: Name -> Env -> Either Error FunType
+lookupFunction name (Env fs _) = case Map.lookup name fs of
+                                   Nothing  -> Left ("undefined function " ++ name)
+                                   Just typ -> Right typ
+
+insertVariable :: Typed Name -> Env -> Env
+insertVariable (Typed n t) (Env fs vs) = Env fs (Map.insert n t vs)
+
+insertFunction :: (Name, FunType) -> Env -> Env
+insertFunction (n, t) (Env fs vs) = Env (Map.insert n t fs) vs
 
 guardType :: (TypeOf b, Pretty b) => Type -> (a -> Either Error b) -> a -> Either Error b
 guardType t analyze a = do b <- analyze a
@@ -56,19 +70,23 @@ flattenDeclaration s = [s]
 
 analyze :: AST.AST -> Either Error Program
 analyze (AST.AST fs ss as) =
-  do fs' <- analyzeFunDefs fs
-     (env, ss') <- analyzeNonTerminating emptyEnv (flattenDeclarations ss)
-     as' <- mapM (analyzeAssert env) as
+  do (env,  fs') <- analyzeFunDefs emptyEnv fs
+     (env', ss') <- analyzeNonTerminating env (flattenDeclarations ss)
+     as' <- mapM (analyzeAssert env') as
      return (Program fs' ss' as')
 
-analyzeFunDefs :: [AST.FunDef] -> Either Error [FunDef]
-analyzeFunDefs = mapM analyzeFunDef
+analyzeFunDefs :: Env -> [AST.FunDef] -> Either Error (Env, [FunDef])
+analyzeFunDefs env [] = Right (env, [])
+analyzeFunDefs env (f:fs) =
+  do (env',  f')  <- analyzeFunDef  env  f
+     (env'', fs') <- analyzeFunDefs env' fs
+     return (env'', f':fs')
 
-analyzeFunDef :: AST.FunDef -> Either Error FunDef
-analyzeFunDef (AST.FunDef t n vars stmts) =
-  do let env = foldr (\(Typed n t) -> Map.insert n t) emptyEnv vars
-     (_, ts) <- analyzeTerminating env stmts
-     return (FunDef t n vars ts)
+analyzeFunDef :: Env -> AST.FunDef -> Either Error (Env, FunDef)
+analyzeFunDef env (AST.FunDef t n args stmts) =
+  do let env' = foldr insertVariable env args
+     (_, ts) <- analyzeTerminating env' stmts
+     return (insertFunction (n, FunType (map typeOf args) t) env, FunDef t n args ts)
 
 analyzeTerminating :: Env -> [AST.Stmt] -> Either Error (Env, TerminatingStatement)
 analyzeTerminating env ss =
@@ -101,11 +119,9 @@ analyzeStmts env (s:ss) =
 
 analyzeStmt :: Env -> AST.Stmt -> Either Error (Env, Either TerminatingStatement Statement)
 analyzeStmt env (AST.Declare t [(n, Nothing)]) =
-  if Map.member n env
-  then Left $ "the variable " ++ n ++ " shadows the previous definition"
-  else let env' = Map.insert n t env
-           stmt = Declare (Typed n t)
-        in return (env', Right stmt)
+  case lookupVariable n env of
+    Left  _ -> Right (insertVariable var env, Right $ Declare var) where var = Typed n t
+    Right _ -> Left  ("the variable " ++ n ++ " shadows the previous definition")
 analyzeStmt env (AST.Declare t _) = error "should be eliminated by flattenDeclaration"
 analyzeStmt env (AST.If c a b) =
   do (_, a') <- analyzeStmts env a
@@ -159,8 +175,10 @@ analyzeTerm _ (F.AST.BoolConst b) = return (F.BooleanConstant b)
 analyzeTerm env (F.AST.Unary op t) = F.Unary op <$> guardType d (analyzeTerm env) t
   where
     d = unaryOpDomain op
-analyzeTerm env (F.AST.Binary op a b) = F.Binary op <$> guardType d1 (analyzeTerm env) a <*> guardType d2 (analyzeTerm env) b
+analyzeTerm env (F.AST.Binary op a b) = F.Binary op <$> a' <*> b'
   where
+    a' = guardType d1 (analyzeTerm env) a
+    b' = guardType d2 (analyzeTerm env) b
     (d1, d2) = binaryOpDomain op
 analyzeTerm env (F.AST.Ternary c a b) = 
   do c' <- analyzeFormula env c
@@ -174,15 +192,20 @@ analyzeTerm env (F.AST.Equals s a b) =
 analyzeTerm env (F.AST.Quantified q vars term) = F.Quantify q vars' <$> analyzeFormula env' term
   where
     -- TODO: check that the variables are disjoint
-    env' = foldr (\(Typed v t) -> Map.insert v t) env vars
+    env' = foldr insertVariable env vars
     vars' = map (fmap F.Var) vars
-analyzeTerm env (F.AST.Constant  s)   = F.Constant <$> lookupName s env
-analyzeTerm env (F.AST.ArrayElem s i) = F.Select <$> (F.Constant <$> lookupArrayName s env) <*> guardType Integer (analyzeTerm env) i
-
+analyzeTerm env (F.AST.Constant  s)   = F.Constant <$> lookupVariable s env
+analyzeTerm env (F.AST.ArrayElem s i) = F.Select <$> array <*> index
+  where
+    array = F.Constant <$> lookupArrayName s env
+    index = guardType Integer (analyzeTerm env) i
 
 analyzeLValue :: Env -> AST.LVal -> Either Error LValue
-analyzeLValue env (AST.Var s) = Variable <$> lookupName s env
-analyzeLValue env (AST.ArrayElem s i) = ArrayElem <$> lookupArrayName s env <*> guardType Integer (analyzeExpr env) i
+analyzeLValue env (AST.Var s) = Variable <$> lookupVariable s env
+analyzeLValue env (AST.ArrayElem s i) = ArrayElem <$> array <*> index
+  where
+    array = lookupArrayName s env
+    index = guardType Integer (analyzeExpr env) i
 
 
 analyzeExpr :: Env -> AST.Expr -> Either Error Expression
@@ -192,11 +215,10 @@ analyzeExpr env (AST.LVal lval) = Ref <$> analyzeLValue env lval
 analyzeExpr env (AST.Unary op e) = Unary op <$> guardType d (analyzeExpr env) e
   where
     d = unaryOpDomain op
-analyzeExpr env (AST.Binary op a b) =
-  do a' <- guardType d1 (analyzeExpr env) a
-     b' <- guardType d2 (analyzeExpr env) b
-     return (Binary op a' b')
+analyzeExpr env (AST.Binary op a b) = Binary op <$> a' <*> b'
   where
+    a' = guardType d1 (analyzeExpr env) a
+    b' = guardType d2 (analyzeExpr env) b
     (d1, d2) = binaryOpDomain op
 analyzeExpr env (AST.Equals s a b) =
   do a' <- analyzeExpr env a
