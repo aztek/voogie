@@ -18,14 +18,17 @@ data Binding = Regular F.Definition F.Term
              | MaybeBinding F.Term
              | EitherBinding F.Definition F.Term
 
-namesIn :: Binding -> Set F.Const
-namesIn (Regular def _) = namesInDefinition def
-namesIn (MaybeBinding _) = S.empty
-namesIn (EitherBinding def _) = namesInDefinition def
+boundBy :: [Binding] -> Set F.Const
+boundBy = S.unions . fmap boundByBinding
+  where
+    boundByBinding :: Binding -> Set F.Const
+    boundByBinding (Regular def _) = boundByDefinition def
+    boundByBinding (MaybeBinding _) = S.empty
+    boundByBinding (EitherBinding def _) = boundByDefinition def
 
-namesInDefinition :: F.Definition -> Set F.Const
-namesInDefinition (F.Symbol c _) = S.singleton c
-namesInDefinition (F.TupleD cs)  = S.fromList (F.Tuple.toList cs)
+    boundByDefinition :: F.Definition -> Set F.Const
+    boundByDefinition (F.Symbol c _) = S.singleton c
+    boundByDefinition (F.TupleD cs)  = S.fromList (F.Tuple.toList cs)
 
 translate :: P.Program -> (Signature, F.Formula)
 translate (P.Program fs ss as) = case NE.nonEmpty as of
@@ -35,10 +38,9 @@ translate (P.Program fs ss as) = case NE.nonEmpty as of
       funBindings = map translateFunDef fs
       (declared, bindings) = translateStatements ss
 
-      bound = S.unions (fmap namesIn bindings)
       nonArrays = S.filter (not . isArray . typeOf)
 
-      signature = declared \\ nonArrays bound
+      signature = declared \\ nonArrays (boundBy bindings)
 
       assert = foldr1 (F.Binary And) (fmap (\(P.Assertion f) -> f) as)
       conjecture = foldBindings assert (funBindings ++ bindings)
@@ -94,9 +96,7 @@ translateStatement (P.If c a b) = Right binding
 
     undeclared = S.toList (bound \\ declared)
       where
-        bound = thenBound `union` elseBound
-        thenBound = S.unions (fmap namesIn thenBindings)
-        elseBound = S.unions (fmap namesIn elseBindings)
+        bound = boundBy thenBindings `union` boundBy elseBindings
         declared = thenDeclared `union` elseDeclared
 
     binding = case b of
