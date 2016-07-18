@@ -14,7 +14,7 @@ import Kyckling.Program
 import Kyckling.Program.Pretty
 import qualified Kyckling.Program.AST as AST
 
-import qualified Kyckling.FOOL as F
+import qualified Kyckling.FOOL.Smart as F
 import qualified Kyckling.FOOL.AST as F.AST
 import qualified Kyckling.FOOL.Pretty as F.P
 
@@ -57,7 +57,7 @@ guardType analyze t a = do b <- analyze a
                                     " but got " ++ pretty b ++ " of the type " ++ pretty t 
 
 guardTypes :: (TypeOf b, Pretty b) => (a -> Either Error b) -> [Type] -> [a] -> Either Error [b]
-guardTypes analyze ts as = mapM (uncurry $ guardType analyze) (zip ts as)
+guardTypes analyze = zipWithM (guardType analyze)
 
 flattenDeclarations :: [AST.Stmt] -> [AST.Stmt]
 flattenDeclarations = foldr ((++) . flattenDeclaration) []
@@ -172,13 +172,13 @@ analyzeFormula :: Env -> F.AST.Term -> Either Error F.Formula
 analyzeFormula env = analyzeTerm env `guardType` Boolean
 
 analyzeTerm :: Env -> F.AST.Term -> Either Error F.Term
-analyzeTerm _ (F.AST.IntConst  i) = return (F.IntegerConstant i)
-analyzeTerm _ (F.AST.BoolConst b) = return (F.BooleanConstant b)
-analyzeTerm env (F.AST.Const c) = flip F.Application [] <$> lookupVariable c env
-analyzeTerm env (F.AST.Unary op t) = F.Unary op <$> (analyzeTerm env `guardType` d) t
+analyzeTerm _ (F.AST.IntConst  i) = return (F.integerConstant i)
+analyzeTerm _ (F.AST.BoolConst b) = return (F.booleanConstant b)
+analyzeTerm env (F.AST.Const c) = F.constant <$> lookupVariable c env
+analyzeTerm env (F.AST.Unary op t) = F.unary op <$> (analyzeTerm env `guardType` d) t
   where
     d = unaryOpDomain op
-analyzeTerm env (F.AST.Binary op a b) = F.Binary op <$> a' <*> b'
+analyzeTerm env (F.AST.Binary op a b) = F.binary op <$> a' <*> b'
   where
     a' = (analyzeTerm env `guardType` d1) a
     b' = (analyzeTerm env `guardType` d2) b
@@ -187,12 +187,12 @@ analyzeTerm env (F.AST.Ternary c a b) =
   do c' <- analyzeFormula env c
      a' <- analyzeTerm env a
      b' <- (analyzeTerm env `guardType` typeOf a') b
-     return (F.If c' a' b')
+     return (F.if_ c' a' b')
 analyzeTerm env (F.AST.Equals s a b) =
   do a' <- analyzeTerm env a
      b' <- (analyzeTerm env `guardType` typeOf a') b
-     return (F.Equals s a' b')
-analyzeTerm env (F.AST.Quantified q vars term) = F.Quantify q vars' <$> analyzeFormula env' term
+     return (F.equals s a' b')
+analyzeTerm env (F.AST.Quantified q vars term) = F.quantify q vars' <$> analyzeFormula env' term
   where
     -- TODO: check that the variables are disjoint
     env' = foldr insertVariable env vars
@@ -200,10 +200,10 @@ analyzeTerm env (F.AST.Quantified q vars term) = F.Quantify q vars' <$> analyzeF
 analyzeTerm env (F.AST.FunApp f args) =
   do FunType ts r <- lookupFunction f env
      args' <- (analyzeTerm env `guardTypes` ts) args
-     return (F.Application (Typed f r) args')
-analyzeTerm env (F.AST.ArrayElem s i) = F.Select <$> array <*> index
+     return (F.application (Typed f r) args')
+analyzeTerm env (F.AST.ArrayElem s i) = F.select <$> array <*> index
   where
-    array = flip F.Application [] <$> lookupArrayName s env
+    array = F.constant <$> lookupArrayName s env
     index = (analyzeTerm env `guardType` Integer) i
 
 analyzeLValue :: Env -> AST.LVal -> Either Error LValue
@@ -212,7 +212,6 @@ analyzeLValue env (AST.ArrayElem s i) = ArrayElem <$> array <*> index
   where
     array = lookupArrayName s env
     index = (analyzeExpr env `guardType` Integer) i
-
 
 analyzeExpr :: Env -> AST.Expr -> Either Error Expression
 analyzeExpr _ (AST.IntConst  i) = return (IntegerLiteral i)

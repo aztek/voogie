@@ -9,7 +9,7 @@ import qualified Data.List.NonEmpty as NE
 import Data.List.NonEmpty (NonEmpty)
 
 import Kyckling.Theory
-import qualified Kyckling.FOOL as F
+import qualified Kyckling.FOOL.Smart as F
 import qualified Kyckling.FOOL.Tuple as F.Tuple
 
 import qualified Kyckling.Program as P
@@ -32,7 +32,7 @@ boundBy = S.unions . fmap boundByBinding
 
 translate :: P.Program -> (Signature, F.Formula)
 translate (P.Program fs ss as) = case NE.nonEmpty as of
-  Nothing -> (S.empty, F.BooleanConstant True)
+  Nothing -> (S.empty, F.booleanConstant True)
   Just as -> (signature, conjecture)
     where
       funBindings = map translateFunDef fs
@@ -42,25 +42,25 @@ translate (P.Program fs ss as) = case NE.nonEmpty as of
 
       signature = declared \\ nonArrays (boundBy bindings)
 
-      assert = foldr1 (F.Binary And) (fmap (\(P.Assertion f) -> f) as)
+      assert = foldr1 (F.binary And) (fmap (\(P.Assertion f) -> f) as)
       conjecture = foldBindings assert (funBindings ++ bindings)
 
 foldBindings :: F.Term -> [Binding] -> F.Term
 foldBindings = foldr f
   where
-    f (Regular def b) = F.Let (F.Binding def b)
-    f (MaybeBinding b) = F.Let maybeBinding . F.If (F.IsJust constant) (F.FromJust constant)
+    f (Regular def b) = F.let_ (F.Binding def b)
+    f (MaybeBinding b) = F.let_ maybeBinding . F.if_ (F.isJust constant) (F.fromJust constant)
       where
         maybeBinding = F.Binding (F.Symbol symbol []) b
         symbol = Typed "i" (typeOf b)
-        constant = F.Application symbol []
-    f (EitherBinding def b) = F.Let eitherBinding . F.If (F.IsLeft constant) (F.FromLeft constant) . F.Let defBinding
+        constant = F.constant symbol
+    f (EitherBinding def b) = F.let_ eitherBinding . F.if_ (F.isLeft constant) (F.fromLeft constant) . F.let_ defBinding
       where
         eitherBinding = F.Binding (F.Symbol symbol []) b
         symbol = Typed "i" (typeOf b)
-        constant = F.Application symbol []
+        constant = F.constant symbol
 
-        defBinding = F.Binding def (F.FromRight constant)
+        defBinding = F.Binding def (F.fromRight constant)
 
 type Declaration = F.Identifier
 
@@ -81,7 +81,7 @@ translateStatement (P.Assign lval e) = Right binding
 
     body = case lval of
              P.Variable  _   -> e'
-             P.ArrayElem _ a -> F.Store (F.Application n []) (translateExpression a) e'
+             P.ArrayElem _ a -> F.store (F.constant n) (translateExpression a) e'
 
     binding = Regular (F.Symbol n []) body
 translateStatement (P.If c a b) = Right binding
@@ -100,7 +100,7 @@ translateStatement (P.If c a b) = Right binding
         declared = thenDeclared `union` elseDeclared
 
     binding = case b of
-      Left b -> Regular (toDefinition updated) (F.If c' thenBranch elseBranch)
+      Left b -> Regular (toDefinition updated) (F.if_ c' thenBranch elseBranch)
         where
           updated = NE.fromList undeclared
           updatedTerm = toTerm updated
@@ -111,16 +111,16 @@ translateStatement (P.If c a b) = Right binding
         case NE.nonEmpty undeclared of
           Nothing -> MaybeBinding (ite thenBranch elseBranch)
             where
-              thenBranch = foldBindings (F.Nothing_ returnType) thenBindings
-              elseBranch = F.Just_ returnTerm
+              thenBranch = foldBindings (F.nothing returnType) thenBindings
+              elseBranch = F.just returnTerm
 
           Just updated -> EitherBinding (toDefinition updated) (ite thenBranch elseBranch)
             where
               updatedTerm = toTerm updated
-              thenBranch = foldBindings (F.Right_ returnType updatedTerm) thenBindings
-              elseBranch = F.Left_ returnTerm (typeOf updatedTerm)
+              thenBranch = foldBindings (F.right returnType updatedTerm) thenBindings
+              elseBranch = F.left returnTerm (typeOf updatedTerm)
         where
-          ite = if flp then F.If c' else flip (F.If c')
+          ite = if flp then F.if_ c' else flip (F.if_ c')
           returnTerm = translateTerminating b
           returnType = typeOf returnTerm
 
@@ -128,7 +128,7 @@ translateStatement (P.If c a b) = Right binding
     toDefinition = either (flip F.Symbol []) F.TupleD . F.Tuple.nonUnit
 
     toTerm :: NonEmpty F.Identifier -> F.Term
-    toTerm = either (flip F.Application []) (F.TupleLiteral . fmap (flip F.Application [])) . F.Tuple.nonUnit
+    toTerm = either F.constant (F.tupleLiteral . fmap F.constant) . F.Tuple.nonUnit
 
 translateFunDef :: P.FunDef -> Binding
 translateFunDef (P.FunDef t f vars ts) = Regular symbol (translateTerminating ts)
@@ -137,25 +137,25 @@ translateFunDef (P.FunDef t f vars ts) = Regular symbol (translateTerminating ts
 
 translateTerminating :: P.TerminatingStatement -> F.Term
 translateTerminating (P.Return    ss e)     = foldBindings (translateExpression e) (snd $ translateStatements ss)
-translateTerminating (P.IteReturn ss c a b) = foldBindings (F.If c' a' b')         (snd $ translateStatements ss)
+translateTerminating (P.IteReturn ss c a b) = foldBindings (F.if_ c' a' b')        (snd $ translateStatements ss)
   where
     a' = translateTerminating a
     b' = translateTerminating b
     c' = translateExpression c
 
 translateExpression :: P.Expression -> F.Term
-translateExpression (P.IntegerLiteral i) = F.IntegerConstant i 
-translateExpression (P.BooleanLiteral b) = F.BooleanConstant b
-translateExpression (P.Unary  op e)   = F.Unary  op (translateExpression e)
-translateExpression (P.Binary op a b) = F.Binary op (translateExpression a) (translateExpression b)
-translateExpression (P.IfElse c a b)  = F.If (translateExpression c) (translateExpression a) (translateExpression b)
-translateExpression (P.Equals s a b)  = F.Equals s (translateExpression a) (translateExpression b)
-translateExpression (P.FunApp f args) = F.Application f (map translateExpression args)
+translateExpression (P.IntegerLiteral i) = F.integerConstant i 
+translateExpression (P.BooleanLiteral b) = F.booleanConstant b
+translateExpression (P.Unary  op e)   = F.unary  op (translateExpression e)
+translateExpression (P.Binary op a b) = F.binary op (translateExpression a) (translateExpression b)
+translateExpression (P.IfElse c a b)  = F.if_ (translateExpression c) (translateExpression a) (translateExpression b)
+translateExpression (P.Equals s a b)  = F.equals s (translateExpression a) (translateExpression b)
+translateExpression (P.FunApp f args) = F.application f (map translateExpression args)
 translateExpression (P.Ref lval)      = translateLValue lval
 
 translateLValue :: P.LValue -> F.Term
-translateLValue (P.Variable v)    = F.Application (translateVar v) []
-translateLValue (P.ArrayElem v e) = F.Select (F.Application (translateVar v) []) (translateExpression e)
+translateLValue (P.Variable v)    = F.constant (translateVar v)
+translateLValue (P.ArrayElem v e) = F.select (F.constant (translateVar v)) (translateExpression e)
 
 translateVar :: P.Var -> F.Identifier
 translateVar (Typed v t) = Typed (map toLower v) t
