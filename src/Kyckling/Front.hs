@@ -56,6 +56,8 @@ guardType t analyze a = do b <- analyze a
                              Left $ "expected an expression of the type " ++ pretty t' ++
                                     " but got " ++ pretty b ++ " of the type " ++ pretty t 
 
+guardTypes :: (TypeOf b, Pretty b) => [Type] -> (a -> Either Error b) -> [a] -> Either Error [b]
+guardTypes ts analyze as = mapM (\(t, a) -> guardType t analyze a) (zip ts as)
 
 flattenDeclarations :: [AST.Stmt] -> [AST.Stmt]
 flattenDeclarations = foldr ((++) . flattenDeclaration) []
@@ -229,3 +231,7 @@ analyzeExpr env (AST.Ternary c a b) =
      a' <- analyzeExpr env a
      b' <- guardType (typeOf a') (analyzeExpr env) b
      return (IfElse c' a' b')
+analyzeExpr env (AST.FunApp f args) =
+  do FunType ts r <- lookupFunction f env
+     args' <- guardTypes ts (analyzeExpr env) args
+     return (FunApp (Typed f r) args')

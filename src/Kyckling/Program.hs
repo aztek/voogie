@@ -4,6 +4,7 @@ import Kyckling.Theory
 import qualified Kyckling.FOOL as F
 
 type Var = Typed Name
+type Function = Typed Name
 
 data LValue = Variable Var
             | ArrayElem Var Expression
@@ -19,6 +20,7 @@ data Expression = IntegerLiteral Integer
                 | Unary  UnaryOp    Expression
                 | Binary BinaryOp   Expression Expression
                 | IfElse Expression Expression Expression
+                | FunApp Function [Expression]
                 | Equals Sign Expression Expression
   deriving (Show)
 
@@ -29,6 +31,7 @@ instance TypeOf Expression where
   typeOf (Unary op _) = unaryOpRange op
   typeOf (Binary op _ _) = binaryOpRange op
   typeOf (IfElse _ a _) = typeOf a
+  typeOf (FunApp f _) = typeOf f
   typeOf (Equals{}) = Boolean
 
 data Statement = Declare Var

@@ -25,6 +25,8 @@ instance Pretty Expression where
   pretty (Binary op a b) = pretty a ++ " " ++ F.pretty op ++ " " ++ pretty b
   pretty (IfElse a b c)  = pretty a ++ " ? " ++ pretty a ++ " : " ++ pretty b
 
+  pretty (FunApp (Typed f _) args) = f ++ "(" ++ intercalate ", " (map pretty args) ++ ")"
+
   pretty (Equals s a b) = pretty a ++ (if s == Pos then " == " else " != ") ++ pretty b
 
   pretty (Ref lval) = pretty lval

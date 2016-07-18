@@ -150,6 +150,7 @@ translateExpression (P.Unary  op e)   = F.Unary  op (translateExpression e)
 translateExpression (P.Binary op a b) = F.Binary op (translateExpression a) (translateExpression b)
 translateExpression (P.IfElse c a b)  = F.If (translateExpression c) (translateExpression a) (translateExpression b)
 translateExpression (P.Equals s a b)  = F.Equals s (translateExpression a) (translateExpression b)
+translateExpression (P.FunApp f args) = undefined
 translateExpression (P.Ref lval)      = translateLValue lval
 
 translateLValue :: P.LValue -> F.Term

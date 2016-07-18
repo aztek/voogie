@@ -12,6 +12,7 @@ data Expr = IntConst Integer
           | Unary   UnaryOp  Expr
           | Binary  BinaryOp Expr Expr
           | Ternary          Expr Expr Expr
+          | FunApp String [Expr]
           | Equals Sign Expr Expr
           | LVal LVal
   deriving (Show, Eq)

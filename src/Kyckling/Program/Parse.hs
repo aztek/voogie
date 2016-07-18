@@ -46,7 +46,10 @@ term =  parens expr
     <|> constant "true"  (BoolConst True)
     <|> constant "false" (BoolConst False)
     <|> IntConst <$> integer
+    <|> try funapp
     <|> LVal <$> lval
+
+funapp = FunApp <$> identifier <*> parens (commaSep expr)
 
 lval =  try (ArrayElem <$> identifier <*> brackets expr)
     <|> Var <$> identifier

@@ -37,6 +37,7 @@ semi       = Token.semi       lexer
 whiteSpace = Token.whiteSpace lexer
 braces     = Token.braces     lexer
 brackets   = Token.brackets   lexer
+commaSep   = Token.commaSep   lexer
 commaSep1  = Token.commaSep1  lexer
 
 constant name fun = reserved name >> return fun
