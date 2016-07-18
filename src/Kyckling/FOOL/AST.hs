@@ -9,7 +9,7 @@ data Term = IntConst Integer
           | Ternary          Term Term Term
           | Equals Sign Term Term
           | Quantified Quantifier [Typed String] Term
-          | Constant String
+          | FunApp String [Term]
           | ArrayElem String Term
   deriving (Show, Eq)
 

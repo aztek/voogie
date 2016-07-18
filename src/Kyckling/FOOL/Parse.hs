@@ -48,7 +48,7 @@ arg =  parens term
    <|> quantified 
    <|> IntConst <$> integer
    <|> try (ArrayElem <$> identifier <*> brackets term)
-   <|> Constant <$> identifier
+   <|> FunApp <$> identifier <*> parens (commaSep term)
 
 quantified = do q <- quantifier
                 vars <- parens (commaSep1 typedVar)

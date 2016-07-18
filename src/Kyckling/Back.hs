@@ -18,15 +18,15 @@ data Binding = Regular F.Definition F.Term
              | MaybeBinding F.Term
              | EitherBinding F.Definition F.Term
 
-boundBy :: [Binding] -> Set F.Const
+boundBy :: [Binding] -> Set F.Identifier
 boundBy = S.unions . fmap boundByBinding
   where
-    boundByBinding :: Binding -> Set F.Const
+    boundByBinding :: Binding -> Set F.Identifier
     boundByBinding (Regular def _) = boundByDefinition def
     boundByBinding (MaybeBinding _) = S.empty
     boundByBinding (EitherBinding def _) = boundByDefinition def
 
-    boundByDefinition :: F.Definition -> Set F.Const
+    boundByDefinition :: F.Definition -> Set F.Identifier
     boundByDefinition (F.Symbol c _) = S.singleton c
     boundByDefinition (F.TupleD cs)  = S.fromList (F.Tuple.toList cs)
 
@@ -53,16 +53,16 @@ foldBindings = foldr f
       where
         maybeBinding = F.Binding (F.Symbol symbol []) b
         symbol = Typed "i" (typeOf b)
-        constant = F.Constant symbol
+        constant = F.Application symbol []
     f (EitherBinding def b) = F.Let eitherBinding . F.If (F.IsLeft constant) (F.FromLeft constant) . F.Let defBinding
       where
         eitherBinding = F.Binding (F.Symbol symbol []) b
         symbol = Typed "i" (typeOf b)
-        constant = F.Constant symbol
+        constant = F.Application symbol []
 
         defBinding = F.Binding def (F.FromRight constant)
 
-type Declaration = F.Const
+type Declaration = F.Identifier
 
 translateStatements :: [P.Statement] -> (Set Declaration, [Binding])
 translateStatements ss = (S.fromList ds, bs)
@@ -81,7 +81,7 @@ translateStatement (P.Assign lval e) = Right binding
 
     body = case lval of
              P.Variable  _   -> e'
-             P.ArrayElem _ a -> F.Store (F.Constant n) (translateExpression a) e'
+             P.ArrayElem _ a -> F.Store (F.Application n []) (translateExpression a) e'
 
     binding = Regular (F.Symbol n []) body
 translateStatement (P.If c a b) = Right binding
@@ -124,11 +124,11 @@ translateStatement (P.If c a b) = Right binding
           returnTerm = translateTerminating b
           returnType = typeOf returnTerm
 
-    toDefinition :: NonEmpty F.Const -> F.Definition
+    toDefinition :: NonEmpty F.Identifier -> F.Definition
     toDefinition = either (flip F.Symbol []) F.TupleD . F.Tuple.nonUnit
 
-    toTerm :: NonEmpty F.Const -> F.Term
-    toTerm = either F.Constant (F.TupleLiteral . fmap F.Constant) . F.Tuple.nonUnit
+    toTerm :: NonEmpty F.Identifier -> F.Term
+    toTerm = either (flip F.Application []) (F.TupleLiteral . fmap (flip F.Application [])) . F.Tuple.nonUnit
 
 translateFunDef :: P.FunDef -> Binding
 translateFunDef (P.FunDef t f vars ts) = Regular symbol (translateTerminating ts)
@@ -154,8 +154,8 @@ translateExpression (P.FunApp f args) = undefined
 translateExpression (P.Ref lval)      = translateLValue lval
 
 translateLValue :: P.LValue -> F.Term
-translateLValue (P.Variable v)    = F.Constant (translateVar v)
-translateLValue (P.ArrayElem v e) = F.Select (F.Constant (translateVar v)) (translateExpression e)
+translateLValue (P.Variable v)    = F.Application (translateVar v) []
+translateLValue (P.ArrayElem v e) = F.Select (F.Application (translateVar v) []) (translateExpression e)
 
-translateVar :: P.Var -> F.Const
+translateVar :: P.Var -> F.Identifier
 translateVar (Typed v t) = Typed (map toLower v) t

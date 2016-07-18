@@ -196,10 +196,14 @@ analyzeTerm env (F.AST.Quantified q vars term) = F.Quantify q vars' <$> analyzeF
     -- TODO: check that the variables are disjoint
     env' = foldr insertVariable env vars
     vars' = map (fmap F.Var) vars
-analyzeTerm env (F.AST.Constant  s)   = F.Constant <$> lookupVariable s env
+analyzeTerm env (F.AST.FunApp c []) = flip F.Application [] <$> lookupVariable c env
+analyzeTerm env (F.AST.FunApp f args) =
+  do FunType ts r <- lookupFunction f env
+     args' <- guardTypes ts (analyzeTerm env) args
+     return (F.Application (Typed f r) args')
 analyzeTerm env (F.AST.ArrayElem s i) = F.Select <$> array <*> index
   where
-    array = F.Constant <$> lookupArrayName s env
+    array = flip F.Application [] <$> lookupArrayName s env
     index = guardType Integer (analyzeTerm env) i
 
 analyzeLValue :: Env -> AST.LVal -> Either Error LValue

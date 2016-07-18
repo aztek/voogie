@@ -58,16 +58,16 @@ prettyType s =
 prettyVar :: Var -> String
 prettyVar (Var n) = map toUpper n
 
-prettyConstant :: Const -> String
-prettyConstant (Typed n _) = n
+prettyIdentifier :: Identifier -> String
+prettyIdentifier (Typed n _) = n
 
 prettyVariable :: Typed Var -> String
 prettyVariable (Typed v t) = prettyVar v ++ ":" ++ prettyType t
 
 prettyDefinition :: Definition -> String
-prettyDefinition (Symbol c []) = prettyConstant c
-prettyDefinition (Symbol c vs) = funapp (prettyConstant c) (map prettyVariable vs)
-prettyDefinition (TupleD es) = tuple (fmap prettyConstant es)
+prettyDefinition (Symbol c []) = prettyIdentifier c
+prettyDefinition (Symbol c vs) = funapp (prettyIdentifier c) (map prettyVariable vs)
+prettyDefinition (TupleD es) = tuple (fmap prettyIdentifier es)
 
 offsetBinding :: Int -> Binding -> String
 offsetBinding o (Binding d t) = d' ++ " := " ++ indentedTerm False (0, o + length d' + 4) t
@@ -97,7 +97,8 @@ indentedTerm pp (i, o) t = indent i ++ case t of
   BooleanConstant b -> if b then "$true" else "$false"
 
   Variable v -> prettyVariable v
-  Constant c -> prettyConstant c
+  Application f [] -> prettyIdentifier f
+  Application f args -> funapp (prettyIdentifier f) (map prettyTerm args)
 
   Unary op a    -> if isPrefix then prettyOp ++ indentedTerm True (0, o + length prettyOp) a
                                else funapp prettyOp [indentedTerm True (0, o + length prettyOp + 1) a]

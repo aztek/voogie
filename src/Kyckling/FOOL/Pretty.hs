@@ -46,7 +46,7 @@ instance Pretty Term where
   pretty (IntegerConstant i) = show i
   pretty (BooleanConstant b) = if b then "true" else "false"
   pretty (Variable (Typed (Var v) _)) = v
-  pretty (Constant (Typed c _)) = c
+  pretty (Application (Typed f _) args) = f ++ "(" ++ intercalate ", " (map pretty args) ++ ")"
   pretty (Binary op a b) = pretty a ++ " " ++ pretty op ++ " " ++ pretty b
   pretty (Unary op t) = pretty op ++ pretty t
   pretty (Quantify q vars t) = pretty q ++ " (" ++ intercalate ", " (map p vars) ++ ")" ++ pretty t
