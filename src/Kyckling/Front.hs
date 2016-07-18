@@ -49,15 +49,15 @@ insertVariable (Typed n t) (Env fs vs) = Env fs (Map.insert n t vs)
 insertFunction :: (Name, FunType) -> Env -> Env
 insertFunction (n, t) (Env fs vs) = Env (Map.insert n t fs) vs
 
-guardType :: (TypeOf b, Pretty b) => Type -> (a -> Either Error b) -> a -> Either Error b
-guardType t analyze a = do b <- analyze a
+guardType :: (TypeOf b, Pretty b) => (a -> Either Error b) -> Type -> a -> Either Error b
+guardType analyze t a = do b <- analyze a
                            let t' = typeOf b
                            if t == t' then return b else
                              Left $ "expected an expression of the type " ++ pretty t' ++
                                     " but got " ++ pretty b ++ " of the type " ++ pretty t 
 
-guardTypes :: (TypeOf b, Pretty b) => [Type] -> (a -> Either Error b) -> [a] -> Either Error [b]
-guardTypes ts analyze as = mapM (\(t, a) -> guardType t analyze a) (zip ts as)
+guardTypes :: (TypeOf b, Pretty b) => (a -> Either Error b) -> [Type] -> [a] -> Either Error [b]
+guardTypes analyze ts as = mapM (uncurry $ guardType analyze) (zip ts as)
 
 flattenDeclarations :: [AST.Stmt] -> [AST.Stmt]
 flattenDeclarations = foldr ((++) . flattenDeclaration) []
@@ -128,7 +128,7 @@ analyzeStmt env (AST.Declare t _) = error "should be eliminated by flattenDeclar
 analyzeStmt env (AST.If c a b) =
   do (_, a') <- analyzeStmts env a
      (_, b') <- analyzeStmts env b
-     c' <- guardType Boolean (analyzeExpr env) c
+     c' <- (analyzeExpr env `guardType` Boolean) c
      let stmt = case (a', b') of
                   (Right a', Right b') -> Right $ If c' a' (Left b')
                   (Right a', Left  b') -> Right $ If c' a' (Right (False, b'))
@@ -136,21 +136,21 @@ analyzeStmt env (AST.If c a b) =
                   (Left  a', Left  b') -> Left  $ IteReturn [] c' a' b'
      return (env, stmt)
 analyzeStmt env (AST.Increment lval) =
-  do lv <- guardType Integer (analyzeLValue env) lval
+  do lv <- (analyzeLValue env `guardType` Integer) lval
      let stmt = Assign lv (Binary Add (Ref lv) (IntegerLiteral 1))
      return (env, Right stmt)
 analyzeStmt env (AST.Decrement lval) =
-  do lv <- guardType Integer (analyzeLValue env) lval
+  do lv <- (analyzeLValue env `guardType` Integer) lval
      let stmt = Assign lv (Binary Subtract (Ref lv) (IntegerLiteral 1))
      return (env, Right stmt)
 analyzeStmt env (AST.Update lval AST.Assign e) =
   do lv <- analyzeLValue env lval
-     e' <- guardType (typeOf lv) (analyzeExpr env) e
+     e' <- (analyzeExpr env `guardType` typeOf lv) e
      let stmt = Assign lv e'
      return (env, Right stmt)
 analyzeStmt env (AST.Update lval op e) =
-  do lv <- guardType d1 (analyzeLValue env) lval
-     e' <- guardType d2 (analyzeExpr env) e
+  do lv <- (analyzeLValue env `guardType` d1) lval
+     e' <- (analyzeExpr env `guardType` d2) e
      let stmt = Assign lv (Binary op' (Ref lv) e')
      return (env, Right stmt)
   where
@@ -169,73 +169,73 @@ analyzeAssert :: Env -> AST.Assert -> Either Error Assertion
 analyzeAssert env (AST.Assert f) = Assertion <$> analyzeFormula env f
 
 analyzeFormula :: Env -> F.AST.Term -> Either Error F.Formula
-analyzeFormula env = guardType Boolean (analyzeTerm env)
+analyzeFormula env = analyzeTerm env `guardType` Boolean
 
 analyzeTerm :: Env -> F.AST.Term -> Either Error F.Term
 analyzeTerm _ (F.AST.IntConst  i) = return (F.IntegerConstant i)
 analyzeTerm _ (F.AST.BoolConst b) = return (F.BooleanConstant b)
-analyzeTerm env (F.AST.Unary op t) = F.Unary op <$> guardType d (analyzeTerm env) t
+analyzeTerm env (F.AST.Const c) = flip F.Application [] <$> lookupVariable c env
+analyzeTerm env (F.AST.Unary op t) = F.Unary op <$> (analyzeTerm env `guardType` d) t
   where
     d = unaryOpDomain op
 analyzeTerm env (F.AST.Binary op a b) = F.Binary op <$> a' <*> b'
   where
-    a' = guardType d1 (analyzeTerm env) a
-    b' = guardType d2 (analyzeTerm env) b
+    a' = (analyzeTerm env `guardType` d1) a
+    b' = (analyzeTerm env `guardType` d2) b
     (d1, d2) = binaryOpDomain op
 analyzeTerm env (F.AST.Ternary c a b) = 
   do c' <- analyzeFormula env c
      a' <- analyzeTerm env a
-     b' <- guardType (typeOf a') (analyzeTerm env) b
+     b' <- (analyzeTerm env `guardType` typeOf a') b
      return (F.If c' a' b')
 analyzeTerm env (F.AST.Equals s a b) =
   do a' <- analyzeTerm env a
-     b' <- guardType (typeOf a') (analyzeTerm env) b
+     b' <- (analyzeTerm env `guardType` typeOf a') b
      return (F.Equals s a' b')
 analyzeTerm env (F.AST.Quantified q vars term) = F.Quantify q vars' <$> analyzeFormula env' term
   where
     -- TODO: check that the variables are disjoint
     env' = foldr insertVariable env vars
     vars' = map (fmap F.Var) vars
-analyzeTerm env (F.AST.FunApp c []) = flip F.Application [] <$> lookupVariable c env
 analyzeTerm env (F.AST.FunApp f args) =
   do FunType ts r <- lookupFunction f env
-     args' <- guardTypes ts (analyzeTerm env) args
+     args' <- (analyzeTerm env `guardTypes` ts) args
      return (F.Application (Typed f r) args')
 analyzeTerm env (F.AST.ArrayElem s i) = F.Select <$> array <*> index
   where
     array = flip F.Application [] <$> lookupArrayName s env
-    index = guardType Integer (analyzeTerm env) i
+    index = (analyzeTerm env `guardType` Integer) i
 
 analyzeLValue :: Env -> AST.LVal -> Either Error LValue
 analyzeLValue env (AST.Var s) = Variable <$> lookupVariable s env
 analyzeLValue env (AST.ArrayElem s i) = ArrayElem <$> array <*> index
   where
     array = lookupArrayName s env
-    index = guardType Integer (analyzeExpr env) i
+    index = (analyzeExpr env `guardType` Integer) i
 
 
 analyzeExpr :: Env -> AST.Expr -> Either Error Expression
 analyzeExpr _ (AST.IntConst  i) = return (IntegerLiteral i)
 analyzeExpr _ (AST.BoolConst b) = return (BooleanLiteral b)
 analyzeExpr env (AST.LVal lval) = Ref <$> analyzeLValue env lval
-analyzeExpr env (AST.Unary op e) = Unary op <$> guardType d (analyzeExpr env) e
+analyzeExpr env (AST.Unary op e) = Unary op <$> (analyzeExpr env `guardType` d) e
   where
     d = unaryOpDomain op
 analyzeExpr env (AST.Binary op a b) = Binary op <$> a' <*> b'
   where
-    a' = guardType d1 (analyzeExpr env) a
-    b' = guardType d2 (analyzeExpr env) b
+    a' = (analyzeExpr env `guardType` d1) a
+    b' = (analyzeExpr env `guardType` d2) b
     (d1, d2) = binaryOpDomain op
 analyzeExpr env (AST.Equals s a b) =
   do a' <- analyzeExpr env a
-     b' <- guardType (typeOf a') (analyzeExpr env) b
+     b' <- (analyzeExpr env `guardType` typeOf a') b
      return (Equals s a' b')
 analyzeExpr env (AST.Ternary c a b) =
-  do c' <- guardType Boolean (analyzeExpr env) c
+  do c' <- (analyzeExpr env `guardType` Boolean) c
      a' <- analyzeExpr env a
-     b' <- guardType (typeOf a') (analyzeExpr env) b
+     b' <- (analyzeExpr env `guardType` typeOf a') b
      return (IfElse c' a' b')
 analyzeExpr env (AST.FunApp f args) =
   do FunType ts r <- lookupFunction f env
-     args' <- guardTypes ts (analyzeExpr env) args
+     args' <- (analyzeExpr env `guardTypes` ts) args
      return (FunApp (Typed f r) args')

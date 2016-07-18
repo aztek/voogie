@@ -48,7 +48,7 @@ arg =  parens term
    <|> quantified 
    <|> IntConst <$> integer
    <|> try (ArrayElem <$> identifier <*> brackets term)
-   <|> FunApp <$> identifier <*> parens (commaSep term)
+   <|> ref
 
 quantified = do q <- quantifier
                 vars <- parens (commaSep1 typedVar)
@@ -60,6 +60,12 @@ quantifier =  constant "forall" Forall
 
 typedVar :: Parser (Typed Name)
 typedVar = Typed <$> identifier <*> typ
+
+ref = do i <- identifier
+         args <- optionMaybe (parens $ commaSep term)
+         case args of
+           Just args -> return (FunApp i args)
+           Nothing   -> return (Const i)
 
 formula :: Parser Formula
 formula = term

@@ -4,6 +4,7 @@ import Kyckling.Theory
 
 data Term = IntConst Integer
           | BoolConst Bool
+          | Const String
           | Unary   UnaryOp  Term
           | Binary  BinaryOp Term Term
           | Ternary          Term Term Term
