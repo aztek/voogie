@@ -28,7 +28,14 @@ binary = Binary
 unary = Unary
 quantify = Quantify
 equals = Equals
-let_ = Let
+
+let_ :: Binding -> Term -> Term
+let_ (Binding (Symbol c []) b) (Application c' []) | c == c' = b
+let_ (Binding (Symbol c []) b) (Right_ t (Application c' [])) | c == c' = Right_ t b
+let_ (Binding (Symbol c []) b) (Left_  (Application c' []) t) | c == c' = Left_  b t
+let_ (Binding (Symbol c []) b) (Just_  (Application c' []))   | c == c' = Just_  b
+let_ b t = Let b t
+
 if_ = If
 select = Select
 store = Store

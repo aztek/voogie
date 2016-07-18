@@ -54,6 +54,7 @@ translate (P.Program fs ss as) = case NE.nonEmpty as of
 foldBindings :: F.Term -> [Binding] -> F.Term
 foldBindings = foldr bind
   where
+    bind :: Binding -> F.Term -> F.Term
     bind (Regular def  body) = let_ def body
     bind (MaybeBinding body) = let_ freshDef body .
                                     F.if_ (F.isJust constant) (F.fromJust constant)
