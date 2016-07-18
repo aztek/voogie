@@ -56,7 +56,7 @@ prettyType s =
     EitherType l r -> funapp "$either" [prettyType l, prettyType r]
 
 prettyVar :: Var -> String
-prettyVar (Var n) = map toUpper n
+prettyVar (Var n) = n
 
 prettyIdentifier :: Identifier -> String
 prettyIdentifier (Typed n _) = n
@@ -96,7 +96,7 @@ indentedTerm pp (i, o) t = indent i ++ case t of
   IntegerConstant n -> show n
   BooleanConstant b -> if b then "$true" else "$false"
 
-  Variable v -> prettyVariable v
+  Variable (Typed v _) -> prettyVar v
   Application f [] -> prettyIdentifier f
   Application f args -> funapp (prettyIdentifier f) (map prettyTerm args)
 

@@ -3,13 +3,25 @@ module Kyckling.FOOL.Smart (
   Var(..), Identifier, Definition(..), Binding(..), Term, Formula
 ) where
 
+import qualified Data.List.NonEmpty as NE
+import Data.List.NonEmpty (NonEmpty)
+
+import Data.Either
+
 import Kyckling.FOOL
+import Kyckling.FOOL.Tuple
+
+-- Definition
+tupleD :: NonEmpty Identifier -> Definition
+tupleD = either (flip Symbol []) TupleD . nonUnit
+
+-- Term
+integerConstant = IntegerConstant
+booleanConstant = BooleanConstant
 
 constant :: Identifier -> Term
 constant = flip Application []
 
-integerConstant = IntegerConstant
-booleanConstant = BooleanConstant
 variable = Variable
 application = Application
 binary = Binary
@@ -20,7 +32,10 @@ let_ = Let
 if_ = If
 select = Select
 store = Store
-tupleLiteral = TupleLiteral
+
+tupleLiteral :: NonEmpty Term -> Term
+tupleLiteral = either id TupleLiteral . nonUnit
+
 nothing = Nothing_
 just = Just_
 isJust = IsJust

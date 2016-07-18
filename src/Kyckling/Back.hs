@@ -14,9 +14,15 @@ import qualified Kyckling.FOOL.Tuple as F.Tuple
 
 import qualified Kyckling.Program as P
 
-data Binding = Regular F.Definition F.Term
+data Definition = Symbol P.Function [P.Var]
+                | TupleD (F.Tuple.Tuple P.Var)
+
+tupleD :: NonEmpty P.Var -> Definition
+tupleD = either (flip Symbol []) TupleD . F.Tuple.nonUnit
+
+data Binding = Regular Definition F.Term
              | MaybeBinding F.Term
-             | EitherBinding F.Definition F.Term
+             | EitherBinding Definition F.Term
 
 boundBy :: [Binding] -> Set F.Identifier
 boundBy = S.unions . fmap boundByBinding
@@ -26,9 +32,9 @@ boundBy = S.unions . fmap boundByBinding
     boundByBinding (MaybeBinding _) = S.empty
     boundByBinding (EitherBinding def _) = boundByDefinition def
 
-    boundByDefinition :: F.Definition -> Set F.Identifier
-    boundByDefinition (F.Symbol c _) = S.singleton c
-    boundByDefinition (F.TupleD cs)  = S.fromList (F.Tuple.toList cs)
+    boundByDefinition :: Definition -> Set F.Identifier
+    boundByDefinition (Symbol c _) = S.singleton c
+    boundByDefinition (TupleD cs)  = S.fromList (F.Tuple.toList cs)
 
 translate :: P.Program -> (Signature, F.Formula)
 translate (P.Program fs ss as) = case NE.nonEmpty as of
@@ -46,21 +52,34 @@ translate (P.Program fs ss as) = case NE.nonEmpty as of
       conjecture = foldBindings assert (funBindings ++ bindings)
 
 foldBindings :: F.Term -> [Binding] -> F.Term
-foldBindings = foldr f
+foldBindings = foldr bind
   where
-    f (Regular def b) = F.let_ (F.Binding def b)
-    f (MaybeBinding b) = F.let_ maybeBinding . F.if_ (F.isJust constant) (F.fromJust constant)
+    bind (Regular def  body) = let_ def body
+    bind (MaybeBinding body) = let_ freshDef body .
+                                    F.if_ (F.isJust constant) (F.fromJust constant)
       where
-        maybeBinding = F.Binding (F.Symbol symbol []) b
-        symbol = Typed "i" (typeOf b)
-        constant = F.constant symbol
-    f (EitherBinding def b) = F.let_ eitherBinding . F.if_ (F.isLeft constant) (F.fromLeft constant) . F.let_ defBinding
+        (freshDef, constant) = name body
+    bind (EitherBinding def body) = let_ freshDef body .
+                                         F.if_ (F.isLeft constant)
+                                               (F.fromLeft constant) .
+                                               let_ def (F.fromRight constant)
       where
-        eitherBinding = F.Binding (F.Symbol symbol []) b
-        symbol = Typed "i" (typeOf b)
-        constant = F.constant symbol
+        (freshDef, constant) = name body
 
-        defBinding = F.Binding def (F.fromRight constant)
+    name :: F.Term -> (Definition, F.Term)
+    name body = (Symbol symbol [], F.constant symbol) where symbol = Typed "i" (typeOf body)
+
+    let_ :: Definition -> F.Term -> F.Term -> F.Term
+    let_ (Symbol f args) body term = F.let_ (F.Binding def renaming) term
+      where
+        def = F.Symbol f (fmap translateVar args)
+        renaming = case NE.nonEmpty args of
+                     Nothing   -> body
+                     Just args -> F.let_ (F.Binding def tuple) body
+                       where
+                        def   = F.tupleD (fmap translateConstant args)
+                        tuple = F.tupleLiteral (fmap (F.variable . translateVar) args)
+    let_ (TupleD vars) body term = F.let_ (F.Binding (F.TupleD vars) body) term
 
 type Declaration = F.Identifier
 
@@ -70,11 +89,11 @@ translateStatements ss = (S.fromList ds, bs)
     (ds, bs) = partitionEithers (map translateStatement ss)
 
 translateStatement :: P.Statement -> Either Declaration Binding
-translateStatement (P.Declare v) = Left (translateVar v)
+translateStatement (P.Declare v) = Left (translateConstant v)
 translateStatement (P.Assign lval e) = Right binding
   where
     e' = translateExpression e
-    n  = translateVar (var lval)
+    n  = translateConstant (var lval)
 
     var (P.Variable  v)   = v
     var (P.ArrayElem v _) = v
@@ -83,7 +102,7 @@ translateStatement (P.Assign lval e) = Right binding
              P.Variable  _   -> e'
              P.ArrayElem _ a -> F.store (F.constant n) (translateExpression a) e'
 
-    binding = Regular (F.Symbol n []) body
+    binding = Regular (Symbol n []) body
 translateStatement (P.If c a b) = Right binding
   where
     c' = translateExpression c
@@ -100,10 +119,10 @@ translateStatement (P.If c a b) = Right binding
         declared = thenDeclared `union` elseDeclared
 
     binding = case b of
-      Left b -> Regular (toDefinition updated) (F.if_ c' thenBranch elseBranch)
+      Left b -> Regular (tupleD updated) (F.if_ c' thenBranch elseBranch)
         where
           updated = NE.fromList undeclared
-          updatedTerm = toTerm updated
+          updatedTerm = F.tupleLiteral (fmap F.constant updated)
           thenBranch = foldBindings updatedTerm thenBindings
           elseBranch = foldBindings updatedTerm elseBindings
 
@@ -114,9 +133,9 @@ translateStatement (P.If c a b) = Right binding
               thenBranch = foldBindings (F.nothing returnType) thenBindings
               elseBranch = F.just returnTerm
 
-          Just updated -> EitherBinding (toDefinition updated) (ite thenBranch elseBranch)
+          Just updated -> EitherBinding (tupleD updated) (ite thenBranch elseBranch)
             where
-              updatedTerm = toTerm updated
+              updatedTerm = F.tupleLiteral (fmap F.constant updated)
               thenBranch = foldBindings (F.right returnType updatedTerm) thenBindings
               elseBranch = F.left returnTerm (typeOf updatedTerm)
         where
@@ -124,16 +143,10 @@ translateStatement (P.If c a b) = Right binding
           returnTerm = translateTerminating b
           returnType = typeOf returnTerm
 
-    toDefinition :: NonEmpty F.Identifier -> F.Definition
-    toDefinition = either (flip F.Symbol []) F.TupleD . F.Tuple.nonUnit
-
-    toTerm :: NonEmpty F.Identifier -> F.Term
-    toTerm = either F.constant (F.tupleLiteral . fmap F.constant) . F.Tuple.nonUnit
-
 translateFunDef :: P.FunDef -> Binding
 translateFunDef (P.FunDef t f vars ts) = Regular symbol (translateTerminating ts)
   where
-    symbol = F.Symbol (Typed f t) (map (fmap F.Var) vars)
+    symbol = Symbol (Typed f t) vars
 
 translateTerminating :: P.TerminatingStatement -> F.Term
 translateTerminating (P.Return    ss e)     = foldBindings (translateExpression e) (snd $ translateStatements ss)
@@ -154,8 +167,11 @@ translateExpression (P.FunApp f args) = F.application f (map translateExpression
 translateExpression (P.Ref lval)      = translateLValue lval
 
 translateLValue :: P.LValue -> F.Term
-translateLValue (P.Variable v)    = F.constant (translateVar v)
-translateLValue (P.ArrayElem v e) = F.select (F.constant (translateVar v)) (translateExpression e)
+translateLValue (P.Variable v)    = F.constant (translateConstant v)
+translateLValue (P.ArrayElem v e) = F.select (F.constant (translateConstant v)) (translateExpression e)
 
-translateVar :: P.Var -> F.Identifier
-translateVar (Typed v t) = Typed (map toLower v) t
+translateConstant :: P.Var -> F.Identifier
+translateConstant = fmap (map toLower)
+
+translateVar :: P.Var -> Typed F.Var
+translateVar = fmap (F.Var . map toUpper)
