@@ -66,4 +66,4 @@ instance Pretty Assertion where
   pretty (Assertion f) = "assert " ++ F.pretty f ++ ";"
 
 instance Pretty Program where
-  pretty (Program fs ss as) = concatMap pretty fs ++ pretty ss ++ concatMap pretty as
+  pretty (Program fs ss as) = concatMap pretty fs ++ "\n" ++ pretty ss ++ concatMap pretty as

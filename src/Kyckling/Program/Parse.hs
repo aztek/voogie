@@ -88,7 +88,7 @@ returnStmt = atomicStmt $ reserved "return" >> Return <$> expr
 
 fundef = FunDef <$> typ <*> identifier <*> args <*> stmts
   where
-    args = parens (commaSep1 arg)
+    args = parens (commaSep arg)
     arg  = flip Typed <$> typ <*> identifier
 
 assert = atomicStmt (reserved "assert" >> Assert <$> F.formula)
