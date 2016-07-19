@@ -129,13 +129,13 @@ indentedTerm pp (i, o) t = indent i ++ case t of
 
   TupleLiteral ts -> tuple (fmap prettyTerm ts)
 
-  Nothing_ _ -> "$nothing"
-  Just_ t    -> funapp "$just"     [prettyTerm t]
-  IsJust t   -> funapp "$isjust"   [prettyTerm t]
-  FromJust t -> funapp "$fromjust" [prettyTerm t]
+  Nothing_ t -> funapp "$nothing"  [prettyType t]
+  Just_ a    -> funapp "$just"     [prettyTerm a]
+  IsJust a   -> funapp "$isjust"   [prettyTerm a]
+  FromJust a -> funapp "$fromjust" [prettyTerm a]
 
-  Left_  t _  -> funapp "$left"      [prettyTerm t]
-  Right_ _ t  -> funapp "$right"     [prettyTerm t]
+  Left_  l t  -> funapp "$left"      [prettyTerm l, prettyType t]
+  Right_ t r  -> funapp "$right"     [prettyType t, prettyTerm r]
   IsLeft t    -> funapp "$isleft"    [prettyTerm t]
   FromLeft  t -> funapp "$fromleft"  [prettyTerm t]
   FromRight t -> funapp "$fromright" [prettyTerm t]
