@@ -5,16 +5,16 @@ import Kyckling.FOOL.Tuple (Tuple)
 import Kyckling.Theory
 
 newtype Var = Var Name
-  deriving (Show)
+  deriving (Show, Eq)
 
 type Identifier = Typed Name
 
 data Definition = Symbol Identifier [Typed Var]
                 | TupleD (Tuple Identifier)
-  deriving (Show)
+  deriving (Show, Eq)
 
 data Binding = Binding Definition Term
-  deriving (Show)
+  deriving (Show, Eq)
 
 data Term = IntegerConstant Integer
           | BooleanConstant Bool
@@ -42,7 +42,7 @@ data Term = IntegerConstant Integer
           | IsLeft Term
           | FromLeft Term
           | FromRight Term
-  deriving (Show)
+  deriving (Show, Eq)
 
 type Formula = Term
 
