@@ -49,6 +49,69 @@ insertVariable (Typed n t) (Env fs vs) = Env fs (Map.insert n t vs)
 insertFunction :: (Name, FunType) -> Env -> Env
 insertFunction (n, t) (Env fs vs) = Env (Map.insert n t fs) vs
 
+
+analyze :: AST.AST -> Either Error Program
+analyze (AST.AST fs ss as) =
+  do (env,  fs') <- analyzeFunDefs emptyEnv fs
+     (env', ss') <- analyzeNonTerminating env ss
+     as' <- mapM (analyzeAssert env') as
+     return (Program fs' ss' as')
+
+analyzeFunDefs :: Env -> [AST.FunDef] -> Either Error (Env, [FunDef])
+analyzeFunDefs env [] = Right (env, [])
+analyzeFunDefs env (f:fs) =
+  do (env',  f')  <- analyzeFunDef  env  f
+     (env'', fs') <- analyzeFunDefs env' fs
+     return (env'', f':fs')
+
+analyzeFunDef :: Env -> AST.FunDef -> Either Error (Env, FunDef)
+analyzeFunDef env (AST.FunDef t n args stmts) =
+  do let env' = foldr insertVariable env args
+     (_, ts) <- analyzeTerminating env' stmts
+     return (insertFunction (n, FunType (map typeOf args) t) env, FunDef t n args ts)
+
+analyzeTerminating :: Env -> [AST.Stmt] -> Either Error (Env, TerminatingStatement)
+analyzeTerminating env ss =
+  do (env', ss') <- analyzeStmts env ss
+     case ss' of
+       Left  ts  -> return (env', ts)
+       Right ss' -> Left "non-terminating statement in a terminating block"
+
+analyzeNonTerminating :: Env -> [AST.Stmt] -> Either Error (Env, [Statement])
+analyzeNonTerminating env ss =
+  do (env', ss') <- analyzeStmts env ss
+     case ss' of
+       Left  ts  -> Left "terminating statement in a non-terminating block"
+       Right ss' -> return (env', ss')
+
+
+analyzeStmts :: Env -> [AST.Stmt] -> Either Error (Env, Either TerminatingStatement [Statement])
+analyzeStmts env = analyzeStmts' env . flattenDeclarations
+  where
+    flattenDeclarations :: [AST.Stmt] -> [AST.Stmt]
+    flattenDeclarations = concatMap flattenDeclaration
+
+    flattenDeclaration :: AST.Stmt -> [AST.Stmt]
+    flattenDeclaration (AST.Declare t defs) = concatMap toStmts defs
+      where
+        toStmts (n, e) = AST.Declare t [(n, Nothing)] : maybeToList (fmap (AST.Update (AST.Var n) AST.Assign) e)
+    flattenDeclaration (AST.If c a b) = [AST.If c (flattenDeclarations a) (flattenDeclarations b)]
+    flattenDeclaration s = [s]
+
+    analyzeStmts' :: Env -> [AST.Stmt] -> Either Error (Env, Either TerminatingStatement [Statement])
+    analyzeStmts' env [] = Right (env, Right [])
+    analyzeStmts' env (s:ss) =
+      do (env',  s')  <- analyzeStmt env s
+         case s' of
+           Left ts  -> return (env', Left ts)
+           Right s' -> do (env'', ss') <- analyzeStmts' env' ss
+                          return (env'', bimap (s'|:) (s':) ss')
+      where
+        (|:) :: Statement -> TerminatingStatement -> TerminatingStatement
+        s |: Return    ss e     = Return    (s:ss) e
+        s |: IteReturn ss c a b = IteReturn (s:ss) c a b
+
+
 guardType :: (TypeOf b, Pretty b) => (a -> Either Error b) -> Type -> a -> Either Error b
 guardType analyze t a = do b <- analyze a
                            let t' = typeOf b
@@ -70,65 +133,6 @@ guardAll f = flip (guardTypes f)
 infix 5 .:
 (.:) :: (a -> b) -> a -> b
 (.:) = ($)
-
-flattenDeclarations :: [AST.Stmt] -> [AST.Stmt]
-flattenDeclarations = foldr ((++) . flattenDeclaration) []
-
-flattenDeclaration :: AST.Stmt -> [AST.Stmt]
-flattenDeclaration (AST.Declare t defs) = concatMap toStmts defs
-  where
-    toStmts (n, e) = AST.Declare t [(n, Nothing)] : maybeToList (fmap (AST.Update (AST.Var n) AST.Assign) e)
-flattenDeclaration (AST.If c a b) = [AST.If c (flattenDeclarations a) (flattenDeclarations b)]
-flattenDeclaration s = [s]
-
-
-analyze :: AST.AST -> Either Error Program
-analyze (AST.AST fs ss as) =
-  do (env,  fs') <- analyzeFunDefs emptyEnv fs
-     (env', ss') <- analyzeNonTerminating env (flattenDeclarations ss)
-     as' <- mapM (analyzeAssert env') as
-     return (Program fs' ss' as')
-
-analyzeFunDefs :: Env -> [AST.FunDef] -> Either Error (Env, [FunDef])
-analyzeFunDefs env [] = Right (env, [])
-analyzeFunDefs env (f:fs) =
-  do (env',  f')  <- analyzeFunDef  env  f
-     (env'', fs') <- analyzeFunDefs env' fs
-     return (env'', f':fs')
-
-analyzeFunDef :: Env -> AST.FunDef -> Either Error (Env, FunDef)
-analyzeFunDef env (AST.FunDef t n args stmts) =
-  do let env' = foldr insertVariable env args
-     (_, ts) <- analyzeTerminating env' (flattenDeclarations stmts)
-     return (insertFunction (n, FunType (map typeOf args) t) env, FunDef t n args ts)
-
-analyzeTerminating :: Env -> [AST.Stmt] -> Either Error (Env, TerminatingStatement)
-analyzeTerminating env ss =
-  do (env', ss') <- analyzeStmts env ss
-     case ss' of
-       Left  ts  -> return (env', ts)
-       Right ss' -> Left "non-terminating statement in a terminating block"
-
-analyzeNonTerminating :: Env -> [AST.Stmt] -> Either Error (Env, [Statement])
-analyzeNonTerminating env ss =
-  do (env', ss') <- analyzeStmts env ss
-     case ss' of
-       Left  ts  -> Left "terminating statement in a non-terminating block"
-       Right ss' -> return (env', ss')
-
-
-analyzeStmts :: Env -> [AST.Stmt] -> Either Error (Env, Either TerminatingStatement [Statement])
-analyzeStmts env [] = Right (env, Right [])
-analyzeStmts env (s:ss) =
-  do (env',  s')  <- analyzeStmt env s
-     case s' of
-       Left ts  -> return (env', Left ts)
-       Right s' -> do (env'', ss') <- analyzeStmts env' ss
-                      return (env'', bimap (s'|:) (s':) ss')
-  where
-    (|:) :: Statement -> TerminatingStatement -> TerminatingStatement
-    s |: Return    ss e     = Return    (s:ss) e
-    s |: IteReturn ss c a b = IteReturn (s:ss) c a b
 
 
 analyzeStmt :: Env -> AST.Stmt -> Either Error (Env, Either TerminatingStatement Statement)
