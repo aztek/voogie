@@ -68,13 +68,17 @@ analyzeFunDef :: Env -> AST.FunDef -> Either Error (Env, FunDef)
 analyzeFunDef env (AST.FunDef t n args stmts) =
   do let env' = foldr insertVariable env args
      (_, ts) <- analyzeTerminating env' stmts
-     return (insertFunction (n, FunType (map typeOf args) t) env, FunDef t n args ts)
+     let t' = typeOf ts 
+     if t == t'
+     then return (insertFunction (n, FunType (map typeOf args) t) env, FunDef t n args ts)
+     else Left $ "function " ++ n ++ " returns a value of the type " ++ pretty t' ++
+                 " while it is declared to return " ++ pretty t
 
 analyzeTerminating :: Env -> [AST.Stmt] -> Either Error (Env, TerminatingStatement)
 analyzeTerminating env ss =
   do (env', ss') <- analyzeStmts env ss
      case ss' of
-       Left  ts  -> return (env', ts)
+       Left  ts  -> Right (env', ts)
        Right ss' -> Left "non-terminating statement in a terminating block"
 
 analyzeNonTerminating :: Env -> [AST.Stmt] -> Either Error (Env, [Statement])
