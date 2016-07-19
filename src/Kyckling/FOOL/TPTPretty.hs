@@ -70,7 +70,7 @@ prettyDefinition (Symbol c vs) = funapp (prettyIdentifier c) (map prettyVariable
 prettyDefinition (TupleD es) = tuple (fmap prettyIdentifier es)
 
 offsetBinding :: Int -> Binding -> String
-offsetBinding o (Binding d t) = d' ++ " := " ++ indentedTerm False (0, o + length d' + 4) t
+offsetBinding o (Binding d t) = d' ++ " := " ++ offsetTerm (o + length d' + 4) t
   where d' = prettyDefinition d
 
 prettyBinding :: Binding -> String
@@ -91,8 +91,17 @@ infx a op b = a ++ " " ++ op ++ " " ++ b
 newline :: String -> String
 newline = ('\n' :)
 
-indentedTerm :: Bool -> (Int, Int) -> Term -> String
-indentedTerm pp (i, o) t = indent i ++ case t of
+indentedTerm :: (Int, Int) -> Term -> String
+indentedTerm = indentedTerm' False
+
+indentedTerm' :: Bool -> (Int, Int) -> Term -> String
+indentedTerm' pp (i, o) t = newline $ indent i ++ offsetTerm' pp o t
+
+offsetTerm :: Int -> Term -> String
+offsetTerm = offsetTerm' False
+
+offsetTerm' :: Bool -> Int -> Term -> String
+offsetTerm' pp o t = case t of
   IntegerConstant n -> show n
   BooleanConstant b -> if b then "$true" else "$false"
 
@@ -100,16 +109,16 @@ indentedTerm pp (i, o) t = indent i ++ case t of
   Application f [] -> prettyIdentifier f
   Application f args -> funapp (prettyIdentifier f) (map prettyTerm args)
 
-  Unary op a    -> if isPrefix then prettyOp ++ indentedTerm True (0, o + length prettyOp) a
-                               else funapp prettyOp [indentedTerm True (0, o + length prettyOp + 1) a]
+  Unary op a    -> if isPrefix then prettyOp ++ offsetTerm' True (o + length prettyOp) a
+                               else funapp prettyOp [offsetTerm' True (o + length prettyOp + 1) a]
                      where (isPrefix, prettyOp) = prettyUnaryOp op
   Binary op a b -> if pp then parens binary else binary
                      where (isInfix, prettyOp) = prettyBinaryOp op
                            binary = if isInfix then infx (prettyTerm a) prettyOp (prettyTerm b)
                                                else funapp prettyOp [prettyTerm a, prettyTerm b]
 
-  Quantify q [] t -> indentedTerm pp (0, o) t
-  Quantify q vs t -> prettyQ ++ " " ++ prettyVars ++ ": " ++ parens (indentedTerm False (0, o') t)
+  Quantify q [] t -> offsetTerm' pp o t
+  Quantify q vs t -> prettyQ ++ " " ++ prettyVars ++ ": " ++ parens (offsetTerm o' t)
                        where prettyQ = prettyQuantifier q
                              prettyVars = "[" ++ list (map prettyVariable vs) ++ "]"
                              o' = o + length prettyQ + 1 + length prettyVars + 3
@@ -117,11 +126,11 @@ indentedTerm pp (i, o) t = indent i ++ case t of
   Equals s a b -> infx (prettyTerm a) (if s == Pos then "=" else "!=") (prettyTerm b)
 
   Let b t  -> funapp "$let" [offsetBinding (o + 5) b,
-                             newline $ indentedTerm False io t]
+                             indentedTerm io t]
                 where io = if isLet t then (o, o) else (o + 5, o + 5)
-  If c a b -> funapp "$ite" [indentedTerm False (0, 0) c,
-                             newline $ indentedTerm False io a,
-                             newline $ indentedTerm False io b]
+  If c a b -> funapp "$ite" [offsetTerm 0 c,
+                             indentedTerm io a,
+                             indentedTerm io b]
                 where io = (o + 5, o + 5)
 
   Select a i   -> funapp "$select" [prettyTerm a, prettyTerm i]
@@ -130,22 +139,22 @@ indentedTerm pp (i, o) t = indent i ++ case t of
   TupleLiteral ts -> tuple (fmap prettyTerm ts)
 
   Nothing_ t -> funapp "$nothing"  [prettyType t]
-  Just_ a    -> funapp "$just"     [prettyTerm a]
-  IsJust a   -> funapp "$isjust"   [prettyTerm a]
-  FromJust a -> funapp "$fromjust" [prettyTerm a]
+  Just_ a    -> funapp "$just"     [offsetTerm (o + 6) a]
+  IsJust a   -> funapp "$isjust"   [offsetTerm (o + 8)  a]
+  FromJust a -> funapp "$fromjust" [offsetTerm (o + 10) a]
 
-  Left_  l t  -> funapp "$left"      [prettyTerm l, prettyType t]
+  Left_  l t  -> funapp "$left"      [offsetTerm (o + 6) l, prettyType t]
   Right_ t r  -> funapp "$right"     [prettyType t, prettyTerm r]
-  IsLeft t    -> funapp "$isleft"    [prettyTerm t]
-  FromLeft  t -> funapp "$fromleft"  [prettyTerm t]
-  FromRight t -> funapp "$fromright" [prettyTerm t]
+  IsLeft t    -> funapp "$isleft"    [offsetTerm (o + 7)  t]
+  FromLeft  t -> funapp "$fromleft"  [offsetTerm (o + 10) t]
+  FromRight t -> funapp "$fromright" [offsetTerm (o + 11) t]
 
 isLet :: Term -> Bool
 isLet (Let _ _) = True
 isLet _ = False
 
 prettyTerm :: Term -> String
-prettyTerm = indentedTerm False (0, 0)
+prettyTerm = offsetTerm 0
 
 thf :: String -> String -> String -> String
 thf n it s = funapp "thf" [n, it, s] ++ ".\n"
@@ -154,7 +163,7 @@ prettyTypeDeclaration :: Typed Name -> String
 prettyTypeDeclaration (Typed n t) = thf n "type" (n ++ ": " ++ prettyType t)
 
 prettyConjecture :: Formula -> String
-prettyConjecture f = thf "asserts" "conjecture" (newline $ indentedTerm False (4, 4) f)
+prettyConjecture f = thf "asserts" "conjecture" (indentedTerm (4, 4) f)
 
 prettyTPTP :: (Signature, Formula) -> String
 prettyTPTP (sds, c) = concatMap prettyTypeDeclaration sds ++ prettyConjecture c
