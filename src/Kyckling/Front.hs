@@ -99,7 +99,7 @@ analyzeFunDefs env (f:fs) =
 analyzeFunDef :: Env -> AST.FunDef -> Either Error (Env, FunDef)
 analyzeFunDef env (AST.FunDef t n args stmts) =
   do let env' = foldr insertVariable env args
-     (_, ts) <- analyzeTerminating env' stmts
+     (_, ts) <- analyzeTerminating env' (flattenDeclarations stmts)
      return (insertFunction (n, FunType (map typeOf args) t) env, FunDef t n args ts)
 
 analyzeTerminating :: Env -> [AST.Stmt] -> Either Error (Env, TerminatingStatement)
