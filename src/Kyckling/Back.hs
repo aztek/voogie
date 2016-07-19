@@ -15,22 +15,17 @@ import qualified Kyckling.FOOL.Tuple as F.Tuple
 
 import qualified Kyckling.Program as P
 
-data Definition = Function P.Function [P.Var]
-                | Variables (NonEmpty P.Var)
-                | Terminating [P.Var]
+data Binding = Variables (NonEmpty P.Var) F.Term
+             | Terminating [P.Var] F.Term
 
-data Binding = Binding Definition F.Term
+data FunctionBinding = FunctionBinding P.Function [P.Var] F.Term
 
 boundBy :: [Binding] -> Set F.Identifier
-boundBy = S.unions . fmap boundByBinding
+boundBy = S.fromList . concatMap boundByBinding
   where
-    boundByBinding :: Binding -> Set F.Identifier
-    boundByBinding (Binding def _) = boundByDefinition def
-
-    boundByDefinition :: Definition -> Set F.Identifier
-    boundByDefinition (Function c _) = S.singleton c
-    boundByDefinition (Variables cs) = S.fromList (NE.toList cs)
-    boundByDefinition (Terminating vars) = S.fromList vars
+    boundByBinding :: Binding -> [F.Identifier]
+    boundByBinding (Variables cs _) = NE.toList cs
+    boundByBinding (Terminating vars _) = vars
 
 translate :: P.Program -> (Signature, F.Formula)
 translate (P.Program fs ss as) = case NE.nonEmpty as of
@@ -45,23 +40,14 @@ translate (P.Program fs ss as) = case NE.nonEmpty as of
       signature = declared \\ nonArrays (boundBy bindings)
 
       assert = foldr1 (F.binary And) (fmap (\(P.Assertion f) -> f) as)
-      conjecture = foldBindings assert (funBindings ++ bindings)
+      conjecture = foldFunctionBindings (foldBindings assert bindings) funBindings
 
 foldBindings :: F.Term -> [Binding] -> F.Term
 foldBindings = foldr bind
   where
     bind :: Binding -> F.Term -> F.Term
-    bind (Binding (Variables vars)  body) = F.let_ (F.Binding (F.tupleD vars) body)
-    bind (Binding (Function f args) body) = F.let_ (F.Binding def renaming)
-      where
-        def = F.Symbol f (fmap translateVar args)
-        renaming = renaming' (NE.nonEmpty args)
-        renaming' Nothing = body
-        renaming' (Just args) = F.let_ (F.Binding def tuple) body
-          where
-            def   = F.tupleD (fmap translateConstant args)
-            tuple = F.tupleLiteral (fmap (F.variable . translateVar) args)
-    bind (Binding (Terminating def) body) = F.let_ binding . unfoldDefinition def
+    bind (Variables vars  body) = F.let_ (F.Binding (F.tupleD vars) body)
+    bind (Terminating def body) = F.let_ binding . unfoldDefinition def
       where
         binding = F.Binding (F.Symbol symbol []) body
         constant = F.constant symbol
@@ -73,6 +59,20 @@ foldBindings = foldr bind
           Just vars -> F.if_ (F.isLeft constant)
                              (F.fromLeft constant) .
                              F.let_ (F.Binding (F.tupleD vars) (F.fromRight constant))
+
+foldFunctionBindings :: F.Term -> [FunctionBinding] -> F.Term
+foldFunctionBindings = foldr bind
+  where
+    bind :: FunctionBinding -> F.Term -> F.Term
+    bind (FunctionBinding f args body) = F.let_ (F.Binding def renaming)
+      where
+        def = F.Symbol f (fmap translateVar args)
+        renaming = renaming' (NE.nonEmpty args)
+        renaming' Nothing = body
+        renaming' (Just args) = F.let_ (F.Binding def tuple) body
+          where
+            def   = F.tupleD (fmap translateConstant args)
+            tuple = F.tupleLiteral (fmap (F.variable . translateVar) args)
 
 type Declaration = F.Identifier
 
@@ -96,7 +96,7 @@ translateStatement (P.Assign lval e) = Right binding
              P.ArrayElem _ a -> F.store (F.constant n) (translateExpression a) e'
                                   where n = translateConstant v
 
-    binding = Binding (Variables $ v NE.:| []) body
+    binding = Variables (v NE.:| []) body
 translateStatement (P.If c a b) = Right binding
   where
     c' = translateExpression c
@@ -113,33 +113,33 @@ translateStatement (P.If c a b) = Right binding
         declared = thenDeclared `union` elseDeclared
 
     binding = case b of
-      Left b -> Binding (Variables updated) (F.if_ c' thenBranch elseBranch)
+      Left b -> Variables updated (F.if_ c' thenBranch elseBranch)
         where
           updated = NE.fromList undeclared
           updatedTerm = F.tupleLiteral (fmap F.constant updated)
           thenBranch = foldBindings updatedTerm thenBindings
           elseBranch = foldBindings updatedTerm elseBindings
 
-      Right (flp, b) -> Binding (Terminating undeclared) (ite thenBranch elseBranch)
+      Right (flp, b) -> Terminating undeclared (ite (thenBranch undeclared) (elseBranch undeclared))
         where
           ite = if flp then F.if_ c' else flip (F.if_ c')
 
           b' = translateTerminating b
 
-          thenBranch = foldBindings updates thenBindings
-          elseBranch = returnTerm b'
+          thenBranch u = foldBindings (updates u) thenBindings
+          elseBranch u = returnTerm b' u
 
-          updates = case NE.nonEmpty undeclared of
+          updates u = case NE.nonEmpty u of
             Nothing -> F.nothing (typeOf b')
             Just u  -> F.right (typeOf b') (F.tupleLiteral $ fmap F.constant u)
 
-          returnTerm t = case NE.nonEmpty undeclared of
+          returnTerm t u = case NE.nonEmpty u of
             Nothing -> F.just t
             Just u  -> F.left t (tupleType $ fmap typeOf u)
-          
 
-translateFunDef :: P.FunDef -> Binding
-translateFunDef (P.FunDef t f vars ts) = Binding (Function (Typed f t) vars) (translateTerminating ts)
+
+translateFunDef :: P.FunDef -> FunctionBinding
+translateFunDef (P.FunDef t f vars ts) = FunctionBinding (Typed f t) vars (translateTerminating ts)
 
 translateTerminating :: P.TerminatingStatement -> F.Term
 translateTerminating (P.Return    ss e)     = foldBindings (translateExpression e) (snd $ translateStatements ss)
