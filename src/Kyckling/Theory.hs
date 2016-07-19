@@ -3,7 +3,9 @@
 module Kyckling.Theory where
 
 import Data.Set
+import Data.List.NonEmpty (NonEmpty)
 
+import qualified Kyckling.FOOL.Tuple as Tuple
 import Kyckling.FOOL.Tuple (Tuple)
 
 data Type = Boolean
@@ -41,6 +43,9 @@ eitherArguments t = error (show t ++ " is not a disjoint union")
 leftArgument, rightArgument :: Type -> Type
 leftArgument  = fst . eitherArguments
 rightArgument = snd . eitherArguments
+
+tupleType :: NonEmpty Type -> Type
+tupleType = either id TupleType . Tuple.nonUnit
 
 type Name = String
 
