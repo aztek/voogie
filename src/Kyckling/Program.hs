@@ -36,22 +36,25 @@ instance TypeOf Expression where
 
 data Statement = Declare Var
                | Assign LValue Expression
-               | If Expression [Statement] (Either [Statement] (Bool, TerminatingStatement))
+               | If Expression NonTerminating (Either NonTerminating (Bool, Terminating))
   deriving (Show)
 
-data TerminatingStatement = Return    [Statement] Expression
-                          | IteReturn [Statement] Expression TerminatingStatement TerminatingStatement
+data NonTerminating = NonTerminating [Statement]
   deriving (Show)
 
-instance TypeOf TerminatingStatement where
+data Terminating = Return    NonTerminating Expression
+                 | IteReturn NonTerminating Expression Terminating Terminating
+  deriving (Show)
+
+instance TypeOf Terminating where
   typeOf (Return    _ e) = typeOf e
   typeOf (IteReturn _ _ a _) = typeOf a
 
 data Assertion = Assertion F.Formula
   deriving (Show)
 
-data FunDef = FunDef Type Name [Typed Name] TerminatingStatement
+data FunDef = FunDef Type Name [Typed Name] Terminating
   deriving (Show)
 
-data Program = Program [FunDef] [Statement] [Assertion]
+data Program = Program [FunDef] NonTerminating [Assertion]
   deriving (Show)

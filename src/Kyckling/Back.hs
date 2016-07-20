@@ -76,8 +76,8 @@ foldFunctionBindings = foldr bind
 
 type Declaration = F.Identifier
 
-translateStatements :: [P.Statement] -> (Set Declaration, [Binding])
-translateStatements ss = (S.fromList ds, bs)
+translateStatements :: P.NonTerminating -> (Set Declaration, [Binding])
+translateStatements (P.NonTerminating ss) = (S.fromList ds, bs)
   where
     (ds, bs) = partitionEithers (map translateStatement ss)
 
@@ -141,7 +141,7 @@ translateStatement (P.If c a b) = Right binding
 translateFunDef :: P.FunDef -> FunctionBinding
 translateFunDef (P.FunDef t f vars ts) = FunctionBinding (Typed f t) vars (translateTerminating ts)
 
-translateTerminating :: P.TerminatingStatement -> F.Term
+translateTerminating :: P.Terminating -> F.Term
 translateTerminating (P.Return    ss e)     = foldBindings (translateExpression e) (snd $ translateStatements ss)
 translateTerminating (P.IteReturn ss c a b) = foldBindings (F.if_ c' a' b')        (snd $ translateStatements ss)
   where
