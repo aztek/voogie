@@ -9,145 +9,190 @@ import Data.Set (Set, (\\), union)
 import qualified Data.List.NonEmpty as NE
 import Data.List.NonEmpty (NonEmpty)
 
+import Control.Applicative
+
 import Kyckling.Theory
 import qualified Kyckling.FOOL.Smart as F
 import qualified Kyckling.FOOL.Tuple as F.Tuple
 
 import qualified Kyckling.Program as P
 
-data Binding = Variables (NonEmpty P.Var) F.Term
-             | Terminating [P.Var] F.Term
+data Behaviour = Behaviour { returns :: Maybe Type, declares :: Set P.Var, updates :: Set P.Var }
 
-data FunctionBinding = FunctionBinding P.Function [P.Var] F.Term
+initBehaviour :: Behaviour
+initBehaviour = Behaviour Nothing S.empty S.empty
 
-boundBy :: [Binding] -> Set F.Identifier
-boundBy = S.fromList . concatMap boundByBinding
+updated :: Behaviour -> Set P.Var
+updated (Behaviour _ d u) = u \\ d
+
+getBehaviour :: P.Statement -> Behaviour
+getBehaviour (P.Declare var)   = Behaviour Nothing (S.singleton var) S.empty
+getBehaviour (P.Assign lval e) = Behaviour Nothing S.empty (S.singleton var)
   where
-    boundByBinding :: Binding -> [F.Identifier]
-    boundByBinding (Variables cs _) = NE.toList cs
-    boundByBinding (Terminating vars _) = vars
+    var = case lval of
+      P.Variable  v   -> v
+      P.ArrayElem v _ -> v
+getBehaviour (P.If c a b) = Behaviour r d u
+  where
+    a' = getBehaviourNonTerminating a
+    b' = either getBehaviourNonTerminating (getBehaviourTerminating . snd) b
+
+    d = S.empty
+    r = returns a' <|> returns b'
+    u = updated a' `union` updated b'
+
+getBehaviourTerminating :: P.Terminating -> Behaviour
+getBehaviourTerminating (P.Return ss e) = Behaviour (Just $ typeOf e) d u
+  where
+    Behaviour _ d u = getBehaviourNonTerminating ss
+getBehaviourTerminating (P.IteReturn ss _ a b) = Behaviour r d u
+  where
+    a' = getBehaviourTerminating a
+    b' = getBehaviourTerminating b
+
+    d = S.empty
+    r = returns a' <|> returns b'
+    u = updated a' `union` updated b'
+
+getBehaviourNonTerminating :: P.NonTerminating -> Behaviour
+getBehaviourNonTerminating (P.NonTerminating ss) = foldr (merge . getBehaviour) (Behaviour Nothing S.empty S.empty) ss
+  where
+    merge :: Behaviour -> Behaviour -> Behaviour
+    merge (Behaviour r1 d1 u1) (Behaviour r2 d2 u2) = Behaviour (r1 <|> r2) (d1 `union` d2) (u1 `union` u2)
+
+
+getBehaviourFunDef :: P.FunDef -> Behaviour
+getBehaviourFunDef (P.FunDef _ _ vars ts) = getBehaviourTerminating ts'
+  where
+    ts' = case ts of
+      P.Return ss e    -> P.Return (f ss) e
+      P.IteReturn ss c a b -> P.IteReturn (f ss) c a b
+
+    f :: P.NonTerminating -> P.NonTerminating
+    f (P.NonTerminating ss) = P.NonTerminating (map P.Declare vars ++ ss)
+
+
+
+foldFunDefs :: F.Term -> [P.FunDef] -> F.Term
+foldFunDefs = foldr bind
+  where
+    bind :: P.FunDef -> F.Term -> F.Term
+    bind fd@(P.FunDef t f args ts) = F.let_ (F.Binding def renaming)
+      where
+        def = F.Symbol (Typed f t) (fmap translateVar args)
+        beh = getBehaviourFunDef fd
+        body = translateTerminating ts beh --(Behaviour Nothing (declares beh) (updates beh))
+        renaming = case NE.nonEmpty args of
+          Nothing   -> body
+          Just args -> F.let_ (F.Binding def tuple) body
+            where
+              def   = F.tupleD (fmap translateConstant args)
+              tuple = F.tupleLiteral (fmap (F.variable . translateVar) args)
+
+
+right :: Type -> [F.Term] -> F.Term
+right typ ts = case NE.nonEmpty ts of
+  Nothing  -> F.nothing typ
+  Just ts' -> F.right typ (F.tupleLiteral ts')
+
+left :: F.Term -> [Type] -> F.Term
+left t types = case NE.nonEmpty types of
+  Nothing     -> F.just t
+  Just types' -> F.left t (tupleType types')
+
+
+translateTerminating :: P.Terminating -> Behaviour -> F.Term
+translateTerminating t beh = foldNonTerminating returnValue nt beh
+  where
+    (nt, returnValue) = case t of
+      P.Return nt e -> (nt, returnValue)
+        where
+          e' = translateExpression e
+          returnValue = case returns beh of
+            Nothing -> e'
+            Just _  -> left e' (fmap typeOf $ S.toList $ updates beh)
+      P.IteReturn nt c a b -> (nt, F.if_ c' a' b')
+        where
+          c' = translateExpression  c
+          a' = translateTerminating a beh
+          b' = translateTerminating b beh
+
+foldNonTerminating :: F.Term -> P.NonTerminating -> Behaviour -> F.Term
+foldNonTerminating t nt@(P.NonTerminating ss) behaviour = foldr process t ss
+  where
+    u = S.toList $ updated (getBehaviourNonTerminating nt)
+
+    process :: P.Statement -> F.Term -> F.Term
+    process (P.Declare _) = id
+    process (P.Assign lval e) = F.let_ (F.Binding (F.Symbol c []) body)
+      where
+        e' = translateExpression e
+        c = translateConstant $ case lval of
+          P.Variable  v   -> v
+          P.ArrayElem v _ -> v
+        body = case lval of
+          P.Variable  _   -> e'
+          P.ArrayElem _ a -> F.store (F.constant c) (translateExpression a) e'
+    process (P.If c a (Left b)) = case NE.nonEmpty u of
+      Nothing -> id
+      Just u  -> F.let_ (F.Binding def body)
+        where
+          body = F.if_ c' a' b'
+
+          c' = translateExpression c
+          a' = foldNonTerminating ctx a behaviour
+          b' = foldNonTerminating ctx b behaviour
+
+          def = F.tupleD u
+          
+          tupleLiteral = F.tupleLiteral $ fmap F.constant u
+          ctx = case returns behaviour of
+            Nothing  -> tupleLiteral
+            Just typ -> right typ (NE.toList $ fmap F.constant u)
+
+    process (P.If c a (Right (flp, b))) = F.let_ (F.Binding def body) . unbind
+      where
+        body = if flp then F.if_ c' b' a' else F.if_ c' a' b'
+
+        c' = translateExpression c
+        a' = foldNonTerminating ctx a behaviour
+        b' = translateTerminating b behaviour
+
+        typ = fromJust (returns behaviour)
+
+        tupleLiteral = F.tupleLiteral $ NE.fromList $ fmap F.constant u
+        ctx = case returns behaviour of
+          Nothing  -> tupleLiteral
+          Just typ -> right typ (fmap F.constant u)
+
+        def = F.Symbol symbol []
+        symbol = Typed "i" (typeOf body)
+        constant = F.constant symbol
+
+        unbind = case NE.nonEmpty u of
+          Nothing -> F.if_ (F.isJust constant) returnValue
+            where
+              returnValue = F.fromJust constant
+          Just vars -> F.if_ (F.isLeft constant)
+                             returnValue .
+                             F.let_ (F.Binding (F.tupleD vars) (F.fromRight constant))
+            where
+              returnValue = F.fromLeft constant
+
 
 translate :: P.Program -> (Signature, F.Formula)
 translate (P.Program fs ss as) = case NE.nonEmpty as of
   Nothing -> (S.empty, F.booleanConstant True)
   Just as -> (signature, conjecture)
     where
-      funBindings = map translateFunDef fs
-      (declared, bindings) = translateStatements ss
+      b = getBehaviourNonTerminating ss
 
+      signature = declares b \\ nonArrays (updated b)
       nonArrays = S.filter (not . isArray . typeOf)
 
-      signature = declared \\ nonArrays (boundBy bindings)
-
+      conjecture = foldFunDefs (foldNonTerminating assert ss initBehaviour) fs
       assert = foldr1 (F.binary And) (fmap (\(P.Assertion f) -> f) as)
-      conjecture = foldFunctionBindings (foldBindings assert bindings) funBindings
 
-foldBindings :: F.Term -> [Binding] -> F.Term
-foldBindings = foldr bind
-  where
-    bind :: Binding -> F.Term -> F.Term
-    bind (Variables vars  body) = F.let_ (F.Binding (F.tupleD vars) body)
-    bind (Terminating def body) = F.let_ binding . unfoldDefinition def
-      where
-        binding = F.Binding (F.Symbol symbol []) body
-        constant = F.constant symbol
-        symbol = Typed "i" (typeOf body)
-
-        unfoldDefinition :: [P.Var] -> F.Term -> F.Term
-        unfoldDefinition vars = case NE.nonEmpty vars of
-          Nothing   -> F.if_ (F.isJust constant) (F.fromJust constant)
-          Just vars -> F.if_ (F.isLeft constant)
-                             (F.fromLeft constant) .
-                             F.let_ (F.Binding (F.tupleD vars) (F.fromRight constant))
-
-foldFunctionBindings :: F.Term -> [FunctionBinding] -> F.Term
-foldFunctionBindings = foldr bind
-  where
-    bind :: FunctionBinding -> F.Term -> F.Term
-    bind (FunctionBinding f args body) = F.let_ (F.Binding def renaming)
-      where
-        def = F.Symbol f (fmap translateVar args)
-        renaming = renaming' (NE.nonEmpty args)
-        renaming' Nothing = body
-        renaming' (Just args) = F.let_ (F.Binding def tuple) body
-          where
-            def   = F.tupleD (fmap translateConstant args)
-            tuple = F.tupleLiteral (fmap (F.variable . translateVar) args)
-
-type Declaration = F.Identifier
-
-translateStatements :: P.NonTerminating -> (Set Declaration, [Binding])
-translateStatements (P.NonTerminating ss) = (S.fromList ds, bs)
-  where
-    (ds, bs) = partitionEithers (map translateStatement ss)
-
-translateStatement :: P.Statement -> Either Declaration Binding
-translateStatement (P.Declare v) = Left (translateConstant v)
-translateStatement (P.Assign lval e) = Right binding
-  where
-    e' = translateExpression e
-    v  = var lval
-
-    var (P.Variable  v)   = v
-    var (P.ArrayElem v _) = v
-
-    body = case lval of
-             P.Variable  _   -> e'
-             P.ArrayElem _ a -> F.store (F.constant n) (translateExpression a) e'
-                                  where n = translateConstant v
-
-    binding = Variables (v NE.:| []) body
-translateStatement (P.If c a b) = Right binding
-  where
-    c' = translateExpression c
-
-    (thenDeclared, thenBindings) = translateStatements a
-    (elseDeclared, elseBindings) = either translateStatements (const (S.empty, [])) b
-
-    -- TODO: for now we assume that there are no unbound declarations;
-    --       this assumption must be removed in the future
-
-    undeclared = S.toList (bound \\ declared)
-      where
-        bound = boundBy thenBindings `union` boundBy elseBindings
-        declared = thenDeclared `union` elseDeclared
-
-    binding = case b of
-      Left b -> Variables updated (F.if_ c' thenBranch elseBranch)
-        where
-          updated = NE.fromList undeclared
-          updatedTerm = F.tupleLiteral (fmap F.constant updated)
-          thenBranch = foldBindings updatedTerm thenBindings
-          elseBranch = foldBindings updatedTerm elseBindings
-
-      Right (flp, b) -> Terminating undeclared (ite (thenBranch undeclared) (elseBranch undeclared))
-        where
-          ite = if flp then F.if_ c' else flip (F.if_ c')
-
-          b' = translateTerminating b
-
-          thenBranch u = foldBindings (updates u) thenBindings
-          elseBranch u = returnTerm b' u
-
-          updates u = case NE.nonEmpty u of
-            Nothing -> F.nothing (typeOf b')
-            Just u  -> F.right (typeOf b') (F.tupleLiteral $ fmap F.constant u)
-
-          returnTerm t u = case NE.nonEmpty u of
-            Nothing -> F.just t
-            Just u  -> F.left t (tupleType $ fmap typeOf u)
-
-
-translateFunDef :: P.FunDef -> FunctionBinding
-translateFunDef (P.FunDef t f vars ts) = FunctionBinding (Typed f t) vars (translateTerminating ts)
-
-translateTerminating :: P.Terminating -> F.Term
-translateTerminating (P.Return    ss e)     = foldBindings (translateExpression e) (snd $ translateStatements ss)
-translateTerminating (P.IteReturn ss c a b) = foldBindings (F.if_ c' a' b')        (snd $ translateStatements ss)
-  where
-    a' = translateTerminating a
-    b' = translateTerminating b
-    c' = translateExpression c
 
 translateExpression :: P.Expression -> F.Term
 translateExpression (P.IntegerLiteral i) = F.integerConstant i 
