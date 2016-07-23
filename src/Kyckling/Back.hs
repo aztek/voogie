@@ -61,18 +61,6 @@ getBehaviourNonTerminating (P.NonTerminating ss) = foldr (merge . getBehaviour) 
     merge (Behaviour r1 d1 u1) (Behaviour r2 d2 u2) = Behaviour (r1 <|> r2) (d1 `union` d2) (u1 `union` u2)
 
 
-getBehaviourFunDef :: P.FunDef -> Behaviour
-getBehaviourFunDef (P.FunDef _ _ vars ts) = getBehaviourTerminating ts'
-  where
-    ts' = case ts of
-      P.Return ss e    -> P.Return (f ss) e
-      P.IteReturn ss c a b -> P.IteReturn (f ss) c a b
-
-    f :: P.NonTerminating -> P.NonTerminating
-    f (P.NonTerminating ss) = P.NonTerminating (map P.Declare vars ++ ss)
-
-
-
 foldFunDefs :: F.Term -> [P.FunDef] -> F.Term
 foldFunDefs = foldr bind
   where
@@ -80,8 +68,7 @@ foldFunDefs = foldr bind
     bind fd@(P.FunDef t f args ts) = F.let_ (F.Binding def renaming)
       where
         def = F.Symbol (Typed f t) (fmap translateVar args)
-        beh = getBehaviourFunDef fd
-        body = translateTerminating ts beh --(Behaviour Nothing (declares beh) (updates beh))
+        body = translateTerminating (getBehaviourTerminating ts) ts
         renaming = case NE.nonEmpty args of
           Nothing   -> body
           Just args -> F.let_ (F.Binding def tuple) body
@@ -90,107 +77,75 @@ foldFunDefs = foldr bind
               tuple = F.tupleLiteral (fmap (F.variable . translateVar) args)
 
 
-right :: Type -> [F.Term] -> F.Term
-right typ ts = case NE.nonEmpty ts of
-  Nothing  -> F.nothing typ
-  Just ts' -> F.right typ (F.tupleLiteral ts')
+return_ :: Behaviour -> F.Term -> F.Term
+return_ b t = case returns b of
+  Nothing -> t
+  Just _  -> case NE.nonEmpty (S.toList $ updates b) of
+    Nothing -> F.just t
+    Just u  -> F.left t (tupleType $ fmap typeOf u)
 
-left :: F.Term -> [Type] -> F.Term
-left t types = case NE.nonEmpty types of
-  Nothing     -> F.just t
-  Just types' -> F.left t (tupleType types')
+context :: Behaviour -> F.Term
+context b = case (returns b, NE.nonEmpty $ S.toList $ updates b) of
+  (_,       Nothing) -> error "invariant violation"
+  (Nothing, Just ts) -> F.tupleLiteral (fmap F.constant ts)
+  (Just t,  Just ts) -> F.right t (F.tupleLiteral $ fmap F.constant ts)
 
 
-translateTerminating :: P.Terminating -> Behaviour -> F.Term
-translateTerminating t beh = foldNonTerminating returnValue nt beh
+translateTerminating :: Behaviour -> P.Terminating -> F.Term
+translateTerminating topLevelBehaviour t = foldr (translateStatement topLevelBehaviour) returnValue ss
   where
-    (nt, returnValue) = case t of
-      P.Return nt e -> (nt, returnValue)
-        where
-          e' = translateExpression e
-          returnValue = case returns beh of
-            Nothing -> e'
-            Just _  -> left e' (fmap typeOf $ S.toList $ updates beh)
-      P.IteReturn nt c a b -> (nt, F.if_ c' a' b')
+    (ss, returnValue) = case t of
+      P.Return    (P.NonTerminating ss) e     -> (ss, return_ topLevelBehaviour $ translateExpression e)
+      P.IteReturn (P.NonTerminating ss) c a b -> (ss, F.if_ c' a' b')
         where
           c' = translateExpression  c
-          a' = translateTerminating a beh
-          b' = translateTerminating b beh
+          a' = translateTerminating topLevelBehaviour a
+          b' = translateTerminating topLevelBehaviour b
 
-foldNonTerminating :: F.Term -> P.NonTerminating -> Behaviour -> F.Term
-foldNonTerminating t nt@(P.NonTerminating ss) behaviour = foldr process t ss
+translateStatement :: Behaviour -> P.Statement -> F.Term -> F.Term
+translateStatement _ (P.Declare _) = id
+translateStatement _ (P.Assign lval e) = F.let_ (F.Binding (F.Symbol c []) body)
   where
-    u = S.toList $ updated (getBehaviourNonTerminating nt)
+    e' = translateExpression e
+    c = translateConstant $ case lval of
+      P.Variable  v   -> v
+      P.ArrayElem v _ -> v
+    body = case lval of
+      P.Variable  _   -> e'
+      P.ArrayElem _ a -> F.store (F.constant c) (translateExpression a) e'
+translateStatement topLevelBehaviour (P.If c (P.NonTerminating a) b) = F.let_ (F.Binding def body) . unbind
+  where
+    c' = translateExpression c
+    a' = foldr (translateStatement topLevelBehaviour) (context topLevelBehaviour) a
+    b' = either (\(P.NonTerminating ss) -> foldr (translateStatement topLevelBehaviour) (context topLevelBehaviour) ss)
+                (translateTerminating topLevelBehaviour . snd) b
 
-    process :: P.Statement -> F.Term -> F.Term
-    process (P.Declare _) = id
-    process (P.Assign lval e) = F.let_ (F.Binding (F.Symbol c []) body)
-      where
-        e' = translateExpression e
-        c = translateConstant $ case lval of
-          P.Variable  v   -> v
-          P.ArrayElem v _ -> v
-        body = case lval of
-          P.Variable  _   -> e'
-          P.ArrayElem _ a -> F.store (F.constant c) (translateExpression a) e'
-    process (P.If c a (Left b)) = case NE.nonEmpty u of
-      Nothing -> id
-      Just u  -> F.let_ (F.Binding def body)
-        where
-          body = F.if_ c' a' b'
+    def = F.Symbol symbol []
+    symbol = Typed "i" (typeOf a')
+    constant = F.constant symbol
 
-          c' = translateExpression c
-          a' = foldNonTerminating ctx a behaviour
-          b' = foldNonTerminating ctx b behaviour
+    body = case b of
+      Right (True, b) -> F.if_ c' b' a'
+      _               -> F.if_ c' a' b'
 
-          def = F.tupleD u
-          
-          tupleLiteral = F.tupleLiteral $ fmap F.constant u
-          ctx = case returns behaviour of
-            Nothing  -> tupleLiteral
-            Just typ -> right typ (NE.toList $ fmap F.constant u)
-
-    process (P.If c a (Right (flp, b))) = F.let_ (F.Binding def body) . unbind
-      where
-        body = if flp then F.if_ c' b' a' else F.if_ c' a' b'
-
-        c' = translateExpression c
-        a' = foldNonTerminating ctx a behaviour
-        b' = translateTerminating b behaviour
-
-        typ = fromJust (returns behaviour)
-
-        tupleLiteral = F.tupleLiteral $ NE.fromList $ fmap F.constant u
-        ctx = case returns behaviour of
-          Nothing  -> tupleLiteral
-          Just typ -> right typ (fmap F.constant u)
-
-        def = F.Symbol symbol []
-        symbol = Typed "i" (typeOf body)
-        constant = F.constant symbol
-
-        unbind = case NE.nonEmpty u of
-          Nothing -> F.if_ (F.isJust constant) returnValue
-            where
-              returnValue = F.fromJust constant
-          Just vars -> F.if_ (F.isLeft constant)
-                             returnValue .
-                             F.let_ (F.Binding (F.tupleD vars) (F.fromRight constant))
-            where
-              returnValue = F.fromLeft constant
-
+    unbind = case NE.nonEmpty (S.toList $ updated topLevelBehaviour) of
+      Nothing   -> F.if_ (F.isJust constant)
+                         (return_ topLevelBehaviour (F.fromJust constant))
+      Just vars -> F.if_ (F.isLeft constant)
+                         (return_ topLevelBehaviour (F.fromLeft constant)) .
+                         F.let_ (F.Binding (F.tupleD vars) (F.fromRight constant))
 
 translate :: P.Program -> (Signature, F.Formula)
-translate (P.Program fs ss as) = case NE.nonEmpty as of
+translate (P.Program fs (P.NonTerminating ss) as) = case NE.nonEmpty as of
   Nothing -> (S.empty, F.booleanConstant True)
   Just as -> (signature, conjecture)
     where
-      b = getBehaviourNonTerminating ss
+      b = getBehaviourNonTerminating (P.NonTerminating ss)
 
       signature = declares b \\ nonArrays (updated b)
       nonArrays = S.filter (not . isArray . typeOf)
 
-      conjecture = foldFunDefs (foldNonTerminating assert ss initBehaviour) fs
+      conjecture = foldFunDefs (foldr (\s -> translateStatement (getBehaviour s) s) assert ss) fs
       assert = foldr1 (F.binary And) (fmap (\(P.Assertion f) -> f) as)
 
 
