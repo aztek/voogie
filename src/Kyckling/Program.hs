@@ -39,16 +39,21 @@ data Statement = Declare Var
                | If Expression NonTerminating (Either NonTerminating (Bool, Terminating))
   deriving (Show)
 
-data NonTerminating = NonTerminating [Statement]
+type NonTerminating = [Statement]
+
+data Return = Return    Expression
+            | IteReturn Expression Terminating Terminating
   deriving (Show)
 
-data Terminating = Return    NonTerminating Expression
-                 | IteReturn NonTerminating Expression Terminating Terminating
+data Terminating = Terminating NonTerminating Return
   deriving (Show)
+
+instance TypeOf Return where
+  typeOf (Return e) = typeOf e
+  typeOf (IteReturn _ a _) = typeOf a
 
 instance TypeOf Terminating where
-  typeOf (Return    _ e) = typeOf e
-  typeOf (IteReturn _ _ a _) = typeOf a
+  typeOf (Terminating _ r) = typeOf r
 
 data Assertion = Assertion F.Formula
   deriving (Show)

@@ -103,7 +103,7 @@ analyzeStmts env = analyzeStmts' env . flattenDeclarations
     flattenDeclaration s = [s]
 
     analyzeStmts' :: Env -> [AST.Stmt] -> Either Error (Env, Either Terminating NonTerminating)
-    analyzeStmts' env [] = Right (env, Right $ NonTerminating [])
+    analyzeStmts' env [] = Right (env, Right [])
     analyzeStmts' env (s:ss) =
       do (env',  s')  <- analyzeStmt env s
          case s' of
@@ -112,11 +112,10 @@ analyzeStmts env = analyzeStmts' env . flattenDeclarations
                           return (env'', bimap (appendTerminating s') (appendNonTerminating s') ss')
       where
         appendTerminating :: Statement -> Terminating -> Terminating
-        appendTerminating s (Return    nt e)     = Return    (appendNonTerminating s nt) e
-        appendTerminating s (IteReturn nt c a b) = IteReturn (appendNonTerminating s nt) c a b
+        appendTerminating s (Terminating nt r) = Terminating (appendNonTerminating s nt) r
 
         appendNonTerminating :: Statement -> NonTerminating -> NonTerminating
-        appendNonTerminating s (NonTerminating ss) = NonTerminating (s:ss)
+        appendNonTerminating = (:)
 
 
 guardType :: (TypeOf b, Pretty b) => (a -> Either Error b) -> Type -> a -> Either Error b
@@ -156,7 +155,7 @@ analyzeStmt env (AST.If c a b) =
                   (Right a', Right b') -> Right $ If c' a' (Left b')
                   (Right a', Left  b') -> Right $ If c' a' (Right (False, b'))
                   (Left  a', Right b') -> Right $ If c' b' (Right (True,  a'))
-                  (Left  a', Left  b') -> Left  $ IteReturn (NonTerminating []) c' a' b'
+                  (Left  a', Left  b') -> Left  $ Terminating [] (IteReturn c' a' b')
      return (env, stmt)
 analyzeStmt env (AST.Increment lval) =
   do lv <- analyzeLValue env `guard` lval .: Integer
@@ -185,7 +184,7 @@ analyzeStmt env (AST.Update lval op e) =
     (d1, d2) = binaryOpDomain op' -- we assume that d1 == range of op'
 analyzeStmt env (AST.Return e) =
   do e' <- analyzeExpr env e
-     let stmt = Return (NonTerminating []) e'
+     let stmt = Terminating [] (Return e')
      return (env, Left stmt)
 
 analyzeAssert :: Env -> AST.Assert -> Either Error Assertion

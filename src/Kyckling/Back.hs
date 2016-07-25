@@ -7,75 +7,13 @@ import qualified Data.Set as S
 import Data.Set (Set, (\\), union)
 
 import qualified Data.List.NonEmpty as NE
-import Data.List.NonEmpty (NonEmpty)
-
-import Control.Applicative
 
 import Kyckling.Theory
 import qualified Kyckling.FOOL.Smart as F
 import qualified Kyckling.FOOL.Tuple as F.Tuple
 
 import qualified Kyckling.Program as P
-
-data Behaviour = Behaviour { returns :: Maybe Type, declares :: Set P.Var, updates :: Set P.Var }
-
-initBehaviour :: Behaviour
-initBehaviour = Behaviour Nothing S.empty S.empty
-
-updated :: Behaviour -> Set P.Var
-updated (Behaviour _ d u) = u \\ d
-
-getBehaviour :: P.Statement -> Behaviour
-getBehaviour (P.Declare var)   = Behaviour Nothing (S.singleton var) S.empty
-getBehaviour (P.Assign lval e) = Behaviour Nothing S.empty (S.singleton var)
-  where
-    var = case lval of
-      P.Variable  v   -> v
-      P.ArrayElem v _ -> v
-getBehaviour (P.If c a b) = Behaviour r d u
-  where
-    a' = getBehaviourNonTerminating a
-    b' = either getBehaviourNonTerminating (getBehaviourTerminating . snd) b
-
-    d = S.empty
-    r = returns a' <|> returns b'
-    u = updated a' `union` updated b'
-
-getBehaviourTerminating :: P.Terminating -> Behaviour
-getBehaviourTerminating (P.Return ss e) = Behaviour (Just $ typeOf e) d u
-  where
-    Behaviour _ d u = getBehaviourNonTerminating ss
-getBehaviourTerminating (P.IteReturn ss _ a b) = Behaviour r d u
-  where
-    a' = getBehaviourTerminating a
-    b' = getBehaviourTerminating b
-
-    d = S.empty
-    r = returns a' <|> returns b'
-    u = updated a' `union` updated b'
-
-getBehaviourNonTerminating :: P.NonTerminating -> Behaviour
-getBehaviourNonTerminating (P.NonTerminating ss) = foldr (merge . getBehaviour) (Behaviour Nothing S.empty S.empty) ss
-  where
-    merge :: Behaviour -> Behaviour -> Behaviour
-    merge (Behaviour r1 d1 u1) (Behaviour r2 d2 u2) = Behaviour (r1 <|> r2) (d1 `union` d2) (u1 `union` u2)
-
-
-foldFunDefs :: F.Term -> [P.FunDef] -> F.Term
-foldFunDefs = foldr bind
-  where
-    bind :: P.FunDef -> F.Term -> F.Term
-    bind fd@(P.FunDef t f args ts) = F.let_ (F.Binding def renaming)
-      where
-        def = F.Symbol (Typed f t) (fmap translateVar args)
-        body = translateTerminating (getBehaviourTerminating ts) ts
-        renaming = case NE.nonEmpty args of
-          Nothing   -> body
-          Just args -> F.let_ (F.Binding def tuple) body
-            where
-              def   = F.tupleD (fmap translateConstant args)
-              tuple = F.tupleLiteral (fmap (F.variable . translateVar) args)
-
+import Kyckling.Program.Behaviour
 
 return_ :: Behaviour -> F.Term -> F.Term
 return_ b t = case returns b of
@@ -90,17 +28,32 @@ context b = case (returns b, NE.nonEmpty $ S.toList $ updates b) of
   (Nothing, Just ts) -> F.tupleLiteral (fmap F.constant ts)
   (Just t,  Just ts) -> F.right t (F.tupleLiteral $ fmap F.constant ts)
 
+foldFunDefs :: F.Term -> [P.FunDef] -> F.Term
+foldFunDefs = foldr bind
+  where
+    bind :: P.FunDef -> F.Term -> F.Term
+    bind fd@(P.FunDef t f args ts) = F.let_ (F.Binding def renaming)
+      where
+        def = F.Symbol (Typed f t) (fmap translateVar args)
+        body = translateTerminating initBehaviour ts
+        renaming = case NE.nonEmpty args of
+          Nothing   -> body
+          Just args -> F.let_ (F.Binding def tuple) body
+            where
+              def   = F.tupleD (fmap translateConstant args)
+              tuple = F.tupleLiteral (fmap (F.variable . translateVar) args)
 
 translateTerminating :: Behaviour -> P.Terminating -> F.Term
-translateTerminating topLevelBehaviour t = foldr (translateStatement topLevelBehaviour) returnValue ss
+translateTerminating returnBehaviour ts@(P.Terminating ss r) =
+  foldr (translateStatement (getBehaviourTerminating ts)) (translateReturn returnBehaviour r) ss
+
+translateReturn :: Behaviour -> P.Return -> F.Term
+translateReturn topLevelBehaviour (P.Return e) = return_ topLevelBehaviour (translateExpression e)
+translateReturn topLevelBehaviour (P.IteReturn c a b) = F.if_ c' a' b'
   where
-    (ss, returnValue) = case t of
-      P.Return    (P.NonTerminating ss) e     -> (ss, return_ topLevelBehaviour $ translateExpression e)
-      P.IteReturn (P.NonTerminating ss) c a b -> (ss, F.if_ c' a' b')
-        where
-          c' = translateExpression  c
-          a' = translateTerminating topLevelBehaviour a
-          b' = translateTerminating topLevelBehaviour b
+   c' = translateExpression  c
+   a' = translateTerminating topLevelBehaviour a
+   b' = translateTerminating topLevelBehaviour b
 
 translateStatement :: Behaviour -> P.Statement -> F.Term -> F.Term
 translateStatement _ (P.Declare _) = id
@@ -113,11 +66,11 @@ translateStatement _ (P.Assign lval e) = F.let_ (F.Binding (F.Symbol c []) body)
     body = case lval of
       P.Variable  _   -> e'
       P.ArrayElem _ a -> F.store (F.constant c) (translateExpression a) e'
-translateStatement topLevelBehaviour (P.If c (P.NonTerminating a) b) = F.let_ (F.Binding def body) . unbind
+translateStatement topLevelBehaviour (P.If c a b) = F.let_ (F.Binding def body) . unbind
   where
     c' = translateExpression c
     a' = foldr (translateStatement topLevelBehaviour) (context topLevelBehaviour) a
-    b' = either (\(P.NonTerminating ss) -> foldr (translateStatement topLevelBehaviour) (context topLevelBehaviour) ss)
+    b' = either (foldr (translateStatement topLevelBehaviour) (context topLevelBehaviour))
                 (translateTerminating topLevelBehaviour . snd) b
 
     def = F.Symbol symbol []
@@ -136,11 +89,11 @@ translateStatement topLevelBehaviour (P.If c (P.NonTerminating a) b) = F.let_ (F
                          F.let_ (F.Binding (F.tupleD vars) (F.fromRight constant))
 
 translate :: P.Program -> (Signature, F.Formula)
-translate (P.Program fs (P.NonTerminating ss) as) = case NE.nonEmpty as of
+translate (P.Program fs ss as) = case NE.nonEmpty as of
   Nothing -> (S.empty, F.booleanConstant True)
   Just as -> (signature, conjecture)
     where
-      b = getBehaviourNonTerminating (P.NonTerminating ss)
+      b = getBehaviourNonTerminating ss
 
       signature = declares b \\ nonArrays (updated b)
       nonArrays = S.filter (not . isArray . typeOf)

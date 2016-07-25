@@ -1,3 +1,5 @@
+{-# LANGUAGE FlexibleInstances #-}
+
 module Kyckling.Program.Pretty (
   pretty
 ) where
@@ -47,11 +49,14 @@ instance Pretty Statement where
     If c a (Right (True,  b)) -> indentedIte n c b a
 
 instance Pretty NonTerminating where
-  indented n (NonTerminating ss) = unlines $ map (indented n) ss
+  indented n ss = unlines $ map (indented n) ss
+
+instance Pretty Return where
+  indented n (Return e) = indent n ++ "return " ++ pretty e ++ ";\n"
+  indented n (IteReturn c a b) = indentedIte n c a b ++ "\n"
 
 instance Pretty Terminating where
-  indented n (Return    ss e)     = indented n ss ++ indent n ++ "return " ++ pretty e ++ ";\n"
-  indented n (IteReturn ss c a b) = indented n ss ++ indentedIte n c a b ++ "\n"
+  indented n (Terminating ss r) = indented n ss ++ indented n r
 
 instance Pretty FunDef where
   indented n (FunDef t f vars ts) = indent n ++ prettySignature ++ braces n ts
