@@ -31,11 +31,11 @@ data Term = IntegerConstant Integer
           | Store Term Term Term
           -- Tuples
           | TupleLiteral (Tuple Term)
-          -- Maybe
-          | Nothing_ Type
-          | Just_ Term
-          | IsJust Term
-          | FromJust Term
+          -- Option
+          | None Type
+          | Some Term
+          | IsSome Term
+          | FromSome Term
           -- Either
           | Left_ Term Type
           | Right_ Type Term
@@ -63,10 +63,10 @@ instance TypeOf Term where
 
   typeOf (TupleLiteral args) = TupleType (fmap typeOf args)
 
-  typeOf (Nothing_ t) = MaybeType t
-  typeOf (Just_ t)    = MaybeType (typeOf t)
-  typeOf (IsJust t)   = Boolean
-  typeOf (FromJust t) = maybeArgument (typeOf t)
+  typeOf (None t)     = OptionType t
+  typeOf (Some t)     = OptionType (typeOf t)
+  typeOf (IsSome t)   = Boolean
+  typeOf (FromSome t) = optionArgument (typeOf t)
 
   typeOf (Left_  l t)  = EitherType (typeOf l) t
   typeOf (Right_ t r)  = EitherType t (typeOf r)

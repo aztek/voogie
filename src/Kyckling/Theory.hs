@@ -12,7 +12,7 @@ data Type = Boolean
           | Integer
           | Array Type
           | TupleType (Tuple Type)
-          | MaybeType Type
+          | OptionType Type
           | EitherType Type Type
   deriving (Show, Eq, Ord)
 
@@ -24,13 +24,13 @@ arrayArgument :: Type -> Type
 arrayArgument (Array t) = t
 arrayArgument t = error (show t ++ " is not an array")
 
-isMaybe :: Type -> Bool
-isMaybe (MaybeType _) = True
-isMaybe _ = False
+isOption :: Type -> Bool
+isOption (OptionType _) = True
+isOption _ = False
 
-maybeArgument :: Type -> Type
-maybeArgument (MaybeType t) = t
-maybeArgument t = error (show t ++ " is not a maybe")
+optionArgument :: Type -> Type
+optionArgument (OptionType t) = t
+optionArgument t = error (show t ++ " is not an option")
 
 isEither :: Type -> Bool
 isEither (EitherType{}) = True

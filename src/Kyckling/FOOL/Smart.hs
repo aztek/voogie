@@ -34,7 +34,7 @@ let_ (Binding (Symbol c []) b) (Application c' []) | c == c' = b
 let_ (Binding (TupleD t)    b) (TupleLiteral t') | fmap constant t == t' = b
 let_ (Binding (Symbol c []) b) (Right_ t (Application c' [])) | c == c' = Right_ t b
 let_ (Binding (Symbol c []) b) (Left_  (Application c' []) t) | c == c' = Left_  b t
-let_ (Binding (Symbol c []) b) (Just_  (Application c' []))   | c == c' = Just_  b
+let_ (Binding (Symbol c []) b) (Some  (Application c' []))   | c == c' = Some  b
 let_ b t = Let b t
 
 if_ = If
@@ -44,10 +44,10 @@ store = Store
 tupleLiteral :: NonEmpty Term -> Term
 tupleLiteral = either id TupleLiteral . nonUnit
 
-nothing = Nothing_
-just = Just_
-isJust = IsJust
-fromJust = FromJust
+noen = None
+some = Some
+isSome = IsSome
+fromSome = FromSome
 left = Left_
 right = Right_
 isLeft = IsLeft

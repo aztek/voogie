@@ -19,7 +19,7 @@ return_ :: Behaviour -> F.Term -> F.Term
 return_ b t = case returns b of
   Nothing -> t
   Just _  -> case NE.nonEmpty (S.toList $ updates b) of
-    Nothing -> F.just t
+    Nothing -> F.some t
     Just u  -> F.left t (tupleType $ fmap typeOf u)
 
 context :: Behaviour -> F.Term
@@ -82,8 +82,8 @@ translateStatement topLevelBehaviour (P.If c a b) = F.let_ (F.Binding def body) 
       _               -> F.if_ c' a' b'
 
     unbind = case NE.nonEmpty (S.toList $ updated topLevelBehaviour) of
-      Nothing   -> F.if_ (F.isJust constant)
-                         (return_ topLevelBehaviour (F.fromJust constant))
+      Nothing   -> F.if_ (F.isSome constant)
+                         (return_ topLevelBehaviour (F.fromSome constant))
       Just vars -> F.if_ (F.isLeft constant)
                          (return_ topLevelBehaviour (F.fromLeft constant)) .
                          F.let_ (F.Binding (F.tupleD vars) (F.fromRight constant))

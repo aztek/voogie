@@ -52,7 +52,7 @@ prettyType s =
     Integer -> "$int"
     Array t -> funapp "$array" ["$int", prettyType t]
     TupleType ts -> tuple (fmap prettyType ts)
-    MaybeType t -> funapp "$maybe" [prettyType t]
+    OptionType t -> funapp "$option" [prettyType t]
     EitherType l r -> funapp "$either" [prettyType l, prettyType r]
 
 prettyVar :: Var -> String
@@ -138,10 +138,10 @@ offsetTerm' pp o t = case t of
 
   TupleLiteral ts -> tuple (fmap prettyTerm ts)
 
-  Nothing_ t -> funapp "$nothing"  [prettyType t]
-  Just_ a    -> funapp "$just"     [offsetTerm (o + 6) a]
-  IsJust a   -> funapp "$isjust"   [offsetTerm (o + 8)  a]
-  FromJust a -> funapp "$fromjust" [offsetTerm (o + 10) a]
+  None t     -> funapp "$none"     [prettyType t]
+  Some a     -> funapp "$some"     [offsetTerm (o + 6) a]
+  IsSome a   -> funapp "$issome"   [offsetTerm (o + 8)  a]
+  FromSome a -> funapp "$fromsome" [offsetTerm (o + 10) a]
 
   Left_  l t  -> funapp "$left"      [offsetTerm (o + 6) l, prettyType t]
   Right_ t r  -> funapp "$right"     [prettyType t, prettyTerm r]
