@@ -6,7 +6,7 @@ optimize :: Program -> Program
 optimize (Program fs ss as) = Program (map optimizeFunDef fs) (optimizeNonTerminating ss) as
 
 optimizeFunDef :: FunDef -> FunDef
-optimizeFunDef (FunDef t f args ts) = FunDef t f args (optimizeTerminating ts)
+optimizeFunDef (FunDef f args ts) = FunDef f args (optimizeTerminating ts)
 
 optimizeTerminating :: Terminating -> Terminating
 optimizeTerminating (Terminating nt r) = Terminating (optimizeNonTerminating nt) (optimizeReturn r)

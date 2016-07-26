@@ -70,7 +70,7 @@ analyzeFunDef env (AST.FunDef t n args stmts) =
      (_, ts) <- analyzeTerminating env' stmts
      let t' = typeOf ts 
      if t == t'
-     then return (insertFunction (n, FunType (map typeOf args) t) env, FunDef t n args ts)
+     then return (insertFunction (n, FunType (map typeOf args) t) env, FunDef (Typed n t) args ts)
      else Left $ "function " ++ n ++ " returns a value of the type " ++ pretty t' ++
                  " while it is declared to return " ++ pretty t
 

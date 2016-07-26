@@ -32,9 +32,9 @@ foldFunDefs :: F.Term -> [P.FunDef] -> F.Term
 foldFunDefs = foldr bind
   where
     bind :: P.FunDef -> F.Term -> F.Term
-    bind fd@(P.FunDef t f args ts) = F.let_ (F.Binding def renaming)
+    bind fd@(P.FunDef f args ts) = F.let_ (F.Binding def renaming)
       where
-        def = F.Symbol (Typed f t) (fmap translateVar args)
+        def = F.Symbol f (fmap translateVar args)
         body = translateTerminating initBehaviour ts
         renaming = case NE.nonEmpty args of
           Nothing   -> body

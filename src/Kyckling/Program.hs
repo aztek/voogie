@@ -58,7 +58,7 @@ instance TypeOf Terminating where
 data Assertion = Assertion F.Formula
   deriving (Show)
 
-data FunDef = FunDef Type Name [Typed Name] Terminating
+data FunDef = FunDef (Typed Name) [Typed Name] Terminating
   deriving (Show)
 
 data Program = Program [FunDef] NonTerminating [Assertion]
