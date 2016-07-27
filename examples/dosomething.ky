@@ -1,0 +1,20 @@
+int doSomething(int x, int y) {
+  if (y > x) {
+    x = y + 1;
+  } else {
+    y = x + 2;
+  }
+
+  if (x > y) {
+    x++;
+    y++;
+  } else {
+    if (y > x) {
+      return 10;
+    }
+  }
+
+  return y - x;
+}
+
+assert doSomething(1, 2) == 2;
