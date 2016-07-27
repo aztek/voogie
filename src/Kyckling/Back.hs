@@ -66,20 +66,44 @@ translateStatement _ (P.Assign lval e) = F.let_ (F.Binding (F.Symbol c []) body)
     body = case lval of
       P.Variable  _   -> e'
       P.ArrayElem _ a -> F.store (F.constant c) (translateExpression a) e'
-translateStatement topLevelBehaviour (P.If c a b) = F.let_ (F.Binding def body) . unbind
+translateStatement topLevelBehaviour ite@(P.If c a (Left b)) = F.let_ (F.Binding def body) . unbind
+  where
+    c' = translateExpression c
+    a' = foldr (translateStatement beh) (context beh) a
+    b' = foldr (translateStatement beh) (context beh) b
+
+    body = F.if_ c' a' b'
+
+    behaviour = getBehaviour ite
+    (beh, def, unbind) = case returns behaviour of
+      Nothing -> (behaviour, def, id)
+        where
+          def = case NE.nonEmpty (S.toList $ updated behaviour) of
+            Nothing -> error "invariant violation"
+            Just vars -> F.tupleD vars
+      Just _ -> (topLevelBehaviour, def, unbind)
+        where
+          def = F.Symbol symbol []
+          symbol = Typed "i" (typeOf a')
+          constant = F.constant symbol
+
+          unbind = case NE.nonEmpty (S.toList $ updated topLevelBehaviour) of
+            Nothing   -> F.if_ (F.isSome constant)
+                               (return_ topLevelBehaviour (F.fromSome constant))
+            Just vars -> F.if_ (F.isLeft constant)
+                               (return_ topLevelBehaviour (F.fromLeft constant)) .
+                               F.let_ (F.Binding (F.tupleD vars) (F.fromRight constant))
+translateStatement topLevelBehaviour (P.If c a (Right (flp, b))) = F.let_ (F.Binding def body) . unbind
   where
     c' = translateExpression c
     a' = foldr (translateStatement topLevelBehaviour) (context topLevelBehaviour) a
-    b' = either (foldr (translateStatement topLevelBehaviour) (context topLevelBehaviour))
-                (translateTerminating topLevelBehaviour . snd) b
+    b' = translateTerminating topLevelBehaviour b
 
     def = F.Symbol symbol []
     symbol = Typed "i" (typeOf a')
     constant = F.constant symbol
 
-    body = case b of
-      Right (True, b) -> F.if_ c' b' a'
-      _               -> F.if_ c' a' b'
+    body = if flp then F.if_ c' b' a' else F.if_ c' a' b'
 
     unbind = case NE.nonEmpty (S.toList $ updated topLevelBehaviour) of
       Nothing   -> F.if_ (F.isSome constant)
