@@ -13,12 +13,12 @@ optimizeTerminating (Terminating nt r) = Terminating (optimizeNonTerminating nt)
 
 optimizeNonTerminating :: NonTerminating -> NonTerminating
 optimizeNonTerminating [] = []
-optimizeNonTerminating ((If c a (Left b)) : ss) = If c a' (Left b') : ss'
+optimizeNonTerminating (If c a (Left b) : ss) = If c a' (Left b') : ss'
   where
     ss' = optimizeNonTerminating ss
     a'  = optimizeNonTerminating a
     b'  = optimizeNonTerminating b
-optimizeNonTerminating ((If c a (Right (flp, Terminating nt r))) : ss) =
+optimizeNonTerminating (If c a (Right (flp, Terminating nt r)) : ss) =
   [If c a' (Right (flp, Terminating nt' r'))]
   where
     a'  = optimizeNonTerminating (a ++ ss)
