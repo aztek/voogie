@@ -5,8 +5,11 @@ import Data.Either
 import Data.Maybe
 import qualified Data.Set as S
 import Data.Set (Set, (\\), union)
+import Data.Bifunctor
 
 import qualified Data.List.NonEmpty as NE
+
+import Control.Applicative
 
 import Kyckling.Theory
 import qualified Kyckling.FOOL.Smart as F
@@ -38,10 +41,9 @@ foldFunDefs = foldr bind
         body = translateTerminating initBehaviour ts
         renaming = case NE.nonEmpty args of
           Nothing   -> body
-          Just args -> F.let_ (F.Binding def tuple) body
+          Just args -> F.let_ (F.binding $ fmap trans args) body
             where
-              def   = F.tupleD (fmap translateConstant args)
-              tuple = F.tupleLiteral (fmap (F.variable . translateVar) args)
+              trans = (,) <$> translateConstant <*> F.variable . translateVar
 
 translateTerminating :: Behaviour -> P.Terminating -> F.Term
 translateTerminating returnBehaviour ts@(P.Terminating ss r) =
@@ -57,15 +59,15 @@ translateReturn topLevelBehaviour (P.IteReturn c a b) = F.if_ c' a' b'
 
 translateStatement :: Behaviour -> P.Statement -> F.Term -> F.Term
 translateStatement _ (P.Declare _) = id
-translateStatement _ (P.Assign lval e) = F.let_ (F.Binding (F.Symbol c []) body)
+translateStatement _ (P.Assign ass) = F.let_ (F.binding (fmap trans ass))
   where
-    e' = translateExpression e
-    c = translateConstant $ case lval of
-      P.Variable  v   -> v
-      P.ArrayElem v _ -> v
-    body = case lval of
-      P.Variable  _   -> e'
-      P.ArrayElem _ a -> F.store (F.constant c) (translateExpression a) e'
+    trans (lval, e) = (c, body)
+      where
+        c = translateConstant (P.lvariable lval)
+        e' = translateExpression e
+        body = case lval of
+          P.Variable  _   -> e'
+          P.ArrayElem _ a -> F.store (F.constant c) (translateExpression a) e'
 translateStatement topLevelBehaviour ite@(P.If c a (Left b)) = F.let_ (F.Binding def body) . unbind
   where
     c' = translateExpression c

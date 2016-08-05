@@ -20,12 +20,8 @@ updated :: Behaviour -> Set Var
 updated (Behaviour _ d u) = u \\ d
 
 getBehaviour :: Statement -> Behaviour
-getBehaviour (Declare var)   = Behaviour Nothing (S.singleton var) S.empty
-getBehaviour (Assign lval e) = Behaviour Nothing S.empty (S.singleton var)
-  where
-    var = case lval of
-      Variable  v   -> v
-      ArrayElem v _ -> v
+getBehaviour (Declare var) = Behaviour Nothing (S.singleton var) S.empty
+getBehaviour (Assign ass)  = Behaviour Nothing S.empty (S.fromList $ NE.toList $ fmap (lvariable . fst) ass)
 getBehaviour (If c a b) = behaviour { declares = S.empty }
   where
     behaviour = mergeBehaviours a' b'

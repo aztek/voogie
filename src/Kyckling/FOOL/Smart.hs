@@ -11,6 +11,12 @@ import Data.Either
 import Kyckling.FOOL
 import Kyckling.FOOL.Tuple
 
+-- Binding
+binding :: NonEmpty (Identifier, Term) -> Binding
+binding ass = Binding (tupleD ids) (tupleLiteral bodies)
+  where
+    (ids, bodies) = NE.unzip ass
+
 -- Definition
 tupleD :: NonEmpty Identifier -> Definition
 tupleD = either (flip Symbol []) TupleD . nonUnit

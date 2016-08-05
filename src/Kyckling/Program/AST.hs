@@ -1,5 +1,7 @@
 module Kyckling.Program.AST where
 
+import Kyckling.FOOL.Tuple
+
 import Kyckling.Theory
 import qualified Kyckling.FOOL.AST as F
 
@@ -25,6 +27,7 @@ data Stmt = If Expr [Stmt] [Stmt]
           | Increment LVal
           | Decrement LVal
           | Update LVal UpdateOp Expr
+          | Multiupdate UpdateOp (Tuple (String, Expr))
           | Return Expr
   deriving (Show, Eq)
 

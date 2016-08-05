@@ -1,5 +1,7 @@
 module Kyckling.Program where
 
+import Data.List.NonEmpty
+
 import Kyckling.Theory
 import qualified Kyckling.FOOL as F
 
@@ -9,6 +11,10 @@ type Function = Typed Name
 data LValue = Variable Var
             | ArrayElem Var Expression
   deriving (Show)
+
+lvariable :: LValue -> Var
+lvariable (Variable  v)   = v
+lvariable (ArrayElem v _) = v
 
 instance TypeOf LValue where
   typeOf (Variable  v) = typeOf v
@@ -35,7 +41,7 @@ instance TypeOf Expression where
   typeOf (Equals{}) = Boolean
 
 data Statement = Declare Var
-               | Assign LValue Expression
+               | Assign (NonEmpty (LValue, Expression))
                | If Expression NonTerminating (Either NonTerminating (Bool, Terminating))
   deriving (Show)
 

@@ -5,6 +5,9 @@ import Control.Applicative
 import Data.Maybe
 import Data.Bifunctor
 
+import qualified Data.List.NonEmpty as NE
+import Data.List.NonEmpty (NonEmpty)
+
 import qualified Data.Map as Map
 import Data.Map (Map)
 
@@ -159,21 +162,21 @@ analyzeStmt env (AST.If c a b) =
      return (env, stmt)
 analyzeStmt env (AST.Increment lval) =
   do lv <- analyzeLValue env `guard` lval .: Integer
-     let stmt = Assign lv (Binary Add (Ref lv) (IntegerLiteral 1))
+     let stmt = Assign $ (lv, Binary Add (Ref lv) (IntegerLiteral 1)) NE.:| []
      return (env, Right stmt)
 analyzeStmt env (AST.Decrement lval) =
   do lv <- analyzeLValue env `guard` lval .: Integer
-     let stmt = Assign lv (Binary Subtract (Ref lv) (IntegerLiteral 1))
+     let stmt = Assign $ (lv, Binary Subtract (Ref lv) (IntegerLiteral 1)) NE.:| []
      return (env, Right stmt)
 analyzeStmt env (AST.Update lval AST.Assign e) =
   do lv <- analyzeLValue env lval
      e' <- analyzeExpr env `guard` e .: typeOf lv
-     let stmt = Assign lv e'
+     let stmt = Assign $ (lv, e') NE.:| []
      return (env, Right stmt)
 analyzeStmt env (AST.Update lval op e) =
   do lv <- analyzeLValue env `guard` lval .: d1
      e' <- analyzeExpr   env `guard` e    .: d2
-     let stmt = Assign lv (Binary op' (Ref lv) e')
+     let stmt = Assign $ (lv, Binary op' (Ref lv) e') NE.:| []
      return (env, Right stmt)
   where
     op' = case op of
@@ -182,6 +185,7 @@ analyzeStmt env (AST.Update lval op e) =
             AST.Times -> Multiply
             AST.Assign -> error "covered by a case of analyzeStmt"
     (d1, d2) = binaryOpDomain op' -- we assume that d1 == range of op'
+analyzeStmt env (AST.Multiupdate{}) = undefined
 analyzeStmt env (AST.Return e) =
   do e' <- analyzeExpr env e
      let stmt = Terminating [] (Return e')

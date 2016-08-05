@@ -5,6 +5,8 @@ module Kyckling.Program.Pretty (
 ) where
 
 import Data.List
+import qualified Data.List.NonEmpty as NE
+import Data.List.NonEmpty (NonEmpty)
 
 import Kyckling.Theory
 import Kyckling.Pretty
@@ -49,7 +51,9 @@ instance Pretty (Typed Name) where
 instance Pretty Statement where
   indented n s = indent n ++ case s of
     Declare v -> atomic [pretty v]
-    Assign lv e -> atomic [pretty lv, "=", pretty e]
+    Assign pairs -> atomic [intercalate ", " (fmap pretty $ NE.toList lvs), "=", intercalate ", " (fmap pretty $ NE.toList es)]
+      where
+        (lvs, es) = NE.unzip pairs
     If c a (Left b) -> indentedIte n c a b
     If c a (Right (False, b)) -> indentedIte n c a b
     If c a (Right (True,  b)) -> indentedIte n c b a
