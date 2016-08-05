@@ -35,7 +35,7 @@ foldFunDefs :: F.Term -> [P.FunDef] -> F.Term
 foldFunDefs = foldr bind
   where
     bind :: P.FunDef -> F.Term -> F.Term
-    bind fd@(P.FunDef f args ts) = F.let_ (F.Binding def renaming)
+    bind (P.FunDef f args ts) = F.let_ (F.Binding def renaming)
       where
         def = F.Symbol f (fmap translateVar args)
         body = translateTerminating initBehaviour ts
@@ -59,60 +59,43 @@ translateReturn topLevelBehaviour (P.IteReturn c a b) = F.if_ c' a' b'
 
 translateStatement :: Behaviour -> P.Statement -> F.Term -> F.Term
 translateStatement _ (P.Declare _) = id
-translateStatement _ (P.Assign ass) = F.let_ (F.binding (fmap trans ass))
-  where
-    trans (lval, e) = (c, body)
-      where
-        c = translateConstant (P.lvariable lval)
-        e' = translateExpression e
-        body = case lval of
-          P.Variable  _   -> e'
-          P.ArrayElem _ a -> F.store (F.constant c) (translateExpression a) e'
-translateStatement topLevelBehaviour ite@(P.If c a (Left b)) = F.let_ (F.Binding def body) . unbind
+translateStatement _ (P.Assign ass) = F.let_ (F.binding (fmap translateAssignment ass))
+translateStatement topLevelBehaviour ite@(P.If c a b) = F.let_ (F.Binding def body) . unbind
   where
     c' = translateExpression c
     a' = foldr (translateStatement beh) (context beh) a
-    b' = foldr (translateStatement beh) (context beh) b
+    b' = either (foldr (translateStatement beh) (context beh))
+                (translateTerminating beh . snd) b
 
-    body = F.if_ c' a' b'
+    body = case b of
+      Right (True, _) -> F.if_ c' b' a'
+      _               -> F.if_ c' a' b'
 
     behaviour = getBehaviour ite
-    (beh, def, unbind) = case returns behaviour of
-      Nothing -> (behaviour, def, id)
-        where
-          def = case NE.nonEmpty (S.toList $ updated behaviour) of
-            Nothing -> error "invariant violation"
-            Just vars -> F.tupleD vars
-      Just _ -> (topLevelBehaviour, def, unbind)
-        where
-          def = F.Symbol symbol []
-          symbol = Typed "i" (typeOf a')
-          constant = F.constant symbol
+    (beh, def, unbind) = if isLeft b && isNothing (returns behaviour)
+                         then let def = case NE.nonEmpty (S.toList $ updated behaviour) of
+                                          Nothing -> error "invariant violation"
+                                          Just vars -> F.tupleD vars
+                               in (behaviour, def, id)
+                         else let def = F.Symbol symbol []
+                                  symbol = Typed "i" (typeOf a')
+                                  constant = F.constant symbol
+                                  unbind = case NE.nonEmpty (S.toList $ updated behaviour) of
+                                    Nothing   -> F.if_ (F.isSome constant)
+                                                       (return_ behaviour (F.fromSome constant))
+                                    Just vars -> F.if_ (F.isLeft constant)
+                                                       (return_ behaviour (F.fromLeft constant)) .
+                                                       F.let_ (F.Binding (F.tupleD vars) (F.fromRight constant))
+                          in (topLevelBehaviour, def, unbind)
 
-          unbind = case NE.nonEmpty (S.toList $ updated topLevelBehaviour) of
-            Nothing   -> F.if_ (F.isSome constant)
-                               (return_ topLevelBehaviour (F.fromSome constant))
-            Just vars -> F.if_ (F.isLeft constant)
-                               (return_ topLevelBehaviour (F.fromLeft constant)) .
-                               F.let_ (F.Binding (F.tupleD vars) (F.fromRight constant))
-translateStatement topLevelBehaviour (P.If c a (Right (flp, b))) = F.let_ (F.Binding def body) . unbind
+translateAssignment :: (P.LValue, P.Expression) -> (F.Identifier, F.Term)
+translateAssignment (lval, e) = (c, body)
   where
-    c' = translateExpression c
-    a' = foldr (translateStatement topLevelBehaviour) (context topLevelBehaviour) a
-    b' = translateTerminating topLevelBehaviour b
-
-    def = F.Symbol symbol []
-    symbol = Typed "i" (typeOf a')
-    constant = F.constant symbol
-
-    body = if flp then F.if_ c' b' a' else F.if_ c' a' b'
-
-    unbind = case NE.nonEmpty (S.toList $ updated topLevelBehaviour) of
-      Nothing   -> F.if_ (F.isSome constant)
-                         (return_ topLevelBehaviour (F.fromSome constant))
-      Just vars -> F.if_ (F.isLeft constant)
-                         (return_ topLevelBehaviour (F.fromLeft constant)) .
-                         F.let_ (F.Binding (F.tupleD vars) (F.fromRight constant))
+    c = translateConstant (P.lvariable lval)
+    e' = translateExpression e
+    body = case lval of
+      P.Variable  _   -> e'
+      P.ArrayElem _ a -> F.store (F.constant c) (translateExpression a) e'
 
 translate :: P.Program -> (Signature, F.Formula)
 translate (P.Program fs ss as) = case NE.nonEmpty as of
