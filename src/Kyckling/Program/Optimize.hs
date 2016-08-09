@@ -9,20 +9,20 @@ optimizeFunDef :: FunDef -> FunDef
 optimizeFunDef (FunDef f args ts) = FunDef f args (optimizeTerminating ts)
 
 optimizeTerminating :: Terminating -> Terminating
-optimizeTerminating (Terminating nt r) = Terminating (optimizeNonTerminating nt) (optimizeReturn r)
+optimizeTerminating (Terminating nt r) = Terminating (optimizeNonTerminating nt) (fmap optimizeReturn r)
 
 optimizeNonTerminating :: NonTerminating -> NonTerminating
 optimizeNonTerminating [] = []
-optimizeNonTerminating (If c a (Left b) : ss) = If c a' (Left b') : ss'
+optimizeNonTerminating (Scoped scope (If c a (Left b)) : ss) = Scoped scope (If c a' (Left b')) : ss'
   where
     ss' = optimizeNonTerminating ss
     a'  = optimizeNonTerminating a
     b'  = optimizeNonTerminating b
-optimizeNonTerminating (If c a (Right (flp, Terminating nt r)) : ss) =
-  [If c a' (Right (flp, Terminating nt' r'))]
+optimizeNonTerminating (Scoped scope (If c a (Right (flp, Terminating nt r))) : ss) =
+  [Scoped scope (If c a' (Right (flp, Terminating nt' r')))]
   where
     a'  = optimizeNonTerminating (a ++ ss)
-    r'  = optimizeReturn r
+    r'  = fmap optimizeReturn r
     nt' = optimizeNonTerminating nt
 optimizeNonTerminating (s:ss) = s:optimizeNonTerminating ss
 

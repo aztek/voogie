@@ -13,7 +13,7 @@ import Data.Map (Map)
 
 import Kyckling.Theory
 import Kyckling.Pretty
-import Kyckling.Program
+import Kyckling.Program.Smart
 import Kyckling.Program.Pretty
 import qualified Kyckling.Program.AST as AST
 
@@ -108,17 +108,31 @@ analyzeStmts env = analyzeStmts' env . flattenDeclarations
     analyzeStmts' :: Env -> [AST.Stmt] -> Either Error (Env, Either Terminating NonTerminating)
     analyzeStmts' env [] = Right (env, Right [])
     analyzeStmts' env (s:ss) =
-      do (env',  s')  <- analyzeStmt env s
-         case s' of
-           Left ts  -> return (env', Left ts)
-           Right s' -> do (env'', ss') <- analyzeStmts' env' ss
-                          return (env'', bimap (appendTerminating s') (appendNonTerminating s') ss')
-      where
-        appendTerminating :: Statement -> Terminating -> Terminating
-        appendTerminating s (Terminating nt r) = Terminating (appendNonTerminating s nt) r
+      do ar <- analyzeStmt env s
+         case ar of
+           T ts -> return (env, Left ts)
+           D vars -> do (env'', ss') <- analyzeStmts' env' ss
+                        return (env'', bimap (appendScopeTerminating vars) (appendScopeNonTerminating vars) ss')
+             where
+              env' = foldr insertVariable env vars
+              vars' = map (fmap F.Var) vars
 
-        appendNonTerminating :: Statement -> NonTerminating -> NonTerminating
-        appendNonTerminating = (:)
+              appendScopeTerminating :: [Var] -> Terminating -> Terminating
+              appendScopeTerminating vars (Terminating []     r) = Terminating [] (appendScope vars r)
+              appendScopeTerminating vars (Terminating (s:ss) r) = Terminating (appendScope vars s:ss) r
+
+              appendScopeNonTerminating :: [Var] -> NonTerminating -> NonTerminating
+              appendScopeNonTerminating vars [] = []
+              appendScopeNonTerminating vars (s:ss) = appendScope vars s : ss
+
+           S s' -> do (env', ss') <- analyzeStmts' env ss
+                      return (env', bimap (appendTerminating s') (appendNonTerminating s') ss')
+            where
+              appendTerminating :: Scoped Statement -> Terminating -> Terminating
+              appendTerminating s (Terminating nt r) = Terminating (appendNonTerminating s nt) r
+
+              appendNonTerminating :: Scoped Statement -> NonTerminating -> NonTerminating
+              appendNonTerminating = (:)
 
 
 guardType :: (TypeOf b, Pretty b) => (a -> Either Error b) -> Type -> a -> Either Error b
@@ -143,11 +157,15 @@ infix 5 .:
 (.:) :: (a -> b) -> a -> b
 (.:) = ($)
 
+data AnalysisResult =
+    D [Var]
+  | S (Scoped Statement)
+  | T Terminating
 
-analyzeStmt :: Env -> AST.Stmt -> Either Error (Env, Either Terminating Statement)
+analyzeStmt :: Env -> AST.Stmt -> Either Error AnalysisResult
 analyzeStmt env (AST.Declare t [(n, Nothing)]) =
   case lookupVariable n env of
-    Left  _ -> Right (insertVariable var env, Right $ Declare var) where var = Typed n t
+    Left  _ -> Right (D [Typed n t])
     Right _ -> Left  ("the variable " ++ n ++ " shadows the previous definition")
 analyzeStmt env (AST.Declare t _) = error "should be eliminated by flattenDeclaration"
 analyzeStmt env (AST.If c a b) =
@@ -155,29 +173,32 @@ analyzeStmt env (AST.If c a b) =
      (_, b') <- analyzeStmts env b
      c' <- analyzeExpr env `guard` c .: Boolean
      let stmt = case (a', b') of
-                  (Right a', Right b') -> Right $ If c' a' (Left b')
-                  (Right a', Left  b') -> Right $ If c' a' (Right (False, b'))
-                  (Left  a', Right b') -> Right $ If c' b' (Right (True,  a'))
-                  (Left  a', Left  b') -> Left  $ Terminating [] (IteReturn c' a' b')
-     return (env, stmt)
+                  (Right a', Right b') -> S $ if_ c' a' (Left b')
+                  (Right a', Left  b') -> S $ if_ c' a' (Right (False, b'))
+                  (Left  a', Right b') -> S $ if_ c' b' (Right (True,  a'))
+                  (Left  a', Left  b') -> T $ Terminating [] (iteReturn c' a' b')
+     return stmt
 analyzeStmt env (AST.Increment lval) =
   do lv <- analyzeLValue env `guard` lval .: Integer
-     let stmt = Assign $ (lv, Binary Add (Ref lv) (IntegerLiteral 1)) NE.:| []
-     return (env, Right stmt)
+     let rv = Binary Add (Ref lv) (IntegerLiteral 1)
+     let stmt = assign $ (lv, rv) NE.:| []
+     return (S stmt)
 analyzeStmt env (AST.Decrement lval) =
   do lv <- analyzeLValue env `guard` lval .: Integer
-     let stmt = Assign $ (lv, Binary Subtract (Ref lv) (IntegerLiteral 1)) NE.:| []
-     return (env, Right stmt)
+     let rv = Binary Subtract (Ref lv) (IntegerLiteral 1)
+     let stmt = assign $ (lv, rv) NE.:| []
+     return (S stmt)
 analyzeStmt env (AST.Update lval AST.Assign e) =
   do lv <- analyzeLValue env lval
      e' <- analyzeExpr env `guard` e .: typeOf lv
-     let stmt = Assign $ (lv, e') NE.:| []
-     return (env, Right stmt)
+     let stmt = assign $ (lv, e') NE.:| []
+     return (S stmt)
 analyzeStmt env (AST.Update lval op e) =
   do lv <- analyzeLValue env `guard` lval .: d1
      e' <- analyzeExpr   env `guard` e    .: d2
-     let stmt = Assign $ (lv, Binary op' (Ref lv) e') NE.:| []
-     return (env, Right stmt)
+     let rv = Binary op' (Ref lv) e'
+     let stmt = assign $ (lv, rv) NE.:| []
+     return (S stmt)
   where
     op' = case op of
             AST.Plus  -> Add
@@ -188,8 +209,8 @@ analyzeStmt env (AST.Update lval op e) =
 analyzeStmt env (AST.Multiupdate{}) = undefined
 analyzeStmt env (AST.Return e) =
   do e' <- analyzeExpr env e
-     let stmt = Terminating [] (Return e')
-     return (env, Left stmt)
+     let stmt = Terminating [] (return_ e')
+     return (T stmt)
 
 analyzeAssert :: Env -> AST.Assert -> Either Error Assertion
 analyzeAssert env (AST.Assert f) = Assertion <$> analyzeFormula env f

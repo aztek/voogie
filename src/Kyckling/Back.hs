@@ -47,20 +47,21 @@ foldFunDefs = foldr bind
 
 translateTerminating :: Behaviour -> P.Terminating -> F.Term
 translateTerminating returnBehaviour ts@(P.Terminating ss r) =
-  foldr (translateStatement (getBehaviourTerminating ts)) (translateReturn returnBehaviour r) ss
+  foldr (translateStatement (getBehaviourTerminating ts))
+        (translateReturn returnBehaviour r) ss
 
-translateReturn :: Behaviour -> P.Return -> F.Term
-translateReturn topLevelBehaviour (P.Return e) = return_ topLevelBehaviour (translateExpression e)
-translateReturn topLevelBehaviour (P.IteReturn c a b) = F.if_ c' a' b'
+translateReturn :: Behaviour -> P.Scoped P.Return -> F.Term
+translateReturn topLevelBehaviour (P.Scoped _ (P.Return e)) = return_ topLevelBehaviour (translateExpression e)
+translateReturn topLevelBehaviour (P.Scoped _ (P.IteReturn c a b)) = F.if_ c' a' b'
   where
    c' = translateExpression  c
    a' = translateTerminating topLevelBehaviour a
    b' = translateTerminating topLevelBehaviour b
 
-translateStatement :: Behaviour -> P.Statement -> F.Term -> F.Term
-translateStatement _ (P.Declare _) = id
-translateStatement _ (P.Assign ass) = F.let_ (F.binding (fmap translateAssignment ass))
-translateStatement topLevelBehaviour ite@(P.If c a b) = F.let_ (F.Binding def body) . unbind
+translateStatement :: Behaviour -> P.Scoped P.Statement -> F.Term -> F.Term
+translateStatement _ (P.Scoped _ (P.Assign ass)) = F.let_ (F.binding (fmap translateAssignment ass))
+translateStatement topLevelBehaviour ite@(P.Scoped _ (P.If c a b)) =
+  F.let_ (F.Binding def body) . unbind
   where
     c' = translateExpression c
     a' = foldr (translateStatement beh) (context beh) a

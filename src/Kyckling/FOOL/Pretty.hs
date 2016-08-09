@@ -53,4 +53,5 @@ instance Pretty Term where
     where p (Typed (Var v) t) = pretty t ++ " " ++ v
   pretty (Equals s a b) = pretty a ++ (if s == Pos then " == " else " != ") ++ pretty b
   pretty (If c a b) = pretty c ++ " ? "  ++ pretty a ++ " : " ++ pretty b
+  pretty (Select a i) = pretty a ++ "[" ++ pretty i ++ "]"
   pretty t = error $ "no pretty syntax for " ++ show t

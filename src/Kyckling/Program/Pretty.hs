@@ -50,7 +50,7 @@ instance Pretty (Typed Name) where
 
 instance Pretty Statement where
   indented n s = indent n ++ case s of
-    Declare v -> atomic [pretty v]
+    --Declare v -> atomic [pretty v]
     Assign pairs -> atomic [intercalate ", " (fmap pretty $ NE.toList lvs), "=", intercalate ", " (fmap pretty $ NE.toList es)]
       where
         (lvs, es) = NE.unzip pairs
@@ -66,6 +66,11 @@ instance Pretty Return where
     Return e -> atomic ["return", pretty e]
     IteReturn c a b -> indentedIte n c a b
 
+instance Pretty s => Pretty (Scoped s) where
+  indented n (Scoped scope s) = unlines decls ++ indented n s
+    where
+      decls = map (\v -> indent n ++ atomic [pretty v]) scope
+
 instance Pretty Terminating where
   indented n (Terminating ss r) = indented n ss ++ indented n r ++ "\n"
 
@@ -79,4 +84,4 @@ instance Pretty Assertion where
   pretty (Assertion f) = atomic ["assert", F.pretty f]
 
 instance Pretty Program where
-  pretty (Program fs ss as) = unlines (map pretty fs) ++ pretty ss ++ concatMap pretty as
+  pretty (Program fs ss as) = unlines (map pretty fs) ++ pretty ss ++ unlines (map pretty as)

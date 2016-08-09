@@ -19,19 +19,19 @@ initBehaviour = Behaviour Nothing S.empty S.empty
 updated :: Behaviour -> Set Var
 updated (Behaviour _ d u) = u \\ d
 
-getBehaviour :: Statement -> Behaviour
-getBehaviour (Declare var) = Behaviour Nothing (S.singleton var) S.empty
-getBehaviour (Assign ass)  = Behaviour Nothing S.empty (S.fromList $ NE.toList $ fmap (lvariable . fst) ass)
-getBehaviour (If c a b) = behaviour { declares = S.empty }
+
+getBehaviour :: Scoped Statement -> Behaviour
+getBehaviour (Scoped decls (Assign ass)) = Behaviour Nothing (S.fromList decls) (S.fromList $ NE.toList $ fmap (lvariable . fst) ass)
+getBehaviour (Scoped decls (If c a b)) = behaviour { declares = S.fromList decls }
   where
     behaviour = mergeBehaviours a' b'
     a' = getBehaviourNonTerminating a
     b' = either getBehaviourNonTerminating (getBehaviourTerminating . snd) b
 
 
-getBehaviourReturn :: Return -> Behaviour
-getBehaviourReturn (Return e) = Behaviour (Just $ typeOf e) S.empty S.empty
-getBehaviourReturn (IteReturn _ a b) = behaviour { declares = S.empty }
+getBehaviourReturn :: Scoped Return -> Behaviour
+getBehaviourReturn (Scoped decls (Return e)) = Behaviour (Just $ typeOf e) (S.fromList decls) S.empty
+getBehaviourReturn (Scoped decls (IteReturn _ a b)) = behaviour { declares = S.fromList decls }
   where
     behaviour = mergeBehaviours a' b'
     a' = getBehaviourTerminating a
