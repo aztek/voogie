@@ -9,6 +9,8 @@ import Data.Bifunctor
 
 import qualified Data.List.NonEmpty as NE
 
+import Debug.Trace
+
 import Control.Applicative
 
 import Kyckling.Theory
@@ -17,6 +19,7 @@ import qualified Kyckling.FOOL.Tuple as F.Tuple
 
 import qualified Kyckling.Program as P
 import Kyckling.Program.Behaviour
+import Kyckling.Program.Pretty
 
 return_ :: Behaviour -> F.Term -> F.Term
 return_ b t = case returns b of
@@ -26,10 +29,10 @@ return_ b t = case returns b of
     Just u  -> F.left t (tupleType $ fmap typeOf u)
 
 context :: Behaviour -> F.Term
-context b = case (returns b, NE.nonEmpty $ S.toList $ updates b) of
-  (_,       Nothing) -> error "invariant violation"
-  (Nothing, Just ts) -> F.tupleLiteral (fmap F.constant ts)
-  (Just t,  Just ts) -> F.right t (F.tupleLiteral $ fmap F.constant ts)
+context b = case NE.nonEmpty $ S.toList $ updates b of
+  Nothing -> error "invariant violation???"
+  Just ts -> maybe lit (flip F.right lit) (returns b)
+    where lit = F.tupleLiteral (fmap F.constant ts)
 
 foldFunDefs :: F.Term -> [P.FunDef] -> F.Term
 foldFunDefs = foldr bind
@@ -46,13 +49,13 @@ foldFunDefs = foldr bind
               trans = (,) <$> translateConstant <*> F.variable . translateVar
 
 translateTerminating :: Behaviour -> P.Terminating -> F.Term
-translateTerminating returnBehaviour ts@(P.Terminating ss r) =
+translateTerminating returnBehaviour ts@(P.Terminating ss (P.Scoped _ r)) =
   foldr (translateStatement (getBehaviourTerminating ts))
         (translateReturn returnBehaviour r) ss
 
-translateReturn :: Behaviour -> P.Scoped P.Return -> F.Term
-translateReturn topLevelBehaviour (P.Scoped _ (P.Return e)) = return_ topLevelBehaviour (translateExpression e)
-translateReturn topLevelBehaviour (P.Scoped _ (P.IteReturn c a b)) = F.if_ c' a' b'
+translateReturn :: Behaviour -> P.Return -> F.Term
+translateReturn topLevelBehaviour (P.Return e) = return_ topLevelBehaviour (translateExpression e)
+translateReturn topLevelBehaviour (P.IteReturn c a b) = F.if_ c' a' b'
   where
    c' = translateExpression  c
    a' = translateTerminating topLevelBehaviour a
@@ -60,6 +63,7 @@ translateReturn topLevelBehaviour (P.Scoped _ (P.IteReturn c a b)) = F.if_ c' a'
 
 translateStatement :: Behaviour -> P.Scoped P.Statement -> F.Term -> F.Term
 translateStatement _ (P.Scoped _ (P.Assign ass)) = F.let_ (F.binding (fmap translateAssignment ass))
+translateStatement topLevelBehaviour ite@(P.Scoped _ (P.If c a b)) | trace ("beh " ++ show topLevelBehaviour ++ " " ++ (pretty ite)) False = undefined
 translateStatement topLevelBehaviour ite@(P.Scoped _ (P.If c a b)) =
   F.let_ (F.Binding def body) . unbind
   where
@@ -74,20 +78,20 @@ translateStatement topLevelBehaviour ite@(P.Scoped _ (P.If c a b)) =
 
     behaviour = getBehaviour ite
     (beh, def, unbind) = if isLeft b && isNothing (returns behaviour)
-                         then let def = case NE.nonEmpty (S.toList $ updated behaviour) of
+                         then let def = case NE.nonEmpty (S.toList $ updates behaviour) of
                                           Nothing -> error "invariant violation"
                                           Just vars -> F.tupleD vars
                                in (behaviour, def, id)
                          else let def = F.Symbol symbol []
                                   symbol = Typed "i" (typeOf a')
                                   constant = F.constant symbol
-                                  unbind = case NE.nonEmpty (S.toList $ updated behaviour) of
+                                  unbind = case NE.nonEmpty (S.toList $ updates topLevelBehaviour) of
                                     Nothing   -> F.if_ (F.isSome constant)
-                                                       (return_ behaviour (F.fromSome constant))
+                                                       (return_ topLevelBehaviour (F.fromSome constant))
                                     Just vars -> F.if_ (F.isLeft constant)
-                                                       (return_ behaviour (F.fromLeft constant)) .
+                                                       (return_ topLevelBehaviour (F.fromLeft constant)) .
                                                        F.let_ (F.Binding (F.tupleD vars) (F.fromRight constant))
-                          in (topLevelBehaviour, def, unbind)
+                               in (topLevelBehaviour, def, unbind)
 
 translateAssignment :: (P.LValue, P.Expression) -> (F.Identifier, F.Term)
 translateAssignment (lval, e) = (c, body)
@@ -105,7 +109,7 @@ translate (P.Program fs ss as) = case NE.nonEmpty as of
     where
       b = getBehaviourNonTerminating ss
 
-      signature = declares b \\ nonArrays (updated b)
+      signature = collectDeclarations ss \\ nonArrays (updates b)
       nonArrays = S.filter (not . isArray . typeOf)
 
       conjecture = foldFunDefs (foldr (\s -> translateStatement (getBehaviour s) s) assert ss) fs

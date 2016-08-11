@@ -114,25 +114,25 @@ analyzeStmts env = analyzeStmts' env . flattenDeclarations
            D vars -> do (env'', ss') <- analyzeStmts' env' ss
                         return (env'', bimap (appendScopeTerminating vars) (appendScopeNonTerminating vars) ss')
              where
-              env' = foldr insertVariable env vars
-              vars' = map (fmap F.Var) vars
+               env' = foldr insertVariable env vars
+               vars' = map (fmap F.Var) vars
 
-              appendScopeTerminating :: [Var] -> Terminating -> Terminating
-              appendScopeTerminating vars (Terminating []     r) = Terminating [] (appendScope vars r)
-              appendScopeTerminating vars (Terminating (s:ss) r) = Terminating (appendScope vars s:ss) r
+               appendScopeTerminating :: [Var] -> Terminating -> Terminating
+               appendScopeTerminating vars (Terminating []     r) = Terminating [] (appendScope vars r)
+               appendScopeTerminating vars (Terminating (s:ss) r) = Terminating (appendScope vars s:ss) r
 
-              appendScopeNonTerminating :: [Var] -> NonTerminating -> NonTerminating
-              appendScopeNonTerminating vars [] = []
-              appendScopeNonTerminating vars (s:ss) = appendScope vars s : ss
+               appendScopeNonTerminating :: [Var] -> NonTerminating -> NonTerminating
+               appendScopeNonTerminating vars [] = []
+               appendScopeNonTerminating vars (s:ss) = appendScope vars s : ss
 
            S s' -> do (env', ss') <- analyzeStmts' env ss
                       return (env', bimap (appendTerminating s') (appendNonTerminating s') ss')
-            where
-              appendTerminating :: Scoped Statement -> Terminating -> Terminating
-              appendTerminating s (Terminating nt r) = Terminating (appendNonTerminating s nt) r
+             where
+               appendTerminating :: Scoped Statement -> Terminating -> Terminating
+               appendTerminating s (Terminating nt r) = Terminating (appendNonTerminating s nt) r
 
-              appendNonTerminating :: Scoped Statement -> NonTerminating -> NonTerminating
-              appendNonTerminating = (:)
+               appendNonTerminating :: Scoped Statement -> NonTerminating -> NonTerminating
+               appendNonTerminating = (:)
 
 
 guardType :: (TypeOf b, Pretty b) => (a -> Either Error b) -> Type -> a -> Either Error b
