@@ -27,8 +27,10 @@ return_ b t = case returns b of
     Just u  -> F.left t (tupleType $ fmap typeOf u)
 
 context :: Behaviour -> F.Term
-context b = case NE.nonEmpty $ S.toList $ updates b of
-  Nothing -> error "invariant violation???"
+context b = case NE.nonEmpty (S.toList $ updates b) of
+  Nothing -> case returns b of
+    Nothing -> error "invariant violation"
+    Just t  -> F.none t
   Just ts -> maybe lit (flip F.right lit) (returns b)
     where lit = F.tupleLiteral (fmap F.constant ts)
 

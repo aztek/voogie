@@ -52,10 +52,17 @@ store = Store
 tupleLiteral :: NonEmpty Term -> Term
 tupleLiteral = either id TupleLiteral . nonUnit
 
-noen = None
-some = Some
+none = None
+
+some :: Term -> Term
+some (FromSome t) = t
+some t = Some t
+
 isSome = IsSome
-fromSome = FromSome
+
+fromSome :: Term -> Term
+fromSome (Some t) = t
+fromSome t = FromSome t
 
 left :: Term -> Type -> Term
 left (FromLeft t) _ = t
