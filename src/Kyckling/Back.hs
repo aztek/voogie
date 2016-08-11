@@ -9,8 +9,6 @@ import Data.Bifunctor
 
 import qualified Data.List.NonEmpty as NE
 
-import Debug.Trace
-
 import Control.Applicative
 
 import Kyckling.Theory
@@ -63,7 +61,6 @@ translateReturn topLevelBehaviour (P.IteReturn c a b) = F.if_ c' a' b'
 
 translateStatement :: Behaviour -> P.Scoped P.Statement -> F.Term -> F.Term
 translateStatement _ (P.Scoped _ (P.Assign ass)) = F.let_ (F.binding (fmap translateAssignment ass))
-translateStatement topLevelBehaviour ite@(P.Scoped _ (P.If c a b)) | trace ("beh " ++ show topLevelBehaviour ++ " " ++ (pretty ite)) False = undefined
 translateStatement topLevelBehaviour ite@(P.Scoped _ (P.If c a b)) =
   F.let_ (F.Binding def body) . unbind
   where

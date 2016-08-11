@@ -8,6 +8,8 @@ import Data.List.NonEmpty (NonEmpty)
 
 import Data.Either
 
+import Kyckling.Theory
+
 import Kyckling.FOOL
 import Kyckling.FOOL.Tuple
 
@@ -54,8 +56,21 @@ noen = None
 some = Some
 isSome = IsSome
 fromSome = FromSome
-left = Left_
-right = Right_
+
+left :: Term -> Type -> Term
+left (FromLeft t) _ = t
+left a t = Left_ a t
+
+right :: Type -> Term -> Term
+right _ (FromRight t) = t
+right t b = Right_ t b
+
 isLeft = IsLeft
-fromLeft = FromLeft
-fromRight = FromRight
+
+fromLeft :: Term -> Term
+fromLeft (Left_ a _) = a
+fromLeft t = FromLeft t
+
+fromRight :: Term -> Term
+fromRight (Right_ _ a) = a
+fromRight t = FromRight t
