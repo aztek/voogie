@@ -23,12 +23,12 @@ instance Pretty Expression where
   pretty (BooleanLiteral b) = if b then "true" else "false"
 
   pretty (Unary  op e)   = pretty e ++ F.pretty op
-  pretty (Binary op a b) = pretty a ++ " " ++ F.pretty op ++ " " ++ pretty b
-  pretty (IfElse a b c)  = pretty a ++ " ? " ++ pretty a ++ " : " ++ pretty b
+  pretty (Binary op a b) = unwords [pretty a, F.pretty op, pretty b]
+  pretty (IfElse a b c)  = unwords [pretty a, "?", pretty a, ":", pretty b]
 
   pretty (FunApp (Typed f _) args) = f ++ "(" ++ intercalate ", " (map pretty args) ++ ")"
 
-  pretty (Equals s a b) = pretty a ++ (if s == Pos then " == " else " != ") ++ pretty b
+  pretty (Equals s a b) = unwords [pretty a, if s == Pos then "==" else "!=", pretty b]
 
   pretty (Ref lval) = pretty lval
 
@@ -43,17 +43,18 @@ braces n s = "{" ++ (if null s' then "" else "\n" ++ s' ++ indent n) ++ "}"
   where s' = indented (n + 1) s
 
 indentedIte :: (Pretty a, Pretty b) => Integer -> Expression -> a -> b -> String
-indentedIte n c a b = "if (" ++ pretty c ++ ") " ++ braces n a ++ " else " ++ braces n b
+indentedIte n c a b = unwords ["if", "(" ++ pretty c ++ ")", braces n a, "else", braces n b]
 
 instance Pretty (Typed Name) where
-  pretty (Typed n t) = F.pretty t ++ " " ++ n
+  pretty (Typed n t) = unwords [F.pretty t, n]
 
 instance Pretty Statement where
   indented n s = indent n ++ case s of
-    --Declare v -> atomic [pretty v]
-    Assign pairs -> atomic [intercalate ", " (fmap pretty $ NE.toList lvs), "=", intercalate ", " (fmap pretty $ NE.toList es)]
+    Assign pairs -> atomic [commaSep lvs, "=", commaSep es]
       where
         (lvs, es) = NE.unzip pairs
+        commaSep :: Pretty a => NonEmpty a -> String
+        commaSep = intercalate ", " . fmap pretty . NE.toList
     If c a (Left b) -> indentedIte n c a b
     If c a (Right (False, b)) -> indentedIte n c a b
     If c a (Right (True,  b)) -> indentedIte n c b a
