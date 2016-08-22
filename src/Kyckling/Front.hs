@@ -11,6 +11,9 @@ import Data.List.NonEmpty (NonEmpty)
 import qualified Data.Map as Map
 import Data.Map (Map)
 
+import qualified Data.Set as Set
+import Data.Set (Set)
+
 import Kyckling.Theory
 import Kyckling.Pretty
 import Kyckling.Program.Smart
@@ -216,42 +219,50 @@ analyzeAssert :: Env -> AST.Assert -> Either Error Assertion
 analyzeAssert env (AST.Assert f) = Assertion <$> analyzeFormula env f
 
 analyzeFormula :: Env -> F.AST.Term -> Either Error F.Formula
-analyzeFormula env f = analyzeTerm env `guard` f .: Boolean
+analyzeFormula env = analyzeFormula' (env, Set.empty)
 
-analyzeTerm :: Env -> F.AST.Term -> Either Error F.Term
+analyzeFormula' :: (Env, Set (Typed Name)) -> F.AST.Term -> Either Error F.Formula
+analyzeFormula' ctx f = analyzeTerm ctx `guard` f .: Boolean
+
+analyzeTerm :: (Env, Set (Typed Name)) -> F.AST.Term -> Either Error F.Term
 analyzeTerm _ (F.AST.IntConst  i) = return (F.integerConstant i)
 analyzeTerm _ (F.AST.BoolConst b) = return (F.booleanConstant b)
-analyzeTerm env (F.AST.Const c) = F.constant <$> lookupVariable c env
-analyzeTerm env (F.AST.Unary op t) = F.unary op <$> analyzeTerm env `guard` t .: d
+analyzeTerm (env, qv) (F.AST.Const c) =
+  do var <- lookupVariable c env
+     return $ if Set.member var qv
+              then F.variable (fmap F.var var)
+              else F.constant var
+analyzeTerm ctx (F.AST.Unary op t) = F.unary op <$> analyzeTerm ctx `guard` t .: d
   where
     d = unaryOpDomain op
-analyzeTerm env (F.AST.Binary op a b) = F.binary op <$> a' <*> b'
+analyzeTerm ctx (F.AST.Binary op a b) = F.binary op <$> a' <*> b'
   where
-    a' = analyzeTerm env `guard` a .: d1
-    b' = analyzeTerm env `guard` b .: d2
+    a' = analyzeTerm ctx `guard` a .: d1
+    b' = analyzeTerm ctx `guard` b .: d2
     (d1, d2) = binaryOpDomain op
-analyzeTerm env (F.AST.Ternary c a b) = 
-  do c' <- analyzeFormula env c
-     a' <- analyzeTerm env a
-     b' <- analyzeTerm env `guard` b .: typeOf a'
+analyzeTerm ctx (F.AST.Ternary c a b) = 
+  do c' <- analyzeFormula' ctx c
+     a' <- analyzeTerm ctx a
+     b' <- analyzeTerm ctx `guard` b .: typeOf a'
      return (F.if_ c' a' b')
-analyzeTerm env (F.AST.Equals s a b) =
-  do a' <- analyzeTerm env a
-     b' <- analyzeTerm env `guard` b .: typeOf a'
+analyzeTerm ctx (F.AST.Equals s a b) =
+  do a' <- analyzeTerm ctx a
+     b' <- analyzeTerm ctx `guard` b .: typeOf a'
      return (F.equals s a' b')
-analyzeTerm env (F.AST.Quantified q vars term) = F.quantify q vars' <$> analyzeFormula env' term
+analyzeTerm (env, qv) (F.AST.Quantified q vars term) = F.quantify q vars' <$> analyzeFormula' (env', qv') term
   where
     -- TODO: check that the variables are disjoint
     env' = foldr insertVariable env vars
+    qv'  = foldr Set.insert     qv  vars
     vars' = map (fmap F.var) vars
-analyzeTerm env (F.AST.FunApp f args) =
+analyzeTerm ctx@(env, _) (F.AST.FunApp f args) =
   do FunType ts r <- lookupFunction f env
-     args' <- analyzeTerm env `guardAll` args .: ts
+     args' <- analyzeTerm ctx `guardAll` args .: ts
      return (F.application (Typed f r) args')
-analyzeTerm env (F.AST.ArrayElem s i) = F.select <$> array <*> index
+analyzeTerm ctx@(env, _) (F.AST.ArrayElem s i) = F.select <$> array <*> index
   where
     array = F.constant <$> lookupArrayName s env
-    index = analyzeTerm env `guard` i .: Integer
+    index = analyzeTerm ctx `guard` i .: Integer
 
 analyzeLValue :: Env -> AST.LVal -> Either Error LValue
 analyzeLValue env (AST.Var s) = Variable <$> lookupVariable s env
