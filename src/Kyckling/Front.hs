@@ -115,7 +115,7 @@ analyzeStmts env = analyzeStmts' env . flattenDeclarations
                         return (env'', bimap (appendScopeTerminating vars) (appendScopeNonTerminating vars) ss')
              where
                env' = foldr insertVariable env vars
-               vars' = map (fmap F.Var) vars
+               vars' = map (fmap F.var) vars
 
                appendScopeTerminating :: [Var] -> Terminating -> Terminating
                appendScopeTerminating vars (Terminating []     r) = Terminating [] (appendScope vars r)
@@ -243,7 +243,7 @@ analyzeTerm env (F.AST.Quantified q vars term) = F.quantify q vars' <$> analyzeF
   where
     -- TODO: check that the variables are disjoint
     env' = foldr insertVariable env vars
-    vars' = map (fmap F.Var) vars
+    vars' = map (fmap F.var) vars
 analyzeTerm env (F.AST.FunApp f args) =
   do FunType ts r <- lookupFunction f env
      args' <- analyzeTerm env `guardAll` args .: ts

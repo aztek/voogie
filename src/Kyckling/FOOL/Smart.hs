@@ -1,17 +1,24 @@
 module Kyckling.FOOL.Smart (
   module Kyckling.FOOL.Smart,
-  Var(..), Identifier, Definition(..), Binding(..), Term, Formula
+  Var, Identifier, Definition(..), Binding(..), Term, Formula
 ) where
 
 import qualified Data.List.NonEmpty as NE
 import Data.List.NonEmpty (NonEmpty)
 
+import Data.Char
 import Data.Either
 
 import Kyckling.Theory
 
 import Kyckling.FOOL
 import Kyckling.FOOL.Tuple
+
+var :: String -> Var
+var = Var . map toUpper
+
+name :: String -> Name
+name = map toLower
 
 -- Binding
 binding :: NonEmpty (Identifier, Term) -> Binding

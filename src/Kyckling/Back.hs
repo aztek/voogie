@@ -1,6 +1,5 @@
 module Kyckling.Back where
 
-import Data.Char
 import Data.Either
 import Data.Maybe
 import qualified Data.Set as S
@@ -130,7 +129,7 @@ translateLValue (P.Variable v)    = F.constant (translateConstant v)
 translateLValue (P.ArrayElem v e) = F.select (F.constant (translateConstant v)) (translateExpression e)
 
 translateConstant :: P.Var -> F.Identifier
-translateConstant = fmap (map toLower)
+translateConstant = fmap F.name
 
 translateVar :: P.Var -> Typed F.Var
-translateVar = fmap (F.Var . map toUpper)
+translateVar = fmap F.var
