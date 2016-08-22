@@ -59,7 +59,7 @@ quantifier =  constant "forall" Forall
           <|> constant "exists" Exists
 
 typedVar :: Parser (Typed Name)
-typedVar = Typed <$> identifier <*> typ
+typedVar = flip Typed <$> typ <*> identifier
 
 ref = do i <- identifier
          args <- optionMaybe (parens $ commaSep term)
