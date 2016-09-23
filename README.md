@@ -5,13 +5,15 @@ A translator of code fragments with assertions to TPTP problems.
 The input is a program in a restricted subset of C. It includes
 - definitions of variables
 - `int`, `bool`, and (multi-dimentional) arrays (`int[]`, `int[][]`, `bool[][][]`, etc.)
+- expressions with
+  - arithmetical operators `+`, `-`, `*`
+  - comparison operators `==`, `!=`, `>`, `<`, `>=`, `<=`
+  - logical operators `!`, `&&`, `||` 
+  - ternary operator `:?`
 - assignments for variables and elements of arrays
+- shortcuts `++`, `--`, `+=`, `-=`, `*=`
 - `if` statements
-- arithmetical operators `+`, `-`, `*`
-- comparison operators `==`, `!=`, `>`, `<`, `>=`, `<=`
-- logical operators `!`, `&&`, `||` 
-- `++`, `--`, `+=`, `-=`, `*=`
-- ternary operator `:?`
+- definitions of terminating non-recursive functions
 
 The sequence of program statements must be followed by one or more assertions. See [examples](https://github.com/aztek/kyckling/tree/master/examples).
 
