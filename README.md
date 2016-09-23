@@ -30,7 +30,9 @@ if (a[1] > 0) x++; else y++;
 assert x + y == 2;
 ```
 
-``$ ./bin/kyckling examples/count_two2.ky``
+```bash
+$ ./bin/kyckling examples/count_two2.ky
+```
 ```
 thf(a, type, a: $array($int, $int)).
 thf(asserts, conjecture,
@@ -50,3 +52,32 @@ thf(asserts, conjecture,
 ```
 
 The resulting TPTP problem can be checked by a first-order theorem prover such as [Vampire](http://vprover.org/).
+
+```bash
+$ cat examples/max.ky
+```
+```c
+int max(int x, int y) {
+  if (x > y) {
+    return x;
+  }
+  return y;
+}
+
+assert forall (int x, int y) (max(x, y) >= x && max(x, y) >= y);
+```
+
+```bash
+$ ./bin/kyckling examples/max.ky
+```
+```
+thf(asserts, conjecture,
+    $let(max(X:$int, Y:$int) := $let([x, y] := [X, Y],
+                                $let(i := $ite($greater(x, y),
+                                               $some(x),
+                                               $none($int)),
+                                     $ite($issome(i),
+                                          i,
+                                          y))),
+         ! [X:$int, Y:$int]: ($greatereq(max(X, Y), X) & $greatereq(max(X, Y), Y)))).
+```
