@@ -77,7 +77,7 @@ thf(asserts, conjecture,
                                                $some(x),
                                                $none($int)),
                                      $ite($issome(i),
-                                          i,
+                                          $fromsome(i),
                                           y))),
          ! [X:$int, Y:$int]: ($greatereq(max(X, Y), X) & $greatereq(max(X, Y), Y)))).
 ```
