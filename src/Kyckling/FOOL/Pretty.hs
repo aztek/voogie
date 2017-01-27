@@ -41,6 +41,7 @@ instance Pretty BinaryOp where
       Add      -> "+"
       Subtract -> "-"
       Multiply -> "*"
+      Divide   -> "/"
 
 instance Pretty Term where
   pretty (IntegerConstant i) = show i

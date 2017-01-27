@@ -17,7 +17,7 @@ language = emptyDef
                             , "assert"
                             , "return"
                             ]
-  , Token.reservedOpNames = [ "+",  "-",  "*"
+  , Token.reservedOpNames = [ "+",  "-",  "*", "/"
                             , "+=", "-=", "*=", "=", "++", "--"
                             , "==", "!=", "<", ">", "<=", ">="
                             , "&&", "||", "!", "=>"

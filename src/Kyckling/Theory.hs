@@ -71,7 +71,7 @@ data UnaryOp = Negate
 
 data BinaryOp = And | Or | Imply | Iff | Xor
               | Greater | Less | Geq | Leq
-              | Add | Subtract | Multiply
+              | Add | Subtract | Multiply | Divide
   deriving (Show, Eq)
 
 unaryOpTypes :: UnaryOp -> (Type, Type)
@@ -101,6 +101,7 @@ binaryOpTypes op =
     Add      -> ((Integer, Integer), Integer)
     Subtract -> ((Integer, Integer), Integer)
     Multiply -> ((Integer, Integer), Integer)
+    Divide   -> ((Integer, Integer), Integer)
 
 binaryOpDomain :: BinaryOp -> (Type, Type)
 binaryOpDomain = fst . binaryOpTypes
