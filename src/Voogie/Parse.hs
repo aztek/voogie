@@ -14,14 +14,14 @@ language = emptyDef
   , Token.reservedNames   = [ "if", "else"
                             , "true", "false"
                             , "int", "bool"
-                            , "assert"
+                            , "assert", "returns", "requires", "ensures"
                             , "return"
                             ]
   , Token.reservedOpNames = [ "+",  "-",  "*", "/"
-                            , "+=", "-=", "*=", "=", "++", "--"
+                            , "+=", "-=", "*=", ":=", "++", "--"
                             , "==", "!=", "<", ">", "<=", ">="
-                            , "&&", "||", "!", "=>"
-                            , ":", "?"
+                            , "&&", "||", "!", "==>"
+                            , ":", "?", "::",
                             , "[]"
                             ]
   }

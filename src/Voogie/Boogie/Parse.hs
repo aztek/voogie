@@ -15,16 +15,7 @@ import Voogie.Parse
 import qualified Voogie.FOOL.Parse as F
 
 expr :: Parser Expr
-expr = do e <- expr'
-          tern <- optionMaybe (reserved "?")
-          case tern of
-            Just _ -> do a <- expr
-                         reserved ":"
-                         b <- expr
-                         return (Ternary e a b)
-            Nothing -> return e
-
-expr' = buildExpressionParser operators term
+expr = buildExpressionParser operators term
 
 operators = [ [prefix "-"  (Unary  Negative)          ,
                prefix "+"  (Unary  Positive)          ]
@@ -74,7 +65,7 @@ updateStmt = atomicStmt $ do lv <- lval
   where
     update u (t, op) = reserved t >> u op
     unaryOps  = [("++", Increment), ("--", Decrement)]
-    binaryOps = [("=",  Assign), ("+=", Plus), ("-=", Minus), ("*=", Times)]
+    binaryOps = [(":=",  Assign), ("+=", Plus), ("-=", Minus), ("*=", Times)]
 
 declareStmt = atomicStmt $ Declare <$> typ <*> commaSep1 definition
   where

@@ -14,32 +14,23 @@ import Voogie.Parse
 import Voogie.FOOL.AST
 
 term :: Parser Term
-term = do t <- term'
-          tern <- optionMaybe (reserved "?")
-          case tern of
-            Just _ -> do a <- term
-                         reserved ":"
-                         b <- term
-                         return $ Ternary t a b
-            Nothing -> return t
+term = buildExpressionParser operators arg
 
-term' = buildExpressionParser operators arg
-
-operators = [ [prefix "-"  (Unary  Negative)          ,
-               prefix "+"  (Unary  Positive)          ]
-            , [binary "*"  (Binary Multiply) AssocLeft]
-            , [binary "+"  (Binary Add     ) AssocLeft,
-               binary "-"  (Binary Subtract) AssocLeft]
-            , [binary ">"  (Binary Greater ) AssocNone,
-               binary "<"  (Binary Less    ) AssocNone,
-               binary ">=" (Binary Geq     ) AssocNone,
-               binary "<=" (Binary Leq     ) AssocNone]
-            , [binary "==" (Equals Pos     ) AssocLeft,
-               binary "!=" (Equals Neg     ) AssocLeft]
-            , [prefix "!"  (Unary  Negate  )          ]
-            , [binary "&&" (Binary And     ) AssocLeft,
-               binary "||" (Binary Or      ) AssocLeft,
-               binary "=>" (Binary Imply   ) AssocLeft]
+operators = [ [prefix "-"   (Unary  Negative)          ,
+               prefix "+"   (Unary  Positive)          ]
+            , [binary "*"   (Binary Multiply) AssocLeft]
+            , [binary "+"   (Binary Add     ) AssocLeft,
+               binary "-"   (Binary Subtract) AssocLeft]
+            , [binary ">"   (Binary Greater ) AssocNone,
+               binary "<"   (Binary Less    ) AssocNone,
+               binary ">="  (Binary Geq     ) AssocNone,
+               binary "<="  (Binary Leq     ) AssocNone]
+            , [binary "=="  (Equals Pos     ) AssocLeft,
+               binary "!="  (Equals Neg     ) AssocLeft]
+            , [prefix "!"   (Unary  Negate  )          ]
+            , [binary "&&"  (Binary And     ) AssocLeft,
+               binary "||"  (Binary Or      ) AssocLeft,
+               binary "==>" (Binary Imply   ) AssocLeft]
             ]
 
 arg =  parens term
@@ -51,7 +42,8 @@ arg =  parens term
    <|> ref
 
 quantified = do q <- quantifier
-                vars <- parens (commaSep1 typedVar)
+                vars <- commaSep1 typedVar
+                reserved "::"
                 t <- arg
                 return $ Quantified q vars t
 

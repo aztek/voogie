@@ -34,8 +34,8 @@ data Stmt = If Expr [Stmt] [Stmt]
 data FunDef = FunDef Type String [Typed String] [Stmt]
   deriving (Show, Eq)
 
-data Assert = Assert F.Formula
-  deriving (Show, Eq)
+--data Assert = Assert F.Formula
+--  deriving (Show, Eq)
 
-data AST = AST [FunDef] [Stmt] [Assert]
+data AST = AST [FunDef] [F.Formula] [Stmt] [F.Formula]
   deriving (Show, Eq)
