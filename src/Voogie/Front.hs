@@ -1,4 +1,4 @@
-module Kyckling.Front where
+module Voogie.Front where
 
 import Control.Monad (zipWithM)
 import Control.Applicative
@@ -14,15 +14,15 @@ import Data.Map (Map)
 import qualified Data.Set as Set
 import Data.Set (Set)
 
-import Kyckling.Theory
-import Kyckling.Pretty
-import Kyckling.Program.Smart
-import Kyckling.Program.Pretty
-import qualified Kyckling.Program.AST as AST
+import Voogie.Theory
+import Voogie.Pretty
+import Voogie.Boogie.Smart
+import Voogie.Boogie.Pretty
+import qualified Voogie.Boogie.AST as AST
 
-import qualified Kyckling.FOOL.Smart as F
-import qualified Kyckling.FOOL.AST as F.AST
-import qualified Kyckling.FOOL.Pretty as F.P
+import qualified Voogie.FOOL.Smart as F
+import qualified Voogie.FOOL.AST as F.AST
+import qualified Voogie.FOOL.Pretty as F.P
 
 type Error = String
 
@@ -56,12 +56,12 @@ insertFunction :: (Name, FunType) -> Env -> Env
 insertFunction (n, t) (Env fs vs) = Env (Map.insert n t fs) vs
 
 
-analyze :: AST.AST -> Either Error Program
+analyze :: AST.AST -> Either Error Boogie
 analyze (AST.AST fs ss as) =
   do (env,  fs') <- analyzeFunDefs emptyEnv fs
      (env', ss') <- analyzeNonTerminating env ss
      as' <- mapM (analyzeAssert env') as
-     return (Program fs' ss' as')
+     return (Boogie fs' ss' as')
 
 analyzeFunDefs :: Env -> [AST.FunDef] -> Either Error (Env, [FunDef])
 analyzeFunDefs env [] = Right (env, [])

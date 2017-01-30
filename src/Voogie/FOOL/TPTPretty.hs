@@ -1,14 +1,14 @@
-module Kyckling.FOOL.TPTPretty (
+module Voogie.FOOL.TPTPretty (
   prettyTPTP
 ) where
 
 import Data.List
-import qualified Kyckling.FOOL.Tuple as Tuple
-import Kyckling.FOOL.Tuple (Tuple)
+import qualified Voogie.FOOL.Tuple as Tuple
+import Voogie.FOOL.Tuple (Tuple)
 import Data.Char
 
-import Kyckling.Theory
-import Kyckling.FOOL
+import Voogie.Theory
+import Voogie.FOOL
 
 list :: [String] -> String
 list = intercalate ", "

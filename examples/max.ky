@@ -1,8 +1,0 @@
-int max(int x, int y) {
-  if (x > y) {
-    return x;
-  }
-  return y;
-}
-
-assert forall (int x, int y) (max(x, y) >= x && max(x, y) >= y);

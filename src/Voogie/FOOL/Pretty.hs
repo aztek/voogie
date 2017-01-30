@@ -1,13 +1,13 @@
-module Kyckling.FOOL.Pretty (
+module Voogie.FOOL.Pretty (
   pretty
 ) where
 
 import Data.List
 
-import Kyckling.Theory
-import Kyckling.Pretty
-import Kyckling.FOOL
-import qualified Kyckling.FOOL.Tuple as Tuple
+import Voogie.Theory
+import Voogie.Pretty
+import Voogie.FOOL
+import qualified Voogie.FOOL.Tuple as Tuple
 
 instance Pretty Quantifier where
   pretty Forall = "forall"

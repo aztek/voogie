@@ -1,5 +1,5 @@
-module Kyckling.FOOL.Smart (
-  module Kyckling.FOOL.Smart,
+module Voogie.FOOL.Smart (
+  module Voogie.FOOL.Smart,
   Var, Identifier, Definition(..), Binding(..), Term, Formula
 ) where
 
@@ -9,10 +9,10 @@ import Data.List.NonEmpty (NonEmpty)
 import Data.Char
 import Data.Either
 
-import Kyckling.Theory
+import Voogie.Theory
 
-import Kyckling.FOOL
-import Kyckling.FOOL.Tuple
+import Voogie.FOOL
+import Voogie.FOOL.Tuple
 
 var :: String -> Var
 var = Var . map toUpper

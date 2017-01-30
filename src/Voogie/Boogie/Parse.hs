@@ -1,4 +1,4 @@
-module Kyckling.Program.Parse (parseAST) where
+module Voogie.Boogie.Parse (parseAST) where
 
 import System.IO
 import Control.Monad
@@ -8,11 +8,11 @@ import Data.Maybe
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Expr
 
-import Kyckling.Theory
-import Kyckling.Program.AST
+import Voogie.Theory
+import Voogie.Boogie.AST
 
-import Kyckling.Parse
-import qualified Kyckling.FOOL.Parse as F
+import Voogie.Parse
+import qualified Voogie.FOOL.Parse as F
 
 expr :: Parser Expr
 expr = do e <- expr'

@@ -1,11 +1,11 @@
-module Kyckling.Parse where
+module Voogie.Parse where
 
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Expr
 import Text.ParserCombinators.Parsec.Language
 import qualified Text.ParserCombinators.Parsec.Token as Token
 
-import Kyckling.Theory
+import Voogie.Theory
 
 language = emptyDef
   { Token.commentStart    = "/*"

@@ -1,4 +1,4 @@
-module Kyckling.FOOL.Parse (term, formula) where
+module Voogie.FOOL.Parse (term, formula) where
 
 import System.IO
 import Control.Monad
@@ -9,9 +9,9 @@ import Text.ParserCombinators.Parsec.Expr
 import Text.ParserCombinators.Parsec.Language
 import qualified Text.ParserCombinators.Parsec.Token as Token
 
-import Kyckling.Theory
-import Kyckling.Parse
-import Kyckling.FOOL.AST
+import Voogie.Theory
+import Voogie.Parse
+import Voogie.FOOL.AST
 
 term :: Parser Term
 term = do t <- term'

@@ -1,4 +1,4 @@
-module Kyckling.Pretty where
+module Voogie.Pretty where
 
 class Pretty a where
   indented :: Integer -> a -> String

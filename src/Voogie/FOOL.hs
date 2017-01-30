@@ -1,8 +1,8 @@
-module Kyckling.FOOL where
+module Voogie.FOOL where
 
-import Kyckling.FOOL.Tuple (Tuple)
+import Voogie.FOOL.Tuple (Tuple)
 
-import Kyckling.Theory
+import Voogie.Theory
 
 newtype Var = Var Name
   deriving (Show, Eq)

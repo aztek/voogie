@@ -1,6 +1,6 @@
-module Kyckling.Program.Smart (
-  module Kyckling.Program.Smart,
-  module Kyckling.Program
+module Voogie.Boogie.Smart (
+  module Voogie.Boogie.Smart,
+  module Voogie.Boogie
 ) where
 
 import qualified Data.List.NonEmpty as NE
@@ -8,7 +8,7 @@ import Data.List.NonEmpty (NonEmpty)
 
 import Data.Either
 
-import Kyckling.Program
+import Voogie.Boogie
 
 assign :: NonEmpty (LValue, Expression) -> Scoped Statement
 assign = Scoped [] . Assign

@@ -1,6 +1,6 @@
 {-# LANGUAGE FlexibleInstances #-}
 
-module Kyckling.Program.Pretty (
+module Voogie.Boogie.Pretty (
   pretty
 ) where
 
@@ -8,11 +8,11 @@ import Data.List
 import qualified Data.List.NonEmpty as NE
 import Data.List.NonEmpty (NonEmpty)
 
-import Kyckling.Theory
-import Kyckling.Pretty
-import Kyckling.Program
+import Voogie.Theory
+import Voogie.Pretty
+import Voogie.Boogie
 
-import qualified Kyckling.FOOL.Pretty as F
+import qualified Voogie.FOOL.Pretty as F
 
 instance Pretty LValue where
   pretty (Variable  (Typed v _)) = v
@@ -84,5 +84,5 @@ instance Pretty FunDef where
 instance Pretty Assertion where
   pretty (Assertion f) = atomic ["assert", F.pretty f]
 
-instance Pretty Program where
-  pretty (Program fs ss as) = unlines (map pretty fs) ++ pretty ss ++ unlines (map pretty as)
+instance Pretty Boogie where
+  pretty (Boogie fs ss as) = unlines (map pretty fs) ++ pretty ss ++ unlines (map pretty as)

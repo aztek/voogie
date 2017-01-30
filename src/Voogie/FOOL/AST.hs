@@ -1,6 +1,6 @@
-module Kyckling.FOOL.AST where
+module Voogie.FOOL.AST where
 
-import Kyckling.Theory
+import Voogie.Theory
 
 data Term = IntConst Integer
           | BoolConst Bool

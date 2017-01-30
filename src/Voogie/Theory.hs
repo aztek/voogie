@@ -1,12 +1,12 @@
 {-# LANGUAGE DeriveFunctor #-}
 
-module Kyckling.Theory where
+module Voogie.Theory where
 
 import Data.Set
 import Data.List.NonEmpty (NonEmpty)
 
-import qualified Kyckling.FOOL.Tuple as Tuple
-import Kyckling.FOOL.Tuple (Tuple)
+import qualified Voogie.FOOL.Tuple as Tuple
+import Voogie.FOOL.Tuple (Tuple)
 
 data Type = Boolean
           | Integer

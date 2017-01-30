@@ -1,11 +1,11 @@
 {-# LANGUAGE DeriveFunctor #-}
 
-module Kyckling.Program where
+module Voogie.Boogie where
 
 import Data.List.NonEmpty
 
-import Kyckling.Theory
-import qualified Kyckling.FOOL as F
+import Voogie.Theory
+import qualified Voogie.FOOL as F
 
 type Var = Typed Name
 type Function = Typed Name
@@ -77,5 +77,5 @@ data Assertion = Assertion F.Formula
 data FunDef = FunDef (Typed Name) [Var] Terminating
   deriving (Show)
 
-data Program = Program [FunDef] NonTerminating [Assertion]
+data Boogie = Boogie [FunDef] NonTerminating [Assertion]
   deriving (Show)

@@ -1,4 +1,4 @@
-module Kyckling.Back where
+module Voogie.Back where
 
 import Data.Either
 import Data.Maybe
@@ -10,13 +10,13 @@ import qualified Data.List.NonEmpty as NE
 
 import Control.Applicative
 
-import Kyckling.Theory
-import qualified Kyckling.FOOL.Smart as F
-import qualified Kyckling.FOOL.Tuple as F.Tuple
+import Voogie.Theory
+import qualified Voogie.FOOL.Smart as F
+import qualified Voogie.FOOL.Tuple as F.Tuple
 
-import qualified Kyckling.Program as P
-import Kyckling.Program.Behaviour
-import Kyckling.Program.Pretty
+import qualified Voogie.Boogie as P
+import Voogie.Boogie.Behaviour
+import Voogie.Boogie.Pretty
 
 return_ :: Behaviour -> F.Term -> F.Term
 return_ b t = case returns b of
@@ -100,8 +100,8 @@ translateAssignment (lval, e) = (c, body)
       P.Variable  _   -> e'
       P.ArrayElem _ a -> F.store (F.constant c) (translateExpression a) e'
 
-translate :: P.Program -> (Signature, F.Formula)
-translate (P.Program fs ss as) = case NE.nonEmpty as of
+translate :: P.Boogie -> (Signature, F.Formula)
+translate (P.Boogie fs ss as) = case NE.nonEmpty as of
   Nothing -> (S.empty, F.booleanConstant True)
   Just as -> (signature, conjecture)
     where

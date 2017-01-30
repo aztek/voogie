@@ -1,9 +1,9 @@
-module Kyckling.Program.Optimize where
+module Voogie.Boogie.Optimize where
 
-import Kyckling.Program
+import Voogie.Boogie
 
-optimize :: Program -> Program
-optimize (Program fs ss as) = Program (map optimizeFunDef fs) (optimizeNonTerminating ss) as
+optimize :: Boogie -> Boogie
+optimize (Boogie fs ss as) = Boogie (map optimizeFunDef fs) (optimizeNonTerminating ss) as
 
 optimizeFunDef :: FunDef -> FunDef
 optimizeFunDef (FunDef f args ts) = FunDef f args (optimizeTerminating ts)

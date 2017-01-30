@@ -2,12 +2,12 @@ module Main where
 
 import System.Environment
 
-import Kyckling.Program.Parse
-import Kyckling.Program.Pretty
-import Kyckling.Program.Optimize
-import Kyckling.Front
-import Kyckling.Back
-import Kyckling.FOOL.TPTPretty
+import Voogie.Boogie.Parse
+import Voogie.Boogie.Pretty
+import Voogie.Boogie.Optimize
+import Voogie.Front
+import Voogie.Back
+import Voogie.FOOL.TPTPretty
 
 main = do args <- getArgs
           let (source, input) = case args of

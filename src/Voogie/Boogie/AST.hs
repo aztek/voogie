@@ -1,9 +1,9 @@
-module Kyckling.Program.AST where
+module Voogie.Boogie.AST where
 
-import Kyckling.FOOL.Tuple
+import Voogie.FOOL.Tuple
 
-import Kyckling.Theory
-import qualified Kyckling.FOOL.AST as F
+import Voogie.Theory
+import qualified Voogie.FOOL.AST as F
 
 data LVal = Var String
           | ArrayElem String Expr

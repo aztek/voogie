@@ -1,4 +1,4 @@
-module Kyckling.Program.Behaviour (
+module Voogie.Boogie.Behaviour (
   Behaviour(..), 
   getBehaviour, initBehaviour, getBehaviourTerminating, getBehaviourNonTerminating, collectDeclarations
 ) where
@@ -11,8 +11,8 @@ import Data.List.NonEmpty (NonEmpty)
 import qualified Data.Set as S
 import Data.Set (Set, (\\), union)
 
-import Kyckling.Theory
-import Kyckling.Program
+import Voogie.Theory
+import Voogie.Boogie
 
 data Behaviour = Behaviour { returns :: Maybe Type, updates :: Set Var }
   deriving (Show)
