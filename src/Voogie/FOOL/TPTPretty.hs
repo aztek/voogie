@@ -51,7 +51,7 @@ prettyType s =
   case s of
     Boolean -> "$o"
     Integer -> "$int"
-    Array t -> funapp "$array" ["$int", prettyType t]
+    Array i t -> funapp "$array" [prettyType i, prettyType t]
     TupleType ts -> tuple (fmap prettyType ts)
     OptionType t -> funapp "$option" [prettyType t]
     EitherType l r -> funapp "$either" [prettyType l, prettyType r]

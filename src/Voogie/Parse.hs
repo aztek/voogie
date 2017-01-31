@@ -14,6 +14,7 @@ language = emptyDef
   , Token.reservedNames   = [ "if", "else"
                             , "true", "false"
                             , "int", "bool"
+                            , "procedure", "var"
                             , "assert", "returns", "requires", "ensures"
                             , "return"
                             ]
@@ -21,7 +22,7 @@ language = emptyDef
                             , "+=", "-=", "*=", ":=", "++", "--"
                             , "==", "!=", "<", ">", "<=", ">="
                             , "&&", "||", "!", "==>"
-                            , ":", "?", "::",
+                            , ":", "?", "::"
                             , "[]"
                             ]
   }
@@ -48,9 +49,14 @@ prefix  = operator Prefix
 postfix = operator Postfix
 
 typ :: Parser Type
-typ = do t <- atomicTyp
-         arrs <- many (reserved "[]")
-         return $ foldr (const Array) t arrs
+typ =  atomicTyp
+   <|> Array <$> brackets typ <*> typ
 
 atomicTyp =  constant "int"  Integer
          <|> constant "bool" Boolean
+
+typed :: Parser (Typed String)
+typed = do i <- identifier
+           reservedOp ":"
+           t <- typ
+           return (Typed i t)

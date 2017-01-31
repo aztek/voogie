@@ -16,7 +16,7 @@ instance Pretty Quantifier where
 instance Pretty Type where
   pretty Integer = "int"
   pretty Boolean = "bool"
-  pretty (Array t) = pretty t ++ "[]"
+  pretty (Array i t) = "[" ++ pretty i ++ "] " ++ pretty t
   pretty (TupleType ts) = "(" ++ Tuple.intercalate ", " (fmap pretty ts) ++ ")"
   pretty (OptionType t) = "option(" ++ pretty t ++ ")"
   pretty (EitherType l r) = "either(" ++ pretty l ++ ", " ++ pretty r ++ ")"

@@ -23,12 +23,13 @@ data UpdateOp = Assign | Plus | Minus | Times
   deriving (Show, Eq)
 
 data Stmt = If Expr [Stmt] [Stmt]
-          | Declare Type [(String, Maybe Expr)]
           | Increment LVal
           | Decrement LVal
           | Update LVal UpdateOp Expr
-          | Multiupdate UpdateOp (Tuple (String, Expr))
           | Return Expr
+  deriving (Show, Eq)
+
+data Declaration = Declare (Typed [String])
   deriving (Show, Eq)
 
 data FunDef = FunDef Type String [Typed String] [Stmt]
@@ -37,5 +38,11 @@ data FunDef = FunDef Type String [Typed String] [Stmt]
 --data Assert = Assert F.Formula
 --  deriving (Show, Eq)
 
-data AST = AST [FunDef] [F.Formula] [Stmt] [F.Formula]
+data Returns = Returns (Typed String)
+  deriving (Show, Eq)
+
+data Main = Main [F.Formula] (Maybe Returns) [Declaration] [Stmt] [F.Formula]
+  deriving (Show, Eq)
+
+data AST = AST [Declaration] Main
   deriving (Show, Eq)

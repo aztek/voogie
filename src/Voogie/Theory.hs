@@ -10,18 +10,18 @@ import Voogie.FOOL.Tuple (Tuple)
 
 data Type = Boolean
           | Integer
-          | Array Type
+          | Array Type Type
           | TupleType (Tuple Type)
           | OptionType Type
           | EitherType Type Type
   deriving (Show, Eq, Ord)
 
 isArray :: Type -> Bool
-isArray (Array t) = True
+isArray (Array _ _) = True
 isArray _ = False
 
 arrayArgument :: Type -> Type
-arrayArgument (Array t) = t
+arrayArgument (Array _ t) = t
 arrayArgument t = error (show t ++ " is not an array")
 
 isOption :: Type -> Bool

@@ -52,7 +52,6 @@ stmts =  braces (many stmt)
 
 stmt :: Parser Stmt
 stmt =  updateStmt
-    <|> declareStmt
     <|> ifStmt
     <|> returnStmt
 
@@ -67,26 +66,39 @@ updateStmt = atomicStmt $ do lv <- lval
     unaryOps  = [("++", Increment), ("--", Decrement)]
     binaryOps = [(":=",  Assign), ("+=", Plus), ("-=", Minus), ("*=", Times)]
 
-declareStmt = atomicStmt $ Declare <$> typ <*> commaSep1 definition
-  where
-    definition = (,) <$> identifier <*> maybeBody
-    maybeBody  = optionMaybe (reservedOp "=" >> expr)
-
 ifStmt = reserved "if" >> If <$> parens expr <*> stmts <*> elseStmts
   where
     elseStmts = fromMaybe [] <$> optionMaybe (reserved "else" >> stmts)
 
 returnStmt = atomicStmt $ reserved "return" >> Return <$> expr
 
-fundef = FunDef <$> typ <*> identifier <*> args <*> stmts
-  where
-    args = parens (commaSep arg)
-    arg  = flip Typed <$> typ <*> identifier
+declaration = atomicStmt $ do reserved "var"
+                              is <- commaSep1 identifier
+                              reserved ":"
+                              t <- typ
+                              return $ Declare (Typed is t)
 
-assert = atomicStmt (reserved "assert" >> Assert <$> F.formula)
+main = do reservedOp "procedure"
+          reserved "main"
+          reserved "("
+          reserved ")"
+          returns <- optionMaybe (atomicStmt $ reserved "returns" >> parens (Returns <$> typed))
+          pre  <- many (try $ atomicStmt $ reservedOp "requires" >> parens (F.formula))
+          post <- many (try $ atomicStmt $ reservedOp "ensures" >> parens (F.formula))
+          (ds, ss) <- braces $ do ds <- many (try $ declaration)
+                                  ss <- many stmt
+                                  return (ds, ss)
+          return (Main pre returns ds ss post)
+
+--fundef = FunDef <$> typ <*> identifier <*> args <*> stmts
+--  where
+--    args = parens (commaSep arg)
+--    arg  = flip Typed <$> typ <*> identifier
+
+--assert = atomicStmt (reserved "assert" >> Assert <$> F.formula)
 
 ast :: Parser AST
-ast = whiteSpace >> AST <$> many (try fundef) <*> many stmt <*> many assert
+ast = whiteSpace >> AST <$> many (try declaration) <*> main
 
 parseAST :: SourceName -> String -> Either ParseError AST
 parseAST = parse ast

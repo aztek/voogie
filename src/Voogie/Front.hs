@@ -41,7 +41,7 @@ lookupVariable name (Env _ vs) = case Map.lookup name vs of
 lookupArrayName :: Name -> Env -> Either Error (Typed Name)
 lookupArrayName name env = do name <- lookupVariable name env
                               case typeOf name of
-                                Array _   -> Right name
+                                Array _ _ -> Right name
                                 otherwise -> Left "not an array"
 
 lookupFunction :: Name -> Env -> Either Error FunType
@@ -57,11 +57,11 @@ insertFunction (n, t) (Env fs vs) = Env (Map.insert n t fs) vs
 
 
 analyze :: AST.AST -> Either Error Boogie
-analyze (AST.AST fs ss as) =
-  do (env,  fs') <- analyzeFunDefs emptyEnv fs
-     (env', ss') <- analyzeNonTerminating env ss
-     as' <- mapM (analyzeAssert env') as
-     return (Boogie fs' ss' as')
+analyze _ = undefined
+  --do (env,  fs') <- analyzeFunDefs emptyEnv fs
+  --   (env', ss') <- analyzeNonTerminating env ss
+  --   as' <- mapM (analyzeAssert env') as
+  --   return (Boogie fs' ss' as')
 
 analyzeFunDefs :: Env -> [AST.FunDef] -> Either Error (Env, [FunDef])
 analyzeFunDefs env [] = Right (env, [])
@@ -96,46 +96,33 @@ analyzeNonTerminating env ss =
 
 
 analyzeStmts :: Env -> [AST.Stmt] -> Either Error (Env, Either Terminating NonTerminating)
-analyzeStmts env = analyzeStmts' env . flattenDeclarations
-  where
-    flattenDeclarations :: [AST.Stmt] -> [AST.Stmt]
-    flattenDeclarations = concatMap flattenDeclaration
+analyzeStmts env [] = Right (env, Right [])
+analyzeStmts env (s:ss) =
+  do ar <- analyzeStmt env s
+     case ar of
+       T ts -> return (env, Left ts)
+       D vars -> do (env'', ss') <- analyzeStmts env' ss
+                    return (env'', bimap (appendScopeTerminating vars) (appendScopeNonTerminating vars) ss')
+         where
+           env' = foldr insertVariable env vars
+           vars' = map (fmap F.var) vars
 
-    flattenDeclaration :: AST.Stmt -> [AST.Stmt]
-    flattenDeclaration (AST.Declare t defs) = concatMap toStmts defs
-      where
-        toStmts (n, e) = AST.Declare t [(n, Nothing)] : maybeToList (fmap (AST.Update (AST.Var n) AST.Assign) e)
-    flattenDeclaration (AST.If c a b) = [AST.If c (flattenDeclarations a) (flattenDeclarations b)]
-    flattenDeclaration s = [s]
+           appendScopeTerminating :: [Var] -> Terminating -> Terminating
+           appendScopeTerminating vars (Terminating []     r) = Terminating [] (appendScope vars r)
+           appendScopeTerminating vars (Terminating (s:ss) r) = Terminating (appendScope vars s:ss) r
 
-    analyzeStmts' :: Env -> [AST.Stmt] -> Either Error (Env, Either Terminating NonTerminating)
-    analyzeStmts' env [] = Right (env, Right [])
-    analyzeStmts' env (s:ss) =
-      do ar <- analyzeStmt env s
-         case ar of
-           T ts -> return (env, Left ts)
-           D vars -> do (env'', ss') <- analyzeStmts' env' ss
-                        return (env'', bimap (appendScopeTerminating vars) (appendScopeNonTerminating vars) ss')
-             where
-               env' = foldr insertVariable env vars
-               vars' = map (fmap F.var) vars
+           appendScopeNonTerminating :: [Var] -> NonTerminating -> NonTerminating
+           appendScopeNonTerminating vars [] = []
+           appendScopeNonTerminating vars (s:ss) = appendScope vars s : ss
 
-               appendScopeTerminating :: [Var] -> Terminating -> Terminating
-               appendScopeTerminating vars (Terminating []     r) = Terminating [] (appendScope vars r)
-               appendScopeTerminating vars (Terminating (s:ss) r) = Terminating (appendScope vars s:ss) r
+       S s' -> do (env', ss') <- analyzeStmts env ss
+                  return (env', bimap (appendTerminating s') (appendNonTerminating s') ss')
+         where
+           appendTerminating :: Scoped Statement -> Terminating -> Terminating
+           appendTerminating s (Terminating nt r) = Terminating (appendNonTerminating s nt) r
 
-               appendScopeNonTerminating :: [Var] -> NonTerminating -> NonTerminating
-               appendScopeNonTerminating vars [] = []
-               appendScopeNonTerminating vars (s:ss) = appendScope vars s : ss
-
-           S s' -> do (env', ss') <- analyzeStmts' env ss
-                      return (env', bimap (appendTerminating s') (appendNonTerminating s') ss')
-             where
-               appendTerminating :: Scoped Statement -> Terminating -> Terminating
-               appendTerminating s (Terminating nt r) = Terminating (appendNonTerminating s nt) r
-
-               appendNonTerminating :: Scoped Statement -> NonTerminating -> NonTerminating
-               appendNonTerminating = (:)
+           appendNonTerminating :: Scoped Statement -> NonTerminating -> NonTerminating
+           appendNonTerminating = (:)
 
 
 guardType :: (TypeOf b, Pretty b) => (a -> Either Error b) -> Type -> a -> Either Error b
@@ -166,11 +153,11 @@ data AnalysisResult =
   | T Terminating
 
 analyzeStmt :: Env -> AST.Stmt -> Either Error AnalysisResult
-analyzeStmt env (AST.Declare t [(n, Nothing)]) =
-  case lookupVariable n env of
-    Left  _ -> Right (D [Typed n t])
-    Right _ -> Left  ("the variable " ++ n ++ " shadows the previous definition")
-analyzeStmt env (AST.Declare t _) = error "should be eliminated by flattenDeclaration"
+--analyzeStmt env (AST.Declare t [(n, Nothing)]) =
+--  case lookupVariable n env of
+--    Left  _ -> Right (D [Typed n t])
+--    Right _ -> Left  ("the variable " ++ n ++ " shadows the previous definition")
+--analyzeStmt env (AST.Declare t _) = error "should be eliminated by flattenDeclaration"
 analyzeStmt env (AST.If c a b) =
   do (_, a') <- analyzeStmts env a
      (_, b') <- analyzeStmts env b
@@ -209,14 +196,10 @@ analyzeStmt env (AST.Update lval op e) =
             AST.Times -> Multiply
             AST.Assign -> error "covered by a case of analyzeStmt"
     (d1, d2) = binaryOpDomain op' -- we assume that d1 == range of op'
-analyzeStmt env (AST.Multiupdate{}) = undefined
 analyzeStmt env (AST.Return e) =
   do e' <- analyzeExpr env e
      let stmt = Terminating [] (return_ e')
      return (T stmt)
-
-analyzeAssert :: Env -> AST.Assert -> Either Error Assertion
-analyzeAssert env (AST.Assert f) = Assertion <$> analyzeFormula env f
 
 analyzeFormula :: Env -> F.AST.Term -> Either Error F.Formula
 analyzeFormula env = analyzeFormula' (env, Set.empty)

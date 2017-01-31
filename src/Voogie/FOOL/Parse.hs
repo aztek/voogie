@@ -42,16 +42,13 @@ arg =  parens term
    <|> ref
 
 quantified = do q <- quantifier
-                vars <- commaSep1 typedVar
+                vars <- commaSep1 typed
                 reserved "::"
                 t <- arg
                 return $ Quantified q vars t
 
 quantifier =  constant "forall" Forall
           <|> constant "exists" Exists
-
-typedVar :: Parser (Typed Name)
-typedVar = flip Typed <$> typ <*> identifier
 
 ref = do i <- identifier
          args <- optionMaybe (parens $ commaSep term)
