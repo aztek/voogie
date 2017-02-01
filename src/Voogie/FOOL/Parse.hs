@@ -39,22 +39,16 @@ arg =  parens term
    <|> quantified 
    <|> IntConst <$> integer
    <|> try (ArrayElem <$> identifier <*> brackets term)
-   <|> ref
+   <|> Const <$> identifier
 
 quantified = do q <- quantifier
                 vars <- commaSep1 typed
                 reserved "::"
-                t <- arg
+                t <- term
                 return $ Quantified q vars t
 
 quantifier =  constant "forall" Forall
           <|> constant "exists" Exists
-
-ref = do i <- identifier
-         args <- optionMaybe (parens $ commaSep term)
-         case args of
-           Just args -> return (FunApp i args)
-           Nothing   -> return (Const i)
 
 formula :: Parser Formula
 formula = term

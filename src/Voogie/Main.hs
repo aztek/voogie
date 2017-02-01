@@ -4,10 +4,9 @@ import System.Environment
 
 import Voogie.Boogie.Parse
 import Voogie.Boogie.Pretty
-import Voogie.Boogie.Optimize
 import Voogie.Front
 import Voogie.Back
-import Voogie.FOOL.TPTPretty
+import Voogie.TPTPretty
 
 main = do args <- getArgs
           let (source, input) = case args of
@@ -18,5 +17,5 @@ main = do args <- getArgs
             Left parsingError -> print parsingError
             Right ast -> case analyze ast of
                            Left typeError -> putStrLn typeError
-                           Right code -> let fool = translate (optimize code)
+                           Right code -> let fool = translate code
                                           in putStr $ prettyTPTP fool

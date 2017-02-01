@@ -14,7 +14,6 @@ data Expr = IntConst Integer
           | Unary   UnaryOp  Expr
           | Binary  BinaryOp Expr Expr
           | Ternary          Expr Expr Expr
-          | FunApp String [Expr]
           | Equals Sign Expr Expr
           | LVal LVal
   deriving (Show, Eq)
@@ -26,10 +25,9 @@ data Stmt = If Expr [Stmt] [Stmt]
           | Increment LVal
           | Decrement LVal
           | Update LVal UpdateOp Expr
-          | Return Expr
   deriving (Show, Eq)
 
-data Declaration = Declare (Typed [String])
+data Decl = Declare (Typed [String])
   deriving (Show, Eq)
 
 data FunDef = FunDef Type String [Typed String] [Stmt]
@@ -41,8 +39,8 @@ data FunDef = FunDef Type String [Typed String] [Stmt]
 data Returns = Returns (Typed String)
   deriving (Show, Eq)
 
-data Main = Main [F.Formula] (Maybe Returns) [Declaration] [Stmt] [F.Formula]
+data Main = Main [F.Formula] (Maybe Returns) [Decl] [Stmt] [F.Formula]
   deriving (Show, Eq)
 
-data AST = AST [Declaration] Main
+data AST = AST [Decl] Main
   deriving (Show, Eq)

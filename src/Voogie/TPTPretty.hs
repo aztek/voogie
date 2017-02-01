@@ -1,4 +1,4 @@
-module Voogie.FOOL.TPTPretty (
+module Voogie.TPTPretty (
   prettyTPTP
 ) where
 
@@ -9,6 +9,7 @@ import Data.Char
 
 import Voogie.Theory
 import Voogie.FOOL
+import Voogie.TPTP
 
 list :: [String] -> String
 list = intercalate ", "
@@ -87,7 +88,7 @@ indent :: Int -> String
 indent = flip replicate ' '
 
 infx :: String -> String -> String -> String
-infx a op b = a ++ " " ++ op ++ " " ++ b
+infx a op b = parens (a ++ " " ++ op ++ " " ++ b)
 
 newline :: String -> String
 newline = ('\n' :)
@@ -160,11 +161,10 @@ prettyTerm = offsetTerm 0
 thf :: String -> String -> String -> String
 thf n it s = funapp "thf" [n, it, s] ++ ".\n"
 
-prettyTypeDeclaration :: Typed Name -> String
-prettyTypeDeclaration (Typed n t) = thf n "type" (n ++ ": " ++ prettyType t)
+prettyUnit :: Unit -> String
+prettyUnit (Type (Typed n t)) = thf n "type" (n ++ ": " ++ prettyType t)
+prettyUnit (Axiom f) = thf "precondition" "axiom" (indentedTerm (4, 4) f)
+prettyUnit (Conjecture f) = thf "voogie_conjecture" "conjecture" (indentedTerm (4, 4) f)
 
-prettyConjecture :: Formula -> String
-prettyConjecture f = thf "asserts" "conjecture" (indentedTerm (4, 4) f)
-
-prettyTPTP :: (Signature, Formula) -> String
-prettyTPTP (sds, c) = concatMap prettyTypeDeclaration sds ++ prettyConjecture c
+prettyTPTP :: TPTP -> String
+prettyTPTP (TPTP units) = concatMap prettyUnit units

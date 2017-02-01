@@ -55,34 +55,14 @@ instance Pretty Statement where
         (lvs, es) = NE.unzip pairs
         commaSep :: Pretty a => NonEmpty a -> String
         commaSep = intercalate ", " . fmap pretty . NE.toList
-    If c a (Left b) -> indentedIte n c a b
-    If c a (Right (False, b)) -> indentedIte n c a b
-    If c a (Right (True,  b)) -> indentedIte n c b a
+    If c False a b -> indentedIte n c a b
+    If c True  a b -> indentedIte n c b a
 
-instance Pretty NonTerminating where
+instance Pretty [Statement] where
   indented n = unlines . map (indented n)
 
-instance Pretty Return where
-  indented n r = indent n ++ case r of
-    Return e -> atomic ["return", pretty e]
-    IteReturn c a b -> indentedIte n c a b
-
-instance Pretty s => Pretty (Scoped s) where
-  indented n (Scoped scope s) = unlines decls ++ indented n s
-    where
-      decls = map (\v -> indent n ++ atomic [pretty v]) scope
-
-instance Pretty Terminating where
-  indented n (Terminating ss r) = indented n ss ++ indented n r ++ "\n"
-
-instance Pretty FunDef where
-  indented n (FunDef f vars ts) = indent n ++ prettySignature ++ braces n ts
-    where
-      prettySignature = pretty f ++ "(" ++ prettyVars ++ ") "
-      prettyVars = intercalate ", " (map pretty vars)
-
-instance Pretty Assertion where
-  pretty (Assertion f) = atomic ["assert", F.pretty f]
+instance Pretty (NonEmpty Statement) where
+  indented n = indented n . NE.toList
 
 instance Pretty Boogie where
-  pretty (Boogie fs ss as) = unlines (map pretty fs) ++ pretty ss ++ unlines (map pretty as)
+  pretty (Boogie vars main) = undefined --unlines (map pretty fs) ++ pretty ss ++ unlines (map pretty as)

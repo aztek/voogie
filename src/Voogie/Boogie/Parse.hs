@@ -38,10 +38,7 @@ term =  parens expr
     <|> constant "true"  (BoolConst True)
     <|> constant "false" (BoolConst False)
     <|> IntConst <$> integer
-    <|> try funapp
     <|> LVal <$> lval
-
-funapp = FunApp <$> identifier <*> parens (commaSep expr)
 
 lval =  try (ArrayElem <$> identifier <*> brackets expr)
     <|> Var <$> identifier
@@ -53,7 +50,6 @@ stmts =  braces (many stmt)
 stmt :: Parser Stmt
 stmt =  updateStmt
     <|> ifStmt
-    <|> returnStmt
 
 atomicStmt p = do { s <- p; semi; return s }
 
@@ -70,8 +66,6 @@ ifStmt = reserved "if" >> If <$> parens expr <*> stmts <*> elseStmts
   where
     elseStmts = fromMaybe [] <$> optionMaybe (reserved "else" >> stmts)
 
-returnStmt = atomicStmt $ reserved "return" >> Return <$> expr
-
 declaration = atomicStmt $ do reserved "var"
                               is <- commaSep1 identifier
                               reserved ":"
@@ -85,7 +79,7 @@ main = do reservedOp "procedure"
           returns <- optionMaybe (atomicStmt $ reserved "returns" >> parens (Returns <$> typed))
           pre  <- many (try $ atomicStmt $ reservedOp "requires" >> parens (F.formula))
           post <- many (try $ atomicStmt $ reservedOp "ensures" >> parens (F.formula))
-          (ds, ss) <- braces $ do ds <- many (try $ declaration)
+          (ds, ss) <- braces $ do ds <- many (try declaration)
                                   ss <- many stmt
                                   return (ds, ss)
           return (Main pre returns ds ss post)

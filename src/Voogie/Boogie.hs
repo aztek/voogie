@@ -43,39 +43,11 @@ instance TypeOf Expression where
   typeOf (Equals{}) = Boolean
 
 data Statement = Assign (NonEmpty (LValue, Expression))
-               | If Expression NonTerminating (Either NonTerminating (Bool, Terminating))
+               | If Expression Bool (NonEmpty Statement) [Statement]
   deriving (Show)
 
-data Scoped a = Scoped [Var] a
-  deriving (Show, Functor)
-
-appendScope :: [Var] -> Scoped a -> Scoped a
-appendScope vars (Scoped scope a) = Scoped (vars ++ scope) a
-
-type NonTerminating = [Scoped Statement]
-
-data Return = Return    Expression
-            | IteReturn Expression Terminating Terminating
+data Main = Main [F.Formula] [Statement] [F.Formula]
   deriving (Show)
 
-data Terminating = Terminating NonTerminating (Scoped Return)
-  deriving (Show)
-
-instance TypeOf Return where
-  typeOf (Return e) = typeOf e
-  typeOf (IteReturn _ a _) = typeOf a
-
-instance TypeOf Terminating where
-  typeOf (Terminating _ r) = typeOf r
-
-instance TypeOf a => TypeOf (Scoped a) where
-  typeOf (Scoped _ a) = typeOf a
-
-data Assertion = Assertion F.Formula
-  deriving (Show)
-
-data FunDef = FunDef (Typed Name) [Var] Terminating
-  deriving (Show)
-
-data Boogie = Boogie [FunDef] NonTerminating [Assertion]
+data Boogie = Boogie [Var] Main
   deriving (Show)
