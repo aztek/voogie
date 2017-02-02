@@ -1,5 +1,3 @@
-{-# LANGUAGE DeriveFunctor #-}
-
 module Voogie.Boogie where
 
 import Data.List.NonEmpty
@@ -40,7 +38,7 @@ instance TypeOf Expression where
   typeOf (Binary op _ _) = binaryOpRange op
   typeOf (IfElse _ a _) = typeOf a
   typeOf (FunApp f _) = typeOf f
-  typeOf (Equals{}) = Boolean
+  typeOf Equals{} = Boolean
 
 data Statement = Assign (NonEmpty (LValue, Expression))
                | If Expression Bool (NonEmpty Statement) [Statement]

@@ -50,7 +50,7 @@ instance Pretty (Typed Name) where
 
 instance Pretty Statement where
   indented n s = indent n ++ case s of
-    Assign pairs -> atomic [commaSep lvs, "=", commaSep es]
+    Assign pairs -> atomic [commaSep lvs, ":=", commaSep es]
       where
         (lvs, es) = NE.unzip pairs
         commaSep :: Pretty a => NonEmpty a -> String
@@ -63,6 +63,3 @@ instance Pretty [Statement] where
 
 instance Pretty (NonEmpty Statement) where
   indented n = indented n . NE.toList
-
-instance Pretty Boogie where
-  pretty (Boogie vars main) = undefined --unlines (map pretty fs) ++ pretty ss ++ unlines (map pretty as)

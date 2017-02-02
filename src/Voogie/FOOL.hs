@@ -45,8 +45,8 @@ instance TypeOf Term where
   typeOf (Application i _) = typeOf i
   typeOf (Binary op _ _) = binaryOpRange op
   typeOf (Unary  op _) = unaryOpRange op
-  typeOf (Quantify{}) = Boolean
-  typeOf (Equals{}) = Boolean
+  typeOf Quantify{} = Boolean
+  typeOf Equals{} = Boolean
   typeOf (Let _ t) = typeOf t
   typeOf (If _ a _) = typeOf a
   typeOf (Select array _) = arrayArgument (typeOf array)

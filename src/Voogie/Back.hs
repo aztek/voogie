@@ -7,8 +7,11 @@ import Data.Set (Set, (\\), union, unions)
 import Data.Bifunctor
 
 import qualified Data.List.NonEmpty as NE
+import Data.List.NonEmpty (NonEmpty)
 
 import Control.Applicative
+
+import Data.Semigroup (sconcat)
 
 import Voogie.Theory
 import qualified Voogie.FOOL.Smart as F
@@ -20,45 +23,45 @@ import Voogie.Boogie.Pretty
 import qualified Voogie.TPTP as TPTP
 import Voogie.TPTP
 
+data TranslationOptions =
+  TranslationOptions { useArrayTheory :: Bool
+                     }
 
-translate :: B.Boogie -> TPTP
-translate (B.Boogie decls (B.Main pre stmts post)) = TPTP (signature ++ axioms ++ [conjecture])
+translate :: TranslationOptions -> B.Boogie -> TPTP
+translate opts (B.Boogie decls (B.Main pre stmts post)) = TPTP (signature ++ axioms ++ [conjecture])
   where
     signature  = fmap TPTP.Type  decls
     axioms     = fmap TPTP.Axiom pre
     conjecture = TPTP.Conjecture $ case NE.nonEmpty post of
       Nothing   -> F.booleanConstant True
-      Just post -> foldr translateStatement (foldr1 (F.binary And) post) stmts
+      Just post -> foldr (translateStatement opts) (foldr1 (F.binary And) post) stmts
 
 
-updates :: B.Statement -> Set B.Var
-updates (B.If _ _ a b) = unions (map updates (NE.toList a ++ b))
-updates (B.Assign ass) = S.fromList $ map (B.lvariable . fst) (NE.toList ass)
+updates :: B.Statement -> NonEmpty B.Var
+updates (B.If _ _ a b) = NE.nub $ sconcat $ fmap updates (foldl (flip NE.cons) a b)
+updates (B.Assign ass) = NE.nub $ fmap (B.lvariable . fst) ass
 
-
-translateStatement :: B.Statement -> F.Term -> F.Term
-translateStatement (B.Assign ass) = F.let_ (F.binding (fmap translateAssignment ass))
-translateStatement ite@(B.If c f a b) = F.let_ (F.Binding def body)
+translateStatement :: TranslationOptions -> B.Statement -> F.Term -> F.Term
+translateStatement opts s = F.let_ (F.Binding (F.tupleD vars) (body s))
   where
-    c' = translateExpression c
-    (def, body) = case NE.nonEmpty (S.toList $ updates ite) of
-      Nothing   -> undefined
-      Just vars -> (F.tupleD vars, body)
-        where
-          body = if f then F.if_ c' b' a' else F.if_ c' a' b'
-          a' = foldr translateStatement tuple (NE.toList a)
-          b' = foldr translateStatement tuple b
-          tuple = F.tupleLiteral (fmap F.constant vars)
+    vars = updates s
+
+    body :: B.Statement -> F.Term
+    body (B.Assign ass) = F.tupleLiteral (translateAssignments opts ass)
+    body (B.If c f a b) = if f then F.if_ c' b' a' else F.if_ c' a' b'
+      where
+        tuple = F.tupleLiteral (fmap F.constant vars)
+        a' = foldr (translateStatement opts) tuple a
+        b' = foldr (translateStatement opts) tuple b
+        c' = translateExpression c
 
 
-translateAssignment :: (B.LValue, B.Expression) -> (F.Identifier, F.Term)
-translateAssignment (lval, e) = (c, body)
+translateAssignments :: TranslationOptions -> NonEmpty (B.LValue, B.Expression) -> NonEmpty F.Term
+translateAssignments opts = fmap translateAssignment
   where
-    c = translateConstant (B.lvariable lval)
-    e' = translateExpression e
-    body = case lval of
-      B.Variable  _   -> e'
-      B.ArrayElem _ a -> F.store (F.constant c) (translateExpression a) e'
+    translateAssignment :: (B.LValue, B.Expression) -> F.Term
+    translateAssignment (B.Variable    _, e) = translateExpression e
+    translateAssignment (B.ArrayElem v a, e) = F.store (F.constant v) (translateExpression a) (translateExpression e)
 
 
 translateExpression :: B.Expression -> F.Term
