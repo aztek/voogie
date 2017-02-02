@@ -150,7 +150,7 @@ thf :: String -> String -> String -> String
 thf n it s = funapp "thf" [n, it, s] ++ ".\n"
 
 prettyUnit :: Unit -> String
-prettyUnit (Type (Typed n t)) = thf n "type" (n ++ ": " ++ prettyType t)
+prettyUnit (Type (Typed n t)) = thf n "type" (parens $ n ++ ": " ++ prettyType t)
 prettyUnit (Axiom f) = thf "precondition" "axiom" (indentedTerm (4, 4) f)
 prettyUnit (Conjecture f) = thf "voogie_conjecture" "conjecture" (indentedTerm (4, 4) f)
 
