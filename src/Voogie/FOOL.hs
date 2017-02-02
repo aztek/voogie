@@ -31,17 +31,6 @@ data Term = IntegerConstant Integer
           | Store Term Term Term
           -- Tuples
           | TupleLiteral (Tuple Term)
-          -- Option
-          | None Type
-          | Some Term
-          | IsSome Term
-          | FromSome Term
-          -- Either
-          | Left_ Term Type
-          | Right_ Type Term
-          | IsLeft Term
-          | FromLeft Term
-          | FromRight Term
   deriving (Show, Eq)
 
 type Formula = Term
@@ -57,19 +46,6 @@ instance TypeOf Term where
   typeOf (Equals{}) = Boolean
   typeOf (Let _ t) = typeOf t
   typeOf (If _ a _) = typeOf a
-
   typeOf (Select array _) = arrayArgument (typeOf array)
   typeOf (Store array _ _) = typeOf array
-
   typeOf (TupleLiteral args) = TupleType (fmap typeOf args)
-
-  typeOf (None t)     = OptionType t
-  typeOf (Some t)     = OptionType (typeOf t)
-  typeOf (IsSome t)   = Boolean
-  typeOf (FromSome t) = optionArgument (typeOf t)
-
-  typeOf (Left_  l t)  = EitherType (typeOf l) t
-  typeOf (Right_ t r)  = EitherType t (typeOf r)
-  typeOf (IsLeft _)    = Boolean
-  typeOf (FromLeft  t) = leftArgument  (typeOf t)
-  typeOf (FromRight t) = rightArgument (typeOf t)

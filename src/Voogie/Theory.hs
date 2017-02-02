@@ -12,8 +12,6 @@ data Type = Boolean
           | Integer
           | Array Type Type
           | TupleType (Tuple Type)
-          | OptionType Type
-          | EitherType Type Type
   deriving (Show, Eq, Ord)
 
 isArray :: Type -> Bool
@@ -24,26 +22,6 @@ arrayArgument :: Type -> Type
 arrayArgument (Array _ t) = t
 arrayArgument t = error (show t ++ " is not an array")
 
-isOption :: Type -> Bool
-isOption (OptionType _) = True
-isOption _ = False
-
-optionArgument :: Type -> Type
-optionArgument (OptionType t) = t
-optionArgument t = error (show t ++ " is not an option")
-
-isEither :: Type -> Bool
-isEither (EitherType{}) = True
-isEither _ = False
-
-eitherArguments :: Type -> (Type, Type)
-eitherArguments (EitherType l r) = (l, r)
-eitherArguments t = error (show t ++ " is not a disjoint union")
-
-leftArgument, rightArgument :: Type -> Type
-leftArgument  = fst . eitherArguments
-rightArgument = snd . eitherArguments
-
 tupleType :: NonEmpty Type -> Type
 tupleType = either id TupleType . Tuple.nonUnit
 
@@ -51,8 +29,6 @@ type Name = String
 
 data Typed n = Typed n Type
   deriving (Show, Eq, Ord, Functor)
-
-type Signature = Set (Typed Name)
 
 class TypeOf a where
   typeOf :: a -> Type

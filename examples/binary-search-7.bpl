@@ -2,7 +2,7 @@ var a: [int] int;
 var e: int;
 
 procedure main()
-  returns (i: int);
+  returns (i: int)
   requires (forall j: int :: j >= 0 && j < 5 ==> a[j + 1] >= a[j]);
   ensures (i == -1 ==> (forall j: int :: j >= 0 && j < 6 ==> a[j] != i));
   ensures (i != -1 ==> a[i] == e);

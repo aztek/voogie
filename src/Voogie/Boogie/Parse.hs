@@ -76,7 +76,8 @@ main = do reservedOp "procedure"
           reserved "main"
           reserved "("
           reserved ")"
-          returns <- optionMaybe (atomicStmt $ reserved "returns" >> parens (Returns <$> typed))
+          _ <- optionMaybe (atomicStmt $ reserved "modifies" >> identifier)
+          returns <- optionMaybe (reserved "returns" >> parens (Returns <$> typed))
           pre  <- many (try $ atomicStmt $ reservedOp "requires" >> parens (F.formula))
           post <- many (try $ atomicStmt $ reservedOp "ensures" >> parens (F.formula))
           (ds, ss) <- braces $ do ds <- many (try declaration)

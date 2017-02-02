@@ -54,8 +54,6 @@ prettyType s =
     Integer -> "$int"
     Array i t -> funapp "$array" [prettyType i, prettyType t]
     TupleType ts -> tuple (fmap prettyType ts)
-    OptionType t -> funapp "$option" [prettyType t]
-    EitherType l r -> funapp "$either" [prettyType l, prettyType r]
 
 prettyVar :: Var -> String
 prettyVar (Var n) = n
@@ -140,16 +138,6 @@ offsetTerm' pp o t = case t of
 
   TupleLiteral ts -> tuple (fmap prettyTerm ts)
 
-  None t     -> funapp "$none"     [prettyType t]
-  Some a     -> funapp "$some"     [offsetTerm (o + 6) a]
-  IsSome a   -> funapp "$issome"   [offsetTerm (o + 8)  a]
-  FromSome a -> funapp "$fromsome" [offsetTerm (o + 10) a]
-
-  Left_  l t  -> funapp "$left"      [offsetTerm (o + 6) l, prettyType t]
-  Right_ t r  -> funapp "$right"     [prettyType t, prettyTerm r]
-  IsLeft t    -> funapp "$isleft"    [offsetTerm (o + 7)  t]
-  FromLeft  t -> funapp "$fromleft"  [offsetTerm (o + 10) t]
-  FromRight t -> funapp "$fromright" [offsetTerm (o + 11) t]
 
 isLet :: Term -> Bool
 isLet (Let _ _) = True

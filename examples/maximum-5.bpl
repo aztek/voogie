@@ -2,7 +2,10 @@
 
 // Source: "Introduction to Algorithms" by Cormen, Leiserson, Rivest and Stein; Third edition, page 208
 
-procedure main(a: [int] int) returns (min: int)
+var a: [int] int;
+
+procedure main()
+  returns (min: int)
   ensures (forall i: int :: i >= 0 && i < 5 ==> min <= a[i]);
 {
   min := a[0];
