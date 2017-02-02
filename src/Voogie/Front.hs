@@ -105,40 +105,21 @@ analyzeStmt env (AST.If c a b) =
   do c' <- analyzeExpr  env c
      a' <- analyzeStmts env a
      b' <- analyzeStmts env b
-     let stmt = case NE.nonEmpty a' of
-                  Just a' -> If c' False a' b'
-                  Nothing -> case NE.nonEmpty b' of
-                               Nothing -> undefined
-                               Just b' -> If c' True b' []
-     return stmt
-analyzeStmt env (AST.Increment lval) =
-  do lv <- analyzeLValue env `guard` lval .: Integer
-     let rv = Binary Add (Ref lv) (IntegerLiteral 1)
-     let stmt = Assign $ (lv, rv) NE.:| []
-     return stmt
-analyzeStmt env (AST.Decrement lval) =
-  do lv <- analyzeLValue env `guard` lval .: Integer
-     let rv = Binary Subtract (Ref lv) (IntegerLiteral 1)
-     let stmt = Assign $ (lv, rv) NE.:| []
-     return stmt
-analyzeStmt env (AST.Update lval AST.Assign e) =
+     return $ case NE.nonEmpty a' of
+                Just a' -> If c' False a' b'
+                Nothing -> case NE.nonEmpty b' of
+                             Nothing -> undefined
+                             Just b' -> If c' True b' []
+analyzeStmt _   (AST.Assign lvals rvals) | length lvals /= length rvals = Left ""
+analyzeStmt env (AST.Assign lvals rvals) =
+  do ass <- mapM (analyzeAssignment env) (NE.zip lvals rvals)
+     return $ Assign ass
+
+analyzeAssignment :: Env -> (AST.LVal, AST.Expr) -> Either Error (LValue, Expression)
+analyzeAssignment env (lval, e) =
   do lv <- analyzeLValue env lval
      e' <- analyzeExpr env `guard` e .: typeOf lv
-     let stmt = Assign $ (lv, e') NE.:| []
-     return stmt
-analyzeStmt env (AST.Update lval op e) =
-  do lv <- analyzeLValue env `guard` lval .: d1
-     e' <- analyzeExpr   env `guard` e    .: d2
-     let rv = Binary op' (Ref lv) e'
-     let stmt = Assign $ (lv, rv) NE.:| []
-     return stmt
-  where
-    op' = case op of
-            AST.Plus  -> Add
-            AST.Minus -> Subtract
-            AST.Times -> Multiply
-            AST.Assign -> error "covered by a case of analyzeStmt"
-    (d1, d2) = binaryOpDomain op' -- we assume that d1 == range of op'
+     return (lv, e')
 
 analyzeFormula :: Env -> F.AST.Term -> Either Error F.Formula
 analyzeFormula env = analyzeFormula' (env, Set.empty)

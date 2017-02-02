@@ -5,6 +5,9 @@ import Control.Monad
 import Control.Applicative ((<$>), (<*>))
 import Data.Maybe
 
+import qualified Data.List.NonEmpty as NE
+import Data.List.NonEmpty (NonEmpty)
+
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Expr
 
@@ -48,19 +51,15 @@ stmts =  braces (many stmt)
      <|> (:[]) <$> stmt
 
 stmt :: Parser Stmt
-stmt =  updateStmt
+stmt =  assignStmt
     <|> ifStmt
 
 atomicStmt p = do { s <- p; semi; return s }
 
-updateStmt = atomicStmt $ do lv <- lval
-                             let unary  op = return (op lv)
-                             let binary op = Update lv op <$> expr
-                             choice (map (update unary) unaryOps ++ map (update binary) binaryOps)
-  where
-    update u (t, op) = reserved t >> u op
-    unaryOps  = [("++", Increment), ("--", Decrement)]
-    binaryOps = [(":=",  Assign), ("+=", Plus), ("-=", Minus), ("*=", Times)]
+assignStmt = atomicStmt $ do lvals <- commaSep1 lval
+                             reserved ":="
+                             rvals <- commaSep1 term
+                             return $ Assign lvals rvals
 
 ifStmt = reserved "if" >> If <$> parens expr <*> stmts <*> elseStmts
   where

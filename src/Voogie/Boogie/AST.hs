@@ -20,13 +20,8 @@ data Expr = IntConst Integer
           | LVal LVal
   deriving (Show, Eq)
 
-data UpdateOp = Assign | Plus | Minus | Times
-  deriving (Show, Eq)
-
 data Stmt = If Expr [Stmt] [Stmt]
-          | Increment LVal
-          | Decrement LVal
-          | Update LVal UpdateOp Expr
+          | Assign (NonEmpty LVal) (NonEmpty Expr)
   deriving (Show, Eq)
 
 data Decl = Declare (Typed (NonEmpty String))

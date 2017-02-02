@@ -47,7 +47,7 @@ translateStatement opts s = F.let_ (F.Binding (F.tupleD vars) (body s))
     vars = updates s
 
     body :: B.Statement -> F.Term
-    body (B.Assign ass) = F.tupleLiteral (translateAssignments opts ass)
+    body (B.Assign ass) = F.tupleLiteral (fmap (translateAssignment ass) vars)
     body (B.If c f a b) = if f then F.if_ c' b' a' else F.if_ c' a' b'
       where
         tuple = F.tupleLiteral (fmap F.constant vars)
@@ -56,12 +56,22 @@ translateStatement opts s = F.let_ (F.Binding (F.tupleD vars) (body s))
         c' = translateExpression c
 
 
+translateAssignment :: NonEmpty (B.LValue, B.Expression) -> B.Var -> F.Term
+translateAssignment ass v = translateAssignment' (NE.toList ass) (F.constant v)
+  where
+    translateAssignment' :: [(B.LValue, B.Expression)] -> F.Term -> F.Term
+    translateAssignment' [] t = t
+    translateAssignment' ((B.Variable  w  , e):ass) t | v == w = translateAssignment' ass (translateExpression e)
+    translateAssignment' ((B.ArrayElem w i, e):ass) t | v == w = translateAssignment' ass (F.store t (translateExpression i) (translateExpression e))
+    translateAssignment' (_:ass) t = translateAssignment' ass t
+
+
 translateAssignments :: TranslationOptions -> NonEmpty (B.LValue, B.Expression) -> NonEmpty F.Term
 translateAssignments opts = fmap translateAssignment
   where
     translateAssignment :: (B.LValue, B.Expression) -> F.Term
     translateAssignment (B.Variable    _, e) = translateExpression e
-    translateAssignment (B.ArrayElem v a, e) = F.store (F.constant v) (translateExpression a) (translateExpression e)
+    translateAssignment (B.ArrayElem v i, e) = F.store (F.constant v) (translateExpression i) (translateExpression e)
 
 
 translateExpression :: B.Expression -> F.Term
