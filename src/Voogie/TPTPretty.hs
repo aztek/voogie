@@ -3,6 +3,7 @@ module Voogie.TPTPretty (
 ) where
 
 import Data.List
+import qualified Data.List.NonEmpty as NE
 import qualified Voogie.FOOL.Tuple as Tuple
 import Voogie.FOOL.Tuple (Tuple)
 import Data.Char
@@ -117,10 +118,9 @@ offsetTerm' pp o t = case t of
                            binary = if isInfix then infx (prettyTerm a) prettyOp (prettyTerm b)
                                                else funapp prettyOp [prettyTerm a, prettyTerm b]
 
-  Quantify q [] t -> offsetTerm' pp o t
   Quantify q vs t -> prettyQ ++ " " ++ prettyVars ++ ": " ++ parens (offsetTerm o' t)
                        where prettyQ = prettyQuantifier q
-                             prettyVars = "[" ++ list (map prettyVariable vs) ++ "]"
+                             prettyVars = "[" ++ list (NE.toList $ fmap prettyVariable vs) ++ "]"
                              o' = o + length prettyQ + 1 + length prettyVars + 3
 
   Equals s a b -> infx (prettyTerm a) (if s == Pos then "=" else "!=") (prettyTerm b)

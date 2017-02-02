@@ -3,6 +3,7 @@ module Voogie.FOOL.Pretty (
 ) where
 
 import Data.List
+import qualified Data.List.NonEmpty as NE
 
 import Voogie.Theory
 import Voogie.Pretty
@@ -48,7 +49,7 @@ instance Pretty Term where
   pretty (Application (Typed f _) args) = f ++ "(" ++ intercalate ", " (map pretty args) ++ ")"
   pretty (Binary op a b) = pretty a ++ " " ++ pretty op ++ " " ++ pretty b
   pretty (Unary op t) = pretty op ++ pretty t
-  pretty (Quantify q vars t) = pretty q ++ " (" ++ intercalate ", " (map p vars) ++ ")" ++ pretty t
+  pretty (Quantify q vars t) = pretty q ++ " (" ++ intercalate ", " (NE.toList $ fmap p vars) ++ ")" ++ pretty t
     where p (Typed (Var v) t) = pretty t ++ " " ++ v
   pretty (Equals s a b) = pretty a ++ (if s == Pos then " == " else " != ") ++ pretty b
   pretty (If c a b) = pretty c ++ " ? "  ++ pretty a ++ " : " ++ pretty b

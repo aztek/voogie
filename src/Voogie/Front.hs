@@ -66,7 +66,14 @@ analyze (AST.AST globalDecls (AST.Main pre r mainDecls ss post)) =
      return (Boogie vars main)
 
 analyzeDecl :: AST.Decl -> Env -> Either Error Env
-analyzeDecl (AST.Declare (Typed ns t)) env = Right $ foldr insertVariable env (map (\n -> Typed n t) ns)
+analyzeDecl (AST.Declare (Typed ns t)) env = foldrM insertVariable' env ns
+  where
+    insertVariable' :: Name -> Env -> Either Error Env
+    insertVariable' n env =
+      case lookupVariable n env of
+        Left  _ -> Right (insertVariable (Typed n t) env)
+        Right _ -> Left  ("redefined variable " ++ n)
+
 
 guardType :: (TypeOf b, Pretty b) => (a -> Either Error b) -> Type -> a -> Either Error b
 guardType analyze t a = do b <- analyze a
@@ -94,11 +101,6 @@ analyzeStmts :: Env -> [AST.Stmt] -> Either Error [Statement]
 analyzeStmts env = mapM (analyzeStmt env)
 
 analyzeStmt :: Env -> AST.Stmt -> Either Error Statement
---analyzeStmt env (AST.Declare t [(n, Nothing)]) =
---  case lookupVariable n env of
---    Left  _ -> Right (D [Typed n t])
---    Right _ -> Left  ("the variable " ++ n ++ " shadows the previous definition")
---analyzeStmt env (AST.Declare t _) = error "should be eliminated by flattenDeclaration"
 analyzeStmt env (AST.If c a b) =
   do c' <- analyzeExpr  env c
      a' <- analyzeStmts env a
@@ -174,7 +176,7 @@ analyzeTerm (env, qv) (F.AST.Quantified q vars term) = F.quantify q vars' <$> an
     -- TODO: check that the variables are disjoint
     env' = foldr insertVariable env vars
     qv'  = foldr Set.insert     qv  vars
-    vars' = map (fmap F.var) vars
+    vars' = fmap (fmap F.var) vars
 analyzeTerm ctx@(env, _) (F.AST.ArrayElem s i) = F.select <$> array <*> index
   where
     array = F.constant <$> lookupArrayName s env

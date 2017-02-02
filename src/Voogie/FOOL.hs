@@ -1,5 +1,8 @@
 module Voogie.FOOL where
 
+import qualified Data.List.NonEmpty as NE
+import Data.List.NonEmpty (NonEmpty)
+
 import Voogie.FOOL.Tuple (Tuple)
 
 import Voogie.Theory
@@ -22,7 +25,7 @@ data Term = IntegerConstant Integer
           | Application Identifier [Term]
           | Binary BinaryOp Term Term
           | Unary UnaryOp Term
-          | Quantify Quantifier [Typed Var] Term
+          | Quantify Quantifier (NonEmpty (Typed Var)) Term
           | Equals Sign Term Term
           | Let Binding Term
           | If Term Term Term

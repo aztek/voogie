@@ -1,5 +1,8 @@
 module Voogie.Parse where
 
+import qualified Data.List.NonEmpty as NE
+import Data.List.NonEmpty (NonEmpty)
+
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Expr
 import Text.ParserCombinators.Parsec.Language
@@ -39,7 +42,9 @@ whiteSpace = Token.whiteSpace lexer
 braces     = Token.braces     lexer
 brackets   = Token.brackets   lexer
 commaSep   = Token.commaSep   lexer
-commaSep1  = Token.commaSep1  lexer
+
+commaSep1 :: Parser a -> Parser (NonEmpty a)
+commaSep1 p = fmap NE.fromList (Token.commaSep1 lexer p)
 
 constant name fun = reserved name >> return fun
 

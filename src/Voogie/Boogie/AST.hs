@@ -1,5 +1,7 @@
 module Voogie.Boogie.AST where
 
+import Data.List.NonEmpty (NonEmpty)
+
 import Voogie.FOOL.Tuple
 
 import Voogie.Theory
@@ -27,7 +29,7 @@ data Stmt = If Expr [Stmt] [Stmt]
           | Update LVal UpdateOp Expr
   deriving (Show, Eq)
 
-data Decl = Declare (Typed [String])
+data Decl = Declare (Typed (NonEmpty String))
   deriving (Show, Eq)
 
 data FunDef = FunDef Type String [Typed String] [Stmt]
