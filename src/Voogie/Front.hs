@@ -119,7 +119,7 @@ analyzeStmt env (AST.Assign lvals rvals) =
      return $ Assign ass
 
 analyzeAssume :: Env -> AST.Assume -> Either Error Assume
-analyzeAssume = undefined
+analyzeAssume env (AST.Assume f) = Assume <$> analyzeFormula env f
 
 analyzeAssignment :: Env -> (AST.LVal, AST.Expr) -> Either Error (LValue, Expression)
 analyzeAssignment env (lval, e) =
