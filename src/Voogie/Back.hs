@@ -4,7 +4,6 @@ import Data.Either
 import Data.Maybe
 import qualified Data.Set as S
 import Data.Set (Set, (\\), union, unions)
-import Data.Bifunctor
 
 import qualified Data.List.NonEmpty as NE
 import Data.List.NonEmpty (NonEmpty)
@@ -34,7 +33,8 @@ translate opts (B.Boogie decls (B.Main pre stmts post)) = TPTP (signature ++ axi
     axioms     = fmap TPTP.Axiom pre
     conjecture = TPTP.Conjecture $ case NE.nonEmpty post of
       Nothing   -> F.booleanConstant True
-      Just post -> foldr (translateStatement opts) (foldr1 (F.binary And) post) stmts
+      Just post -> foldr (either (translateStatement opts) (translateAssume opts))
+                         (foldr1 (F.binary And) post) stmts
 
 
 updates :: B.Statement -> NonEmpty B.Var
@@ -55,6 +55,8 @@ translateStatement opts s = F.let_ (F.Binding (F.tupleD vars) (body s))
         b' = foldr (translateStatement opts) tuple b
         c' = translateExpression c
 
+translateAssume :: TranslationOptions -> B.Assume -> F.Term -> F.Term
+translateAssume opts (B.Assume f) = F.binary Imply f
 
 translateAssignment :: NonEmpty (B.LValue, B.Expression) -> B.Var -> F.Term
 translateAssignment ass v = translateAssignment' (NE.toList ass) (F.constant v)

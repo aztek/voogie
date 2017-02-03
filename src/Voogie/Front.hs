@@ -3,7 +3,7 @@ module Voogie.Front where
 import Control.Monad (zipWithM)
 import Control.Applicative
 import Data.Maybe
-import Data.Bifunctor
+import Data.Bitraversable
 import Data.Foldable
 
 import qualified Data.List.NonEmpty as NE
@@ -58,7 +58,7 @@ analyze (AST.AST globalDecls (AST.Main pre r mainDecls ss post)) =
      let mainEnv = case r of
                      Just (AST.Returns r) -> insertVariable r mainEnv'
                      Nothing -> mainEnv'
-     ss'   <- analyzeStmts mainEnv ss
+     ss'   <- analyzeMain mainEnv ss
      pre'  <- mapM (analyzeFormula globalEnv) pre
      post' <- mapM (analyzeFormula mainEnv)   post
      let main = Main pre' ss' post'
@@ -97,6 +97,9 @@ infix 5 .:
 (.:) :: (a -> b) -> a -> b
 (.:) = ($)
 
+analyzeMain :: Env -> [Either AST.Stmt AST.Assume] -> Either Error [Either Statement Assume]
+analyzeMain env = mapM (bimapM (analyzeStmt env) (analyzeAssume env))
+
 analyzeStmts :: Env -> [AST.Stmt] -> Either Error [Statement]
 analyzeStmts env = mapM (analyzeStmt env)
 
@@ -114,6 +117,9 @@ analyzeStmt _   (AST.Assign lvals rvals) | length lvals /= length rvals = Left "
 analyzeStmt env (AST.Assign lvals rvals) =
   do ass <- mapM (analyzeAssignment env) (NE.zip lvals rvals)
      return $ Assign ass
+
+analyzeAssume :: Env -> AST.Assume -> Either Error Assume
+analyzeAssume = undefined
 
 analyzeAssignment :: Env -> (AST.LVal, AST.Expr) -> Either Error (LValue, Expression)
 analyzeAssignment env (lval, e) =

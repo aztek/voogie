@@ -20,21 +20,21 @@ import qualified Voogie.FOOL.Parse as F
 expr :: Parser Expr
 expr = buildExpressionParser operators term
 
-operators = [ [prefix "-"  (Unary  Negative)          ,
-               prefix "+"  (Unary  Positive)          ]
-            , [binary "*"  (Binary Multiply) AssocLeft,
-               binary "/"  (Binary Divide)   AssocLeft]
-            , [binary "+"  (Binary Add     ) AssocLeft,
-               binary "-"  (Binary Subtract) AssocLeft]
-            , [binary ">"  (Binary Greater ) AssocNone,
-               binary "<"  (Binary Less    ) AssocNone,
-               binary ">=" (Binary Geq     ) AssocNone,
-               binary "<=" (Binary Leq     ) AssocNone]
-            , [binary "==" (Equals Pos     ) AssocLeft,
-               binary "!=" (Equals Neg     ) AssocLeft]
-            , [prefix "!"  (Unary  Negate  )          ]
-            , [binary "&&" (Binary And     ) AssocLeft,
-               binary "||" (Binary Or      ) AssocLeft]
+operators = [ [prefix "-"   (Unary  Negative)          ,
+               prefix "+"   (Unary  Positive)          ]
+            , [binary "*"   (Binary Multiply) AssocLeft,
+               binary "div" (Binary Divide)   AssocLeft]
+            , [binary "+"   (Binary Add     ) AssocLeft,
+               binary "-"   (Binary Subtract) AssocLeft]
+            , [binary ">"   (Binary Greater ) AssocNone,
+               binary "<"   (Binary Less    ) AssocNone,
+               binary ">="  (Binary Geq     ) AssocNone,
+               binary "<="  (Binary Leq     ) AssocNone]
+            , [binary "=="  (Equals Pos     ) AssocLeft,
+               binary "!="  (Equals Neg     ) AssocLeft]
+            , [prefix "!"   (Unary  Negate  )          ]
+            , [binary "&&"  (Binary And     ) AssocLeft,
+               binary "||"  (Binary Or      ) AssocLeft]
             ]
 
 term =  parens expr
@@ -58,7 +58,7 @@ atomicStmt p = do { s <- p; semi; return s }
 
 assignStmt = atomicStmt $ do lvals <- commaSep1 lval
                              reserved ":="
-                             rvals <- commaSep1 term
+                             rvals <- commaSep1 expr
                              return $ Assign lvals rvals
 
 ifStmt = reserved "if" >> If <$> parens expr <*> stmts <*> elseStmts
@@ -71,6 +71,10 @@ declaration = atomicStmt $ do reserved "var"
                               t <- typ
                               return $ Declare (Typed is t)
 
+assume = atomicStmt $ do reserved "assume"
+                         f <- F.formula
+                         return $ Assume f
+
 main = do reservedOp "procedure"
           reserved "main"
           reserved "("
@@ -80,16 +84,9 @@ main = do reservedOp "procedure"
           pre  <- many (try $ atomicStmt $ reservedOp "requires" >> parens (F.formula))
           post <- many (try $ atomicStmt $ reservedOp "ensures" >> parens (F.formula))
           (ds, ss) <- braces $ do ds <- many (try declaration)
-                                  ss <- many stmt
+                                  ss <- many (Left <$> stmt <|> Right <$> assume)
                                   return (ds, ss)
           return (Main pre returns ds ss post)
-
---fundef = FunDef <$> typ <*> identifier <*> args <*> stmts
---  where
---    args = parens (commaSep arg)
---    arg  = flip Typed <$> typ <*> identifier
-
---assert = atomicStmt (reserved "assert" >> Assert <$> F.formula)
 
 ast :: Parser AST
 ast = whiteSpace >> AST <$> many (try declaration) <*> main

@@ -21,7 +21,7 @@ language = emptyDef
                             , "procedure", "modifies", "returns"
                             , "assert", "assume", "requires", "ensures"
                             ]
-  , Token.reservedOpNames = [ "+",  "-",  "*", "/"
+  , Token.reservedOpNames = [ "+",  "-",  "*", "div"
                             , "+=", "-=", "*=", ":=", "++", "--"
                             , "==", "!=", "<", ">", "<=", ">="
                             , "&&", "||", "!", "==>"

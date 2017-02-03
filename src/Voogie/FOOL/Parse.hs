@@ -18,7 +18,8 @@ term = buildExpressionParser operators arg
 
 operators = [ [prefix "-"   (Unary  Negative)          ,
                prefix "+"   (Unary  Positive)          ]
-            , [binary "*"   (Binary Multiply) AssocLeft]
+            , [binary "*"   (Binary Multiply) AssocLeft,
+               binary "div" (Binary Divide)   AssocLeft]
             , [binary "+"   (Binary Add     ) AssocLeft,
                binary "-"   (Binary Subtract) AssocLeft]
             , [binary ">"   (Binary Greater ) AssocNone,

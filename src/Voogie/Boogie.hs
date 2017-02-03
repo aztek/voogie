@@ -44,7 +44,10 @@ data Statement = Assign (NonEmpty (LValue, Expression))
                | If Expression Bool (NonEmpty Statement) [Statement]
   deriving (Show)
 
-data Main = Main [F.Formula] [Statement] [F.Formula]
+data Assume = Assume F.Formula
+  deriving (Show)
+
+data Main = Main [F.Formula] [Either Statement Assume] [F.Formula]
   deriving (Show)
 
 data Boogie = Boogie [Var] Main

@@ -15,7 +15,7 @@ procedure main()
   low  := 0;
   high := 6;
 
-  mid := (low + high) / 2;
+  mid := (low + high) div 2;
   if (a[mid] == e) {
     if (!r) {
       r := true;
@@ -29,7 +29,7 @@ procedure main()
     }
   }
 
-  mid := (low + high) / 2;
+  mid := (low + high) div 2;
   if (a[mid] == e) {
     if (!r) {
       r := true;
@@ -43,7 +43,7 @@ procedure main()
     }
   }
 
-  mid := (low + high) / 2;
+  mid := (low + high) div 2;
   if (a[mid] == e) {
     if (!r) {
       r := true;

@@ -30,13 +30,13 @@ data Decl = Declare (Typed (NonEmpty String))
 data FunDef = FunDef Type String [Typed String] [Stmt]
   deriving (Show, Eq)
 
---data Assert = Assert F.Formula
---  deriving (Show, Eq)
+data Assume = Assume F.Formula
+  deriving (Show, Eq)
 
 data Returns = Returns (Typed String)
   deriving (Show, Eq)
 
-data Main = Main [F.Formula] (Maybe Returns) [Decl] [Stmt] [F.Formula]
+data Main = Main [F.Formula] (Maybe Returns) [Decl] [Either Stmt Assume] [F.Formula]
   deriving (Show, Eq)
 
 data AST = AST [Decl] Main
