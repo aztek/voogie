@@ -1,8 +1,10 @@
 module Voogie.Front where
 
-import Control.Monad (zipWithM)
+import Control.Monad (zipWithM, liftM)
+import Control.Monad.Extra (mapMaybeM)
 import Control.Applicative
 import Data.Maybe
+import Data.Bifunctor
 import Data.Bitraversable
 import Data.Foldable
 
@@ -75,6 +77,11 @@ analyzeDecl (AST.Declare (Typed ns t)) env = foldrM insertVariable' env ns
         Right _ -> Left  ("redefined variable " ++ n)
 
 
+analyzeMain :: Env -> [Either AST.Stmt AST.Assume] -> Either Error [Either Statement Assume]
+analyzeMain env = mapMaybeM $ either (fmap (fmap   Left)  . analyzeStmt   env)
+                                     (fmap (Just . Right) . analyzeAssume env)
+
+
 guardType :: (TypeOf b, Pretty b) => (a -> Either Error b) -> Type -> a -> Either Error b
 guardType analyze t a = do b <- analyze a
                            let t' = typeOf b
@@ -97,26 +104,24 @@ infix 5 .:
 (.:) :: (a -> b) -> a -> b
 (.:) = ($)
 
-analyzeMain :: Env -> [Either AST.Stmt AST.Assume] -> Either Error [Either Statement Assume]
-analyzeMain env = mapM (bimapM (analyzeStmt env) (analyzeAssume env))
 
 analyzeStmts :: Env -> [AST.Stmt] -> Either Error [Statement]
-analyzeStmts env = mapM (analyzeStmt env)
+analyzeStmts env = fmap catMaybes . mapM (analyzeStmt env)
 
-analyzeStmt :: Env -> AST.Stmt -> Either Error Statement
+analyzeStmt :: Env -> AST.Stmt -> Either Error (Maybe Statement)
 analyzeStmt env (AST.If c a b) =
   do c' <- analyzeExpr  env c
      a' <- analyzeStmts env a
      b' <- analyzeStmts env b
      return $ case NE.nonEmpty a' of
-                Just a' -> If c' False a' b'
+                Just a' -> Just (If c' False a' b')
                 Nothing -> case NE.nonEmpty b' of
-                             Nothing -> undefined
-                             Just b' -> If c' True b' []
+                             Nothing -> Nothing
+                             Just b' -> Just (If c' True b' [])
 analyzeStmt _   (AST.Assign lvals rvals) | length lvals /= length rvals = Left ""
 analyzeStmt env (AST.Assign lvals rvals) =
   do ass <- mapM (analyzeAssignment env) (NE.zip lvals rvals)
-     return $ Assign ass
+     return $ Just (Assign ass)
 
 analyzeAssume :: Env -> AST.Assume -> Either Error Assume
 analyzeAssume env (AST.Assume f) = Assume <$> analyzeFormula env f
