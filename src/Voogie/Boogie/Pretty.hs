@@ -16,7 +16,7 @@ import qualified Voogie.FOOL.Pretty as F
 
 instance Pretty LValue where
   pretty (Variable  (Typed v _)) = v
-  pretty (ArrayElem (Typed v _) e) = v ++ "[" ++ pretty e ++ "]"
+  pretty (ArrayElem (Typed v _) e) = v ++ brackets (pretty e)
 
 instance Pretty Expression where
   pretty (IntegerLiteral i) = show i
@@ -26,7 +26,7 @@ instance Pretty Expression where
   pretty (Binary op a b) = unwords [pretty a, F.pretty op, pretty b]
   pretty (IfElse a b c)  = unwords [pretty a, "?", pretty a, ":", pretty b]
 
-  pretty (FunApp (Typed f _) args) = f ++ "(" ++ intercalate ", " (map pretty args) ++ ")"
+  pretty (FunApp (Typed f _) args) = f ++ parens (intercalate ", " $ map pretty args)
 
   pretty (Equals s a b) = unwords [pretty a, if s == Pos then "==" else "!=", pretty b]
 
@@ -43,7 +43,7 @@ braces n s = "{" ++ (if null s' then "" else "\n" ++ s' ++ indent n) ++ "}"
   where s' = indented (n + 1) s
 
 indentedIte :: (Pretty a, Pretty b) => Integer -> Expression -> a -> b -> String
-indentedIte n c a b = unwords ["if", "(" ++ pretty c ++ ")", braces n a, "else", braces n b]
+indentedIte n c a b = unwords ["if", parens (pretty c), braces n a, "else", braces n b]
 
 instance Pretty (Typed Name) where
   pretty (Typed n t) = unwords [F.pretty t, n]

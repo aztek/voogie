@@ -12,14 +12,17 @@ import Voogie.Theory
 import Voogie.FOOL
 import Voogie.TPTP
 
+parens :: String -> String
+parens s = "(" ++ s ++ ")"
+
+brackets :: String -> String
+brackets s = "[" ++ s ++ "]"
+
 list :: [String] -> String
 list = intercalate ", "
 
 tuple :: Tuple String -> String
-tuple es = "[" ++ Tuple.intercalate ", " es ++ "]"
-
-parens :: String -> String
-parens s = "(" ++ s ++ ")"
+tuple = brackets . Tuple.intercalate ", "
 
 funapp :: String -> [String] -> String
 funapp f as = f ++ parens (list as)
@@ -71,7 +74,7 @@ prettyDefinition (Symbol c vs) = funapp (prettyIdentifier c) (map prettyVariable
 prettyDefinition (TupleD es) = tuple (fmap prettyIdentifier es)
 
 offsetBinding :: Int -> Binding -> String
-offsetBinding o (Binding d t) = d' ++ " := " ++ offsetTerm (o + length d' + 4) t
+offsetBinding o (Binding d t) = unwords [d', ":=", offsetTerm (o + length d' + 4) t]
   where d' = prettyDefinition d
 
 prettyBinding :: Binding -> String
@@ -87,7 +90,7 @@ indent :: Int -> String
 indent = flip replicate ' '
 
 infx :: String -> String -> String -> String
-infx a op b = parens (a ++ " " ++ op ++ " " ++ b)
+infx a op b = parens $ unwords [a, op, b]
 
 newline :: String -> String
 newline = ('\n' :)
@@ -100,6 +103,12 @@ indentedTerm' pp (i, o) t = newline $ indent i ++ offsetTerm' pp o t
 
 offsetTerm :: Int -> Term -> String
 offsetTerm = offsetTerm' False
+
+prettyEq :: Sign -> String
+prettyEq s =
+  case s of
+    Pos -> "="
+    Neg -> "!="
 
 offsetTerm' :: Bool -> Int -> Term -> String
 offsetTerm' pp o t = case t of
@@ -118,19 +127,17 @@ offsetTerm' pp o t = case t of
                            binary = if isInfix then infx (prettyTerm a) prettyOp (prettyTerm b)
                                                else funapp prettyOp [prettyTerm a, prettyTerm b]
 
-  Quantify q vs t -> prettyQ ++ " " ++ prettyVars ++ ": " ++ parens (offsetTerm o' t)
+  Quantify q vs t -> unwords [prettyQ, prettyVars, ":", parens (offsetTerm o' t)]
                        where prettyQ = prettyQuantifier q
-                             prettyVars = "[" ++ list (NE.toList $ fmap prettyVariable vs) ++ "]"
+                             prettyVars = brackets $ list (NE.toList $ fmap prettyVariable vs)
                              o' = o + length prettyQ + 1 + length prettyVars + 3
 
-  Equals s a b -> infx (prettyTerm a) (if s == Pos then "=" else "!=") (prettyTerm b)
+  Equals s a b -> infx (prettyTerm a) (prettyEq s) (prettyTerm b)
 
-  Let b t  -> funapp "$let" [offsetBinding (o + 5) b,
-                             indentedTerm io t]
+  Let b t  -> funapp "$let" [offsetBinding (o + 5) b, indentedTerm io t]
                 where io = if isLet t then (o, o) else (o + 5, o + 5)
-  If c a b -> funapp "$ite" [offsetTerm 0 c,
-                             indentedTerm io a,
-                             indentedTerm io b]
+
+  If c a b -> funapp "$ite" [offsetTerm 0 c, indentedTerm io a, indentedTerm io b]
                 where io = (o + 5, o + 5)
 
   Select a i   -> funapp "$select" [prettyTerm a, prettyTerm i]
@@ -150,7 +157,7 @@ thf :: String -> String -> String -> String
 thf n it s = funapp "thf" [n, it, s] ++ ".\n"
 
 prettyUnit :: Unit -> String
-prettyUnit (Type (Typed n t)) = thf n "type" (parens $ n ++ ": " ++ prettyType t)
+prettyUnit (Type (Typed n t)) = thf n "type" (infx n ":" (prettyType t))
 prettyUnit (Axiom f) = thf "precondition" "axiom" (indentedTerm (4, 4) f)
 prettyUnit (Conjecture f) = thf "voogie_conjecture" "conjecture" (indentedTerm (4, 4) f)
 

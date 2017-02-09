@@ -17,8 +17,8 @@ instance Pretty Quantifier where
 instance Pretty Type where
   pretty Integer = "int"
   pretty Boolean = "bool"
-  pretty (Array i t) = "[" ++ pretty i ++ "] " ++ pretty t
-  pretty (TupleType ts) = "(" ++ Tuple.intercalate ", " (fmap pretty ts) ++ ")"
+  pretty (Array i t) = brackets (pretty i) ++ " " ++ pretty t
+  pretty (TupleType ts) = parens (Tuple.intercalate ", " $ fmap pretty ts)
 
 instance Pretty UnaryOp where
   pretty Negate   = "!"
@@ -42,16 +42,21 @@ instance Pretty BinaryOp where
       Multiply -> "*"
       Divide   -> "/"
 
+instance Pretty Sign where
+  pretty Pos = "=="
+  pretty Neg = "!="
+
 instance Pretty Term where
   pretty (IntegerConstant i) = show i
-  pretty (BooleanConstant b) = if b then "true" else "false"
+  pretty (BooleanConstant True)  = "true"
+  pretty (BooleanConstant False) = "false"
   pretty (Variable (Typed (Var v) _)) = v
-  pretty (Application (Typed f _) args) = f ++ "(" ++ intercalate ", " (map pretty args) ++ ")"
-  pretty (Binary op a b) = pretty a ++ " " ++ pretty op ++ " " ++ pretty b
+  pretty (Application (Typed f _) args) = f ++ parens (intercalate ", " $ map pretty args)
+  pretty (Binary op a b) = unwords [pretty a, pretty op, pretty b]
   pretty (Unary op t) = pretty op ++ pretty t
-  pretty (Quantify q vars t) = pretty q ++ " (" ++ intercalate ", " (NE.toList $ fmap p vars) ++ ")" ++ pretty t
+  pretty (Quantify q vars t) = pretty q ++ " " ++ parens (intercalate ", " $ NE.toList $ fmap p vars) ++ pretty t
     where p (Typed (Var v) t) = pretty t ++ " " ++ v
-  pretty (Equals s a b) = pretty a ++ (if s == Pos then " == " else " != ") ++ pretty b
-  pretty (If c a b) = pretty c ++ " ? "  ++ pretty a ++ " : " ++ pretty b
-  pretty (Select a i) = pretty a ++ "[" ++ pretty i ++ "]"
+  pretty (Equals s a b) = unwords [pretty a, pretty s, pretty b]
+  pretty (If c a b) = unwords [pretty c, "?", pretty a, ":", pretty b]
+  pretty (Select a i) = pretty a ++ brackets (pretty i)
   pretty t = error $ "no pretty syntax for " ++ show t
