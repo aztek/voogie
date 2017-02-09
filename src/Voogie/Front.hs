@@ -1,6 +1,6 @@
 module Voogie.Front where
 
-import Control.Monad (zipWithM, liftM)
+import Control.Monad (zipWithM, liftM, join)
 import Control.Monad.Extra (mapMaybeM)
 import Control.Applicative
 import Data.Maybe
@@ -163,16 +163,24 @@ analyzeTerm ctx (F.AST.Equals s a b) =
   do a' <- analyzeTerm ctx a
      b' <- analyzeTerm ctx `guard` b .: typeOf a'
      return (F.equals s a' b')
-analyzeTerm (env, qv) (F.AST.Quantified q vars term) = F.quantify q vars' <$> analyzeFormula' (env', qv') term
-  where
-    -- TODO: check that the variables are disjoint
-    env' = foldr insertVariable env vars
-    qv'  = foldr Set.insert     qv  vars
-    vars' = fmap (fmap F.var) vars
+analyzeTerm (env, qv) (F.AST.Quantified q vars term) =
+  do ids <- analyzeVarList vars
+     let env' = foldr insertVariable env ids
+     let qv'  = foldr Set.insert     qv  ids
+     f <- analyzeFormula' (env', qv') term
+     let vars' = fmap (fmap F.var) ids
+     return (F.quantify q vars' f)
 analyzeTerm ctx@(env, _) (F.AST.ArrayElem s i) = F.select <$> array <*> index
   where
     array = F.constant <$> lookupArrayName s env
     index = analyzeTerm ctx `guard` i .: Integer
+
+analyzeVarList :: NonEmpty (Typed (NonEmpty String)) -> Either Error (NonEmpty (Typed Name))
+-- TODO: check that the variables are disjoint
+analyzeVarList = Right . join . fmap propagate
+  where
+    propagate :: Typed (NonEmpty String) -> NonEmpty (Typed String)
+    propagate (Typed ss t) = fmap (flip Typed t) ss
 
 analyzeLValue :: Env -> AST.LVal -> Either Error LValue
 analyzeLValue env (AST.Var s) = Variable <$> lookupVariable s env

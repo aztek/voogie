@@ -60,8 +60,8 @@ typ =  atomicTyp
 atomicTyp =  constant "int"  Integer
          <|> constant "bool" Boolean
 
-typed :: Parser (Typed String)
-typed = do i <- identifier
-           reservedOp ":"
-           t <- typ
-           return (Typed i t)
+typed :: Parser a -> Parser (Typed a)
+typed p = do v <- p
+             reservedOp ":"
+             t <- typ
+             return (Typed v t)

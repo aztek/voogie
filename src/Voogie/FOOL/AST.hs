@@ -11,7 +11,7 @@ data Term = IntConst Integer
           | Binary  BinaryOp Term Term
           | Ternary          Term Term Term
           | Equals Sign Term Term
-          | Quantified Quantifier (NonEmpty (Typed String)) Term
+          | Quantified Quantifier (NonEmpty (Typed (NonEmpty String))) Term
           | ArrayElem String Term
   deriving (Show, Eq)
 

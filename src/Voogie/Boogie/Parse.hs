@@ -75,18 +75,21 @@ assume = atomicStmt $ do reserved "assume"
                          f <- F.formula
                          return $ Assume f
 
-main = do reservedOp "procedure"
+main = do reserved "procedure"
           reserved "main"
           reserved "("
           reserved ")"
-          _ <- optionMaybe (atomicStmt $ reserved "modifies" >> identifier)
-          returns <- optionMaybe (reserved "returns" >> parens (Returns <$> typed))
-          pre  <- many (try $ atomicStmt $ reservedOp "requires" >> parens (F.formula))
-          post <- many (try $ atomicStmt $ reservedOp "ensures" >> parens (F.formula))
+          returns <- optionMaybe (reserved "returns" >> parens (Returns <$> typed identifier))
+          _ <- optionMaybe (atomicStmt $ reserved "modifies" >> commaSep1 identifier)
+          pre  <- many (try precondition)
+          post <- many (try postcondition)
           (ds, ss) <- braces $ do ds <- many (try declaration)
                                   ss <- many (Left <$> stmt <|> Right <$> assume)
                                   return (ds, ss)
           return (Main pre returns ds ss post)
+  where
+    precondition  = atomicStmt (reservedOp "requires" >> F.formula)
+    postcondition = atomicStmt (reservedOp "ensures"  >> F.formula)
 
 ast :: Parser AST
 ast = whiteSpace >> AST <$> many (try declaration) <*> main
