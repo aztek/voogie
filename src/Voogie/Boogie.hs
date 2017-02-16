@@ -18,7 +18,7 @@ lvariable (ArrayElem v _) = v
 
 instance TypeOf LValue where
   typeOf (Variable  v) = typeOf v
-  typeOf (ArrayElem v _) = arrayArgument (typeOf v)
+  typeOf (ArrayElem v _) = arrayElement (typeOf v)
 
 data Expression = IntegerLiteral Integer
                 | BooleanLiteral Bool

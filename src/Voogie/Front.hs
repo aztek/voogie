@@ -86,8 +86,8 @@ guardType :: (TypeOf b, Pretty b) => (a -> Either Error b) -> Type -> a -> Eithe
 guardType analyze t a = do b <- analyze a
                            let t' = typeOf b
                            if t == t' then return b else
-                             Left $ "expected an expression of the type " ++ pretty t' ++
-                                    " but got " ++ pretty b ++ " of the type " ++ pretty t 
+                             Left $ "expected an expression of the type " ++ pretty t ++
+                                    " but got " ++ pretty b ++ " of the type " ++ pretty t'
 
 guardTypes :: (TypeOf b, Pretty b) => (a -> Either Error b) -> [Type] -> [a] -> Either Error [b]
 guardTypes analyze = zipWithM (guardType analyze)
@@ -171,8 +171,9 @@ analyzeTerm (env, qv) (F.AST.Quantified q vars term) =
      let vars' = fmap (fmap F.var) ids
      return (F.quantify q vars' f)
 analyzeTerm ctx@(env, _) (F.AST.ArrayElem arr i) =
-  do array   <- F.constant <$> lookupArrayName arr env
-     indexes <- mapM (\i -> analyzeTerm ctx `guard` i .: Integer) i
+  do array <- F.constant <$> lookupArrayName arr env
+     let Array arrayArgs _ = typeOf array
+     indexes <- mapM (\(i, t) -> analyzeTerm ctx `guard` i .: t) (NE.zip i arrayArgs)
      return (F.select array indexes)
 
 analyzeVarList :: NonEmpty (Typed (NonEmpty String)) -> Either Error (NonEmpty (Typed Name))
@@ -185,22 +186,24 @@ analyzeVarList = Right . join . fmap propagate
 analyzeLValue :: Env -> AST.LVal -> Either Error LValue
 analyzeLValue env (AST.Var s) = Variable <$> lookupVariable s env
 analyzeLValue env (AST.ArrayElem arr i) =
-  do array   <- lookupArrayName arr env
-     indexes <- mapM (\i -> analyzeExpr env `guard` i .: Integer) i
+  do array <- lookupArrayName arr env
+     let Array arrayArgs _ = typeOf array
+     indexes <- mapM (\(i, t) -> analyzeExpr env `guard` i .: t) (NE.zip i arrayArgs)
      return (ArrayElem array indexes)
 
 analyzeExpr :: Env -> AST.Expr -> Either Error Expression
 analyzeExpr _ (AST.IntConst  i) = return (IntegerLiteral i)
 analyzeExpr _ (AST.BoolConst b) = return (BooleanLiteral b)
 analyzeExpr env (AST.LVal lval) = Ref <$> analyzeLValue env lval
-analyzeExpr env (AST.Unary op e) = Unary op <$> analyzeExpr env `guard` e .: d
-  where
-    d = unaryOpDomain op
-analyzeExpr env (AST.Binary op a b) = Binary op <$> a' <*> b'
-  where
-    a' = analyzeExpr env `guard` a .: d1
-    b' = analyzeExpr env `guard` b .: d2
-    (d1, d2) = binaryOpDomain op
+analyzeExpr env (AST.Unary op e) =
+  do let d = unaryOpDomain op
+     e' <- analyzeExpr env `guard` e .: d
+     return (Unary op e')
+analyzeExpr env (AST.Binary op a b) =
+  do let (d1, d2) = binaryOpDomain op
+     a' <- analyzeExpr env `guard` a .: d1
+     b' <- analyzeExpr env `guard` b .: d2
+     return (Binary op a' b')
 analyzeExpr env (AST.Equals s a b) =
   do a' <- analyzeExpr env a
      b' <- analyzeExpr env `guard` b .: typeOf a'

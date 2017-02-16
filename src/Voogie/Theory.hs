@@ -19,6 +19,10 @@ isArray :: Type -> Bool
 isArray (Array _ _) = True
 isArray _ = False
 
+arrayElement :: Type -> Type
+arrayElement (Array _ r) = r
+arrayElement t = error (show t ++ " is not an array")
+
 arrayArgument :: Type -> Type
 arrayArgument (Array (_ :| is) r) =
   case NE.nonEmpty is of
