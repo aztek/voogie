@@ -156,10 +156,19 @@ prettyTerm = offsetTerm 0
 thf :: String -> String -> String -> String
 thf n it s = funapp "thf" [n, it, s] ++ ".\n"
 
-prettyUnit :: Unit -> String
-prettyUnit (Type (Typed n t)) = thf n "type" (infx n ":" (prettyType t))
-prettyUnit (Axiom f) = thf "precondition" "axiom" (indentedTerm (4, 4) f)
-prettyUnit (Conjecture f) = thf "voogie_conjecture" "conjecture" (indentedTerm (4, 4) f)
+prettyTypeUnit :: Typed Name -> String
+prettyTypeUnit (Typed n t) = thf n "type" (infx n ":" (prettyType t))
+
+prettyAxiom :: Formula -> Integer -> String
+prettyAxiom f nr = thf ("voogie_precondition_" ++ show nr) "axiom" (indentedTerm (4, 4) f)
+
+prettyConjecture :: Formula -> String
+prettyConjecture f = thf "voogie_conjecture" "conjecture" (indentedTerm (4, 4) f)
+
+prettyUnit :: (String, Integer) -> Unit -> (String, Integer)
+prettyUnit (s, nr) (Type t)       = (s ++ prettyTypeUnit t,   nr)
+prettyUnit (s, nr) (Axiom f)      = (s ++ prettyAxiom f nr,   nr + 1)
+prettyUnit (s, nr) (Conjecture f) = (s ++ prettyConjecture f, nr)
 
 prettyTPTP :: TPTP -> String
-prettyTPTP (TPTP units) = concatMap prettyUnit units
+prettyTPTP (TPTP units) = fst $ foldl prettyUnit ("", 0) units
