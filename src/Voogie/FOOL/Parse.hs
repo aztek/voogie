@@ -39,7 +39,7 @@ arg =  try (parens quantified)
    <|> constant "true"  (BoolConst True)
    <|> constant "false" (BoolConst False)
    <|> IntConst <$> integer
-   <|> try (ArrayElem <$> identifier <*> brackets term)
+   <|> try (ArrayElem <$> identifier <*> brackets (commaSep1 term))
    <|> Const <$> identifier
 
 quantified = do q <- quantifier

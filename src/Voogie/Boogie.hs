@@ -9,7 +9,7 @@ type Var = Typed Name
 type Function = Typed Name
 
 data LValue = Variable Var
-            | ArrayElem Var Expression
+            | ArrayElem Var (NonEmpty Expression)
   deriving (Show)
 
 lvariable :: LValue -> Var

@@ -56,7 +56,7 @@ prettyType s =
   case s of
     Boolean -> "$o"
     Integer -> "$int"
-    Array i t -> funapp "$array" [prettyType i, prettyType t]
+    Array i t -> foldr (\q w -> funapp "$array" [prettyType q, w]) (prettyType t) i
     TupleType ts -> tuple (fmap prettyType ts)
 
 prettyVar :: Var -> String

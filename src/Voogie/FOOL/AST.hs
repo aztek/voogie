@@ -12,7 +12,7 @@ data Term = IntConst Integer
           | Ternary          Term Term Term
           | Equals Sign Term Term
           | Quantified Quantifier (NonEmpty (Typed (NonEmpty String))) Term
-          | ArrayElem String Term
+          | ArrayElem String (NonEmpty Term)
   deriving (Show, Eq)
 
 type Formula = Term

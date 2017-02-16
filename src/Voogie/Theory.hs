@@ -3,14 +3,15 @@
 module Voogie.Theory where
 
 import Data.Set
-import Data.List.NonEmpty (NonEmpty)
+import Data.List.NonEmpty as NE
+import Data.List.NonEmpty (NonEmpty((:|)))
 
 import qualified Voogie.FOOL.Tuple as Tuple
 import Voogie.FOOL.Tuple (Tuple)
 
 data Type = Boolean
           | Integer
-          | Array Type Type
+          | Array (NonEmpty Type) Type
           | TupleType (Tuple Type)
   deriving (Show, Eq, Ord)
 
@@ -19,7 +20,10 @@ isArray (Array _ _) = True
 isArray _ = False
 
 arrayArgument :: Type -> Type
-arrayArgument (Array _ t) = t
+arrayArgument (Array (_ :| is) r) =
+  case NE.nonEmpty is of
+    Nothing  -> r
+    Just is' -> Array is' r
 arrayArgument t = error (show t ++ " is not an array")
 
 tupleType :: NonEmpty Type -> Type

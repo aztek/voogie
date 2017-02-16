@@ -54,11 +54,12 @@ prefix  = operator Prefix
 postfix = operator Postfix
 
 typ :: Parser Type
-typ =  atomicTyp
-   <|> Array <$> brackets typ <*> typ
+typ = atomicType <|> arrayType
 
-atomicTyp =  constant "int"  Integer
-         <|> constant "bool" Boolean
+atomicType =  constant "int"  Integer
+          <|> constant "bool" Boolean
+
+arrayType = Array <$> brackets (commaSep1 typ) <*> typ
 
 typed :: Parser a -> Parser (Typed a)
 typed p = do v <- p

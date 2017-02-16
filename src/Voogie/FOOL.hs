@@ -49,6 +49,6 @@ instance TypeOf Term where
   typeOf Equals{} = Boolean
   typeOf (Let _ t) = typeOf t
   typeOf (If _ a _) = typeOf a
-  typeOf (Select array _) = arrayArgument (typeOf array)
+  typeOf (Select array indexes) = arrayArgument (typeOf array)
   typeOf (Store array _ _) = typeOf array
   typeOf (TupleLiteral args) = TupleType (fmap typeOf args)

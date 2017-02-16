@@ -8,7 +8,7 @@ import Voogie.Theory
 import qualified Voogie.FOOL.AST as F
 
 data LVal = Var String
-          | ArrayElem String Expr
+          | ArrayElem String (NonEmpty Expr)
   deriving (Show, Eq)
 
 data Expr = IntConst Integer

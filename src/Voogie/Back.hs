@@ -59,21 +59,20 @@ translateAssume :: TranslationOptions -> B.Assume -> F.Term -> F.Term
 translateAssume opts (B.Assume f) = F.binary Imply f
 
 translateAssignment :: NonEmpty (B.LValue, B.Expression) -> B.Var -> F.Term
-translateAssignment ass v = translateAssignment' (NE.toList ass) (F.constant v)
+translateAssignment ass v = foldr translateAssignment' (F.constant v) ass
   where
-    translateAssignment' :: [(B.LValue, B.Expression)] -> F.Term -> F.Term
-    translateAssignment' [] t = t
-    translateAssignment' ((B.Variable  w  , e):ass) t | v == w = translateAssignment' ass (translateExpression e)
-    translateAssignment' ((B.ArrayElem w i, e):ass) t | v == w = translateAssignment' ass (F.store t (translateExpression i) (translateExpression e))
-    translateAssignment' (_:ass) t = translateAssignment' ass t
+    translateAssignment' :: (B.LValue, B.Expression) -> F.Term -> F.Term
+    translateAssignment' (B.Variable  w,   e) t | v == w = translateExpression e
+    translateAssignment' (B.ArrayElem w i, e) t | v == w = F.store t (fmap translateExpression i) (translateExpression e)
+    translateAssignment' _                    t = t
 
 
 translateAssignments :: TranslationOptions -> NonEmpty (B.LValue, B.Expression) -> NonEmpty F.Term
 translateAssignments opts = fmap translateAssignment
   where
     translateAssignment :: (B.LValue, B.Expression) -> F.Term
-    translateAssignment (B.Variable    _, e) = translateExpression e
-    translateAssignment (B.ArrayElem v i, e) = F.store (F.constant v) (translateExpression i) (translateExpression e)
+    translateAssignment (B.Variable  _,   e) = translateExpression e
+    translateAssignment (B.ArrayElem v i, e) = F.store (F.constant v) (fmap translateExpression i) (translateExpression e)
 
 
 translateExpression :: B.Expression -> F.Term
@@ -88,7 +87,7 @@ translateExpression (B.Ref lval)      = translateLValue lval
 
 translateLValue :: B.LValue -> F.Term
 translateLValue (B.Variable v)    = F.constant (translateConstant v)
-translateLValue (B.ArrayElem v e) = F.select (F.constant (translateConstant v)) (translateExpression e)
+translateLValue (B.ArrayElem v i) = F.select (F.constant (translateConstant v)) (fmap translateExpression i)
 
 translateConstant :: B.Var -> F.Identifier
 translateConstant = fmap F.name

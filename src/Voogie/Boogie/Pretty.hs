@@ -16,7 +16,7 @@ import qualified Voogie.FOOL.Pretty as F
 
 instance Pretty LValue where
   pretty (Variable  (Typed v _)) = v
-  pretty (ArrayElem (Typed v _) e) = v ++ brackets (pretty e)
+  pretty (ArrayElem (Typed v _) e) = v ++ brackets (intercalate "," $ NE.toList $ fmap pretty e)
 
 instance Pretty Expression where
   pretty (IntegerLiteral i) = show i

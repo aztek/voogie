@@ -43,7 +43,7 @@ term =  parens expr
     <|> IntConst <$> integer
     <|> LVal <$> lval
 
-lval =  try (ArrayElem <$> identifier <*> brackets expr)
+lval =  try (ArrayElem <$> identifier <*> brackets (commaSep1 expr))
     <|> Var <$> identifier
 
 stmts :: Parser [Stmt]

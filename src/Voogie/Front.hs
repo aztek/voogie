@@ -9,7 +9,7 @@ import Data.Bitraversable
 import Data.Foldable
 
 import qualified Data.List.NonEmpty as NE
-import Data.List.NonEmpty (NonEmpty)
+import Data.List.NonEmpty (NonEmpty((:|)))
 
 import qualified Data.Map as Map
 import Data.Map (Map)
@@ -170,10 +170,10 @@ analyzeTerm (env, qv) (F.AST.Quantified q vars term) =
      f <- analyzeFormula' (env', qv') term
      let vars' = fmap (fmap F.var) ids
      return (F.quantify q vars' f)
-analyzeTerm ctx@(env, _) (F.AST.ArrayElem s i) = F.select <$> array <*> index
-  where
-    array = F.constant <$> lookupArrayName s env
-    index = analyzeTerm ctx `guard` i .: Integer
+analyzeTerm ctx@(env, _) (F.AST.ArrayElem arr i) =
+  do array   <- F.constant <$> lookupArrayName arr env
+     indexes <- mapM (\i -> analyzeTerm ctx `guard` i .: Integer) i
+     return (F.select array indexes)
 
 analyzeVarList :: NonEmpty (Typed (NonEmpty String)) -> Either Error (NonEmpty (Typed Name))
 -- TODO: check that the variables are disjoint
@@ -184,10 +184,10 @@ analyzeVarList = Right . join . fmap propagate
 
 analyzeLValue :: Env -> AST.LVal -> Either Error LValue
 analyzeLValue env (AST.Var s) = Variable <$> lookupVariable s env
-analyzeLValue env (AST.ArrayElem s i) = ArrayElem <$> array <*> index
-  where
-    array = lookupArrayName s env
-    index = analyzeExpr env `guard` i .: Integer
+analyzeLValue env (AST.ArrayElem arr i) =
+  do array   <- lookupArrayName arr env
+     indexes <- mapM (\i -> analyzeExpr env `guard` i .: Integer) i
+     return (ArrayElem array indexes)
 
 analyzeExpr :: Env -> AST.Expr -> Either Error Expression
 analyzeExpr _ (AST.IntConst  i) = return (IntegerLiteral i)

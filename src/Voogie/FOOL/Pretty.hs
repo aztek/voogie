@@ -17,7 +17,7 @@ instance Pretty Quantifier where
 instance Pretty Type where
   pretty Integer = "int"
   pretty Boolean = "bool"
-  pretty (Array i t) = brackets (pretty i) ++ " " ++ pretty t
+  pretty (Array i t) = brackets (intercalate ", " $ fmap pretty $ NE.toList i) ++ " " ++ pretty t
   pretty (TupleType ts) = parens (Tuple.intercalate ", " $ fmap pretty ts)
 
 instance Pretty UnaryOp where
