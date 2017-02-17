@@ -127,8 +127,9 @@ offsetTerm' pp o t = case t of
                            binary = if isInfix then infx (prettyTerm a) prettyOp (prettyTerm b)
                                                else funapp prettyOp [prettyTerm a, prettyTerm b]
 
-  Quantify q vs t -> unwords [prettyQ, prettyVars, ":", parens (offsetTerm o' t)]
-                       where prettyQ = prettyQuantifier q
+  Quantify q vs t -> if pp then parens quantify else quantify
+                       where quantify = unwords [prettyQ, prettyVars, ":", parens (offsetTerm o' t)]
+                             prettyQ = prettyQuantifier q
                              prettyVars = brackets $ list (NE.toList $ fmap prettyVariable vs)
                              o' = o + length prettyQ + 1 + length prettyVars + 3
 
