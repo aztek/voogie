@@ -79,7 +79,7 @@ main = do reserved "procedure"
           reserved "main"
           reserved "("
           reserved ")"
-          returns <- optionMaybe (reserved "returns" >> parens (Returns <$> typed identifier))
+          returns <- optionMaybe (reserved "returns" >> parens (Returns <$> commaSep1 (typed identifier)))
           _ <- optionMaybe (atomicStmt $ reserved "modifies" >> commaSep1 identifier)
           pre  <- many (try precondition)
           post <- many (try postcondition)

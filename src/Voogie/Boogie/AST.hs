@@ -33,7 +33,7 @@ data FunDef = FunDef Type String [Typed String] [Stmt]
 data Assume = Assume F.Formula
   deriving (Show, Eq)
 
-data Returns = Returns (Typed String)
+data Returns = Returns (NonEmpty (Typed String))
   deriving (Show, Eq)
 
 data Main = Main [F.Formula] (Maybe Returns) [Decl] [Either Stmt Assume] [F.Formula]

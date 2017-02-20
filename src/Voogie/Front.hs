@@ -57,8 +57,8 @@ analyze :: AST.AST -> Either Error Boogie
 analyze (AST.AST globalDecls (AST.Main pre r mainDecls ss post)) =
   do globalEnv <- foldrM analyzeDecl emptyEnv  globalDecls
      mainEnv'  <- foldrM analyzeDecl globalEnv mainDecls
-     let mainEnv = case r of
-                     Just (AST.Returns r) -> insertVariable r mainEnv'
+     let mainEnv = case r of -- TODO: check for name clash
+                     Just (AST.Returns r) -> foldr insertVariable mainEnv' r
                      Nothing -> mainEnv'
      ss'   <- analyzeMain mainEnv ss
      pre'  <- mapM (analyzeFormula globalEnv) pre
