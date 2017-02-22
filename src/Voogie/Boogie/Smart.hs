@@ -6,8 +6,9 @@ module Voogie.Boogie.Smart (
 import qualified Data.List.NonEmpty as NE
 import Data.List.NonEmpty (NonEmpty((:|)))
 
-import Voogie.Theory
+import Data.Char
 
+import Voogie.Theory
 import Voogie.Boogie
 
 variable = Variable

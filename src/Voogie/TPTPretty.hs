@@ -60,10 +60,12 @@ prettyType s =
     TupleType ts -> tuple (fmap prettyType ts)
 
 prettyVar :: Var -> String
-prettyVar (Var n) = n
+prettyVar (Var []) = error "empty variable name"
+prettyVar (Var (c:cs)) = toUpper c : cs
 
 prettyIdentifier :: Identifier -> String
-prettyIdentifier (Typed n _) = n
+prettyIdentifier (Typed [] _) = error "empty identifier"
+prettyIdentifier (Typed (c:cs) _) = toLower c : cs
 
 prettyVariable :: Typed Var -> String
 prettyVariable (Typed v t) = prettyVar v ++ ":" ++ prettyType t

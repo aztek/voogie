@@ -16,10 +16,10 @@ import Voogie.FOOL.Tuple (Tuple, nonUnit)
 import Voogie.FOOL.TypeSafe
 
 var :: String -> Var
-var = Var . map toUpper
+var = Var
 
 name :: String -> Name
-name = map toLower
+name = id
 
 -- Definition
 tupleD :: NonEmpty Identifier -> Definition
@@ -30,7 +30,7 @@ integerConstant = IntegerConstant
 booleanConstant = BooleanConstant
 
 constant :: Identifier -> Term
-constant = flip Application []
+constant = flip Application [] . fmap name
 
 variable = Variable
 application = Application
