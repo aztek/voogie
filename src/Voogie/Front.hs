@@ -19,13 +19,15 @@ import Data.Set (Set)
 
 import Voogie.Theory
 import Voogie.Pretty
-import Voogie.Boogie
-import Voogie.Boogie.Pretty
+
+import Voogie.Boogie (Boogie)
+import qualified Voogie.Boogie.Smart as B
 import qualified Voogie.Boogie.AST as AST
+import Voogie.Boogie.Pretty
 
 import qualified Voogie.FOOL.Smart as F
 import qualified Voogie.FOOL.AST as F.AST
-import qualified Voogie.FOOL.Pretty as F.P
+import Voogie.FOOL.Pretty
 
 type Error = String
 
@@ -63,9 +65,9 @@ analyze (AST.AST globalDecls (AST.Main pre r mainDecls ss post)) =
      ss'   <- analyzeMain mainEnv ss
      pre'  <- mapM (analyzeFormula globalEnv) pre
      post' <- mapM (analyzeFormula mainEnv)   post
-     let main = Main pre' ss' post'
+     let main = B.main pre' ss' post'
      let vars = variables mainEnv
-     return (Boogie vars main)
+     return (B.boogie vars main)
 
 analyzeDecl :: AST.Decl -> Env -> Either Error Env
 analyzeDecl (AST.Declare (Typed ns t)) env = foldrM insertVariable' env ns
@@ -77,7 +79,7 @@ analyzeDecl (AST.Declare (Typed ns t)) env = foldrM insertVariable' env ns
         Right _ -> Left  ("redefined variable " ++ n)
 
 
-analyzeMain :: Env -> [Either AST.Stmt AST.Assume] -> Either Error [Either Statement Assume]
+analyzeMain :: Env -> [Either AST.Stmt AST.Assume] -> Either Error [Either B.Statement B.Assume]
 analyzeMain env = mapMaybeM $ either (fmap (fmap   Left)  . analyzeStmt   env)
                                      (fmap (Just . Right) . analyzeAssume env)
 
@@ -105,28 +107,24 @@ infix 5 .:
 (.:) = ($)
 
 
-analyzeStmts :: Env -> [AST.Stmt] -> Either Error [Statement]
+analyzeStmts :: Env -> [AST.Stmt] -> Either Error [B.Statement]
 analyzeStmts env = fmap catMaybes . mapM (analyzeStmt env)
 
-analyzeStmt :: Env -> AST.Stmt -> Either Error (Maybe Statement)
+analyzeStmt :: Env -> AST.Stmt -> Either Error (Maybe B.Statement)
 analyzeStmt env (AST.If c a b) =
   do c' <- analyzeExpr  env c
      a' <- analyzeStmts env a
      b' <- analyzeStmts env b
-     return $ case NE.nonEmpty a' of
-                Just a' -> Just (If c' False a' b')
-                Nothing -> case NE.nonEmpty b' of
-                             Nothing -> Nothing
-                             Just b' -> Just (If c' True b' [])
+     return (B.if_ c' a' b')
 analyzeStmt _   (AST.Assign lvals rvals) | length lvals /= length rvals = Left ""
 analyzeStmt env (AST.Assign lvals rvals) =
   do ass <- mapM (analyzeAssignment env) (NE.zip lvals rvals)
-     return $ Just (Assign ass)
+     return (B.assign ass)
 
-analyzeAssume :: Env -> AST.Assume -> Either Error Assume
-analyzeAssume env (AST.Assume f) = Assume <$> analyzeFormula env f
+analyzeAssume :: Env -> AST.Assume -> Either Error B.Assume
+analyzeAssume env (AST.Assume f) = B.assume <$> analyzeFormula env f
 
-analyzeAssignment :: Env -> (AST.LVal, AST.Expr) -> Either Error (LValue, Expression)
+analyzeAssignment :: Env -> (AST.LVal, AST.Expr) -> Either Error (B.LValue, B.Expression)
 analyzeAssignment env (lval, e) =
   do lv <- analyzeLValue env lval
      e' <- analyzeExpr env `guard` e .: typeOf lv
@@ -183,33 +181,33 @@ analyzeVarList = Right . join . fmap propagate
     propagate :: Typed (NonEmpty String) -> NonEmpty (Typed String)
     propagate (Typed ss t) = fmap (flip Typed t) ss
 
-analyzeLValue :: Env -> AST.LVal -> Either Error LValue
-analyzeLValue env (AST.Var s) = Variable <$> lookupVariable s env
+analyzeLValue :: Env -> AST.LVal -> Either Error B.LValue
+analyzeLValue env (AST.Var s) = B.variable <$> lookupVariable s env
 analyzeLValue env (AST.ArrayElem arr i) =
   do array <- lookupArrayName arr env
      let Array arrayArgs _ = typeOf array
      indexes <- mapM (\(i, t) -> analyzeExpr env `guard` i .: t) (NE.zip i arrayArgs)
-     return (ArrayElem array indexes)
+     return (B.arrayElem array indexes)
 
-analyzeExpr :: Env -> AST.Expr -> Either Error Expression
-analyzeExpr _ (AST.IntConst  i) = return (IntegerLiteral i)
-analyzeExpr _ (AST.BoolConst b) = return (BooleanLiteral b)
-analyzeExpr env (AST.LVal lval) = Ref <$> analyzeLValue env lval
+analyzeExpr :: Env -> AST.Expr -> Either Error B.Expression
+analyzeExpr _ (AST.IntConst  i) = return (B.integerLiteral i)
+analyzeExpr _ (AST.BoolConst b) = return (B.booleanLiteral b)
+analyzeExpr env (AST.LVal lval) = B.ref <$> analyzeLValue env lval
 analyzeExpr env (AST.Unary op e) =
   do let d = unaryOpDomain op
      e' <- analyzeExpr env `guard` e .: d
-     return (Unary op e')
+     return (B.unary op e')
 analyzeExpr env (AST.Binary op a b) =
   do let (d1, d2) = binaryOpDomain op
      a' <- analyzeExpr env `guard` a .: d1
      b' <- analyzeExpr env `guard` b .: d2
-     return (Binary op a' b')
+     return (B.binary op a' b')
 analyzeExpr env (AST.Equals s a b) =
   do a' <- analyzeExpr env a
      b' <- analyzeExpr env `guard` b .: typeOf a'
-     return (Equals s a' b')
+     return (B.equals s a' b')
 analyzeExpr env (AST.Ternary c a b) =
   do c' <- analyzeExpr env `guard` c .: Boolean
      a' <- analyzeExpr env a
      b' <- analyzeExpr env `guard` b .: typeOf a'
-     return (IfElse c' a' b')
+     return (B.ifElse c' a' b')
