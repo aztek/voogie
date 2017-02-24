@@ -3,6 +3,7 @@ module Voogie.TPTPretty (
 ) where
 
 import Data.List
+import Data.List.NonEmpty (NonEmpty)
 import qualified Data.List.NonEmpty as NE
 import qualified Voogie.FOOL.Tuple as Tuple
 import Voogie.FOOL.Tuple (Tuple)
@@ -21,10 +22,14 @@ brackets s = "[" ++ s ++ "]"
 list :: [String] -> String
 list = intercalate ", "
 
+vars :: NonEmpty String -> String
+vars = brackets . list . NE.toList
+
 tuple :: Tuple String -> String
-tuple = brackets . Tuple.intercalate ", "
+tuple = brackets . list . Tuple.toList
 
 funapp :: String -> [String] -> String
+funapp f [] = f
 funapp f as = f ++ parens (list as)
 
 prettyBinaryOp :: BinaryOp -> (Bool, String)
@@ -67,8 +72,11 @@ prettyIdentifier :: Identifier -> String
 prettyIdentifier (Typed [] _) = error "empty identifier"
 prettyIdentifier (Typed (c:cs) _) = toLower c : cs
 
+prettyTyped :: Typed String -> String
+prettyTyped (Typed s t) = s ++ ":" ++ prettyType t
+
 prettyVariable :: Typed Var -> String
-prettyVariable (Typed v t) = prettyVar v ++ ":" ++ prettyType t
+prettyVariable = prettyTyped . fmap prettyVar
 
 prettyDefinition :: Definition -> String
 prettyDefinition (Symbol c []) = prettyIdentifier c
@@ -83,16 +91,18 @@ prettyBinding :: Binding -> String
 prettyBinding = offsetBinding 0
 
 prettyQuantifier :: Quantifier -> String
-prettyQuantifier q =
-  case q of
-    Forall -> "!"
-    Exists -> "?"
+prettyQuantifier Forall = "!"
+prettyQuantifier Exists = "?"
+
+prettyEq :: Sign -> String
+prettyEq Pos = "="
+prettyEq Neg = "!="
 
 indent :: Int -> String
 indent = flip replicate ' '
 
 infx :: String -> String -> String -> String
-infx a op b = parens $ unwords [a, op, b]
+infx a op b = unwords [a, op, b]
 
 newline :: String -> String
 newline = ('\n' :)
@@ -103,14 +113,13 @@ indentedTerm = indentedTerm' False
 indentedTerm' :: Bool -> (Int, Int) -> Term -> String
 indentedTerm' pp (i, o) t = newline $ indent i ++ offsetTerm' pp o t
 
+qqq :: String -> Int
+qqq s = case lines s of
+          [] -> 0
+          (h:_) -> length h
+
 offsetTerm :: Int -> Term -> String
 offsetTerm = offsetTerm' False
-
-prettyEq :: Sign -> String
-prettyEq s =
-  case s of
-    Pos -> "="
-    Neg -> "!="
 
 offsetTerm' :: Bool -> Int -> Term -> String
 offsetTerm' pp o t = case t of
@@ -118,24 +127,25 @@ offsetTerm' pp o t = case t of
   BooleanConstant b -> if b then "$true" else "$false"
 
   Variable (Typed v _) -> prettyVar v
-  Application f [] -> prettyIdentifier f
   Application f args -> funapp (prettyIdentifier f) (map prettyTerm args)
 
   Unary op a    -> if isPrefix then prettyOp ++ offsetTerm' True (o + length prettyOp) a
                                else funapp prettyOp [offsetTerm' True (o + length prettyOp + 1) a]
                      where (isPrefix, prettyOp) = prettyUnaryOp op
-  Binary op a b -> if pp then parens binary else binary
+  Binary op a b -> if isInfix
+                   then let o' = o + 3
+                            a' = offsetTerm' True o a
+                            b' = indentedTerm' True (o', o') b
+                         in parens $ infx a' prettyOp b'
+                   else funapp prettyOp [prettyTerm a, prettyTerm b]
                      where (isInfix, prettyOp) = prettyBinaryOp op
-                           binary = if isInfix then infx (prettyTerm a) prettyOp (prettyTerm b)
-                                               else funapp prettyOp [prettyTerm a, prettyTerm b]
 
-  Quantify q vs t -> if pp then parens quantify else quantify
-                       where quantify = unwords [prettyQ, prettyVars, ":", parens (offsetTerm o' t)]
-                             prettyQ = prettyQuantifier q
-                             prettyVars = brackets $ list (NE.toList $ fmap prettyVariable vs)
-                             o' = o + length prettyQ + 1 + length prettyVars + 3
+  Quantify q vs t -> parens $ unwords [prettyQ, prettyVars, ":", parens (offsetTerm o' t)]
+                       where prettyQ = prettyQuantifier q
+                             prettyVars = vars (fmap prettyVariable vs)
+                             o' = o + length prettyQ + 1 + length prettyVars + 5
 
-  Equals s a b -> infx (prettyTerm a) (prettyEq s) (prettyTerm b)
+  Equals s a b -> parens $ infx (prettyTerm a) (prettyEq s) (prettyTerm b)
 
   Let b t  -> funapp "$let" [offsetBinding (o + 5) b, indentedTerm io t]
                 where io = if isLet t then (o, o) else (o + 5, o + 5)
@@ -160,7 +170,7 @@ thf :: String -> String -> String -> String
 thf n it s = funapp "thf" [n, it, s] ++ ".\n"
 
 prettyTypeUnit :: Typed Name -> String
-prettyTypeUnit (Typed n t) = thf n "type" (infx n ":" (prettyType t))
+prettyTypeUnit n@(Typed s t) = thf s "type" (parens $ prettyTyped n)
 
 prettyAxiom :: Formula -> Integer -> String
 prettyAxiom f nr = thf ("voogie_precondition_" ++ show nr) "axiom" (indentedTerm (4, 4) f)
