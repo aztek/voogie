@@ -47,7 +47,7 @@ prettyBinaryOp op =
     Add      -> (False, "$sum")
     Subtract -> (False, "$difference")
     Multiply -> (False, "$product")
-    Divide   -> (False, "$quotient_f")
+    Divide   -> (False, "$quotient_e")
 
 prettyUnaryOp :: UnaryOp -> (Bool, String)
 prettyUnaryOp op =
