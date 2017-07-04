@@ -23,24 +23,29 @@ name = id
 
 -- Definition
 tupleD :: NonEmpty Identifier -> Definition
-tupleD = either (flip Symbol []) TupleD . nonUnit
+tupleD = either ConstantSymbol TupleD . nonUnit
 
 -- Term
 integerConstant = IntegerConstant
 booleanConstant = BooleanConstant
 
 constant :: Identifier -> Term
-constant = flip Application [] . fmap name
+constant = Constant . fmap name
 
 variable = Variable
-application = Application
+
+application :: Identifier -> [Term] -> Term
+application i as = case NE.nonEmpty as of
+  Just as' -> Application (fmap name i) as'
+  Nothing -> constant i
+
 binary = Binary
 unary = Unary
 quantify = Quantify
 equals = Equals
 
 let_ :: Binding -> Term -> Term
-let_ (Binding (Symbol c []) b) (Application c' []) | c == c' = b
+let_ (Binding (ConstantSymbol c) b) (Constant c') | c == c' = b
 let_ (Binding (TupleD t)    b) (TupleLiteral t') | fmap constant t == t' = b
 let_ b t = Let b t
 

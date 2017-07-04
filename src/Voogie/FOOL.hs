@@ -12,7 +12,8 @@ newtype Var = Var Name
 
 type Identifier = Typed Name
 
-data Definition = Symbol Identifier [Typed Var]
+data Definition = ConstantSymbol Identifier
+                | Function Identifier (NonEmpty (Typed Var))
                 | TupleD (Tuple Identifier)
   deriving (Show, Eq)
 
@@ -22,7 +23,8 @@ data Binding = Binding Definition Term
 data Term = IntegerConstant Integer
           | BooleanConstant Bool
           | Variable (Typed Var)
-          | Application Identifier [Term]
+          | Constant Identifier
+          | Application Identifier (NonEmpty Term)
           | Binary BinaryOp Term Term
           | Unary UnaryOp Term
           | Quantify Quantifier (NonEmpty (Typed Var)) Term
@@ -41,7 +43,8 @@ type Formula = Term
 instance TypeOf Term where
   typeOf (IntegerConstant _) = Integer
   typeOf (BooleanConstant _) = Boolean
-  typeOf (Variable v) = typeOf v 
+  typeOf (Variable v) = typeOf v
+  typeOf (Constant i) = typeOf i
   typeOf (Application i _) = typeOf i
   typeOf (Binary op _ _) = binaryOpRange op
   typeOf (Unary  op _) = unaryOpRange op

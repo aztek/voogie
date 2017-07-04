@@ -5,6 +5,7 @@ module Voogie.TPTPretty (
 import Data.List
 import Data.List.NonEmpty (NonEmpty)
 import qualified Data.List.NonEmpty as NE
+import qualified Voogie.NonEmpty as VNE
 import qualified Voogie.FOOL.Tuple as Tuple
 import Voogie.FOOL.Tuple (Tuple)
 import Data.Char
@@ -19,18 +20,26 @@ parens s = "(" ++ s ++ ")"
 brackets :: String -> String
 brackets s = "[" ++ s ++ "]"
 
-list :: [String] -> String
-list = intercalate ", "
+list :: NonEmpty String -> String
+list = VNE.intercalate ", "
 
 vars :: NonEmpty String -> String
-vars = brackets . list . NE.toList
+vars = brackets . list
 
 tuple :: Tuple String -> String
-tuple = brackets . list . Tuple.toList
+tuple = brackets . list . Tuple.toNonEmpty
 
-funapp :: String -> [String] -> String
-funapp f [] = f
+funapp :: String -> NonEmpty String -> String
 funapp f as = f ++ parens (list as)
+
+funapp1 :: String -> String -> String
+funapp1 f a = funapp f (VNE.one a)
+
+funapp2 :: String -> String -> String -> String
+funapp2 f a b = funapp f (VNE.two a b)
+
+funapp3 :: String -> String -> String -> String -> String
+funapp3 f a b c = funapp f (VNE.three a b c)
 
 prettyBinaryOp :: BinaryOp -> (Bool, String)
 prettyBinaryOp op =
@@ -61,7 +70,7 @@ prettyType s =
   case s of
     Boolean -> "$o"
     Integer -> "$int"
-    Array i t -> foldr (\q w -> funapp "$array" [prettyType q, w]) (prettyType t) i
+    Array i t -> foldr (funapp2 "$array") (prettyType t) (fmap prettyType i)
     TupleType ts -> tuple (fmap prettyType ts)
 
 prettyVar :: Var -> String
@@ -79,8 +88,8 @@ prettyVariable :: Typed Var -> String
 prettyVariable = prettyTyped . fmap prettyVar
 
 prettyDefinition :: Definition -> String
-prettyDefinition (Symbol c []) = prettyIdentifier c
-prettyDefinition (Symbol c vs) = funapp (prettyIdentifier c) (map prettyVariable vs)
+prettyDefinition (ConstantSymbol c) = prettyIdentifier c
+prettyDefinition (Function c vs) = funapp (prettyIdentifier c) (fmap prettyVariable vs)
 prettyDefinition (TupleD es) = tuple (fmap prettyIdentifier es)
 
 offsetBinding :: Int -> Binding -> String
@@ -113,11 +122,6 @@ indentedTerm = indentedTerm' False
 indentedTerm' :: Bool -> (Int, Int) -> Term -> String
 indentedTerm' pp (i, o) t = newline $ indent i ++ offsetTerm' pp o t
 
-qqq :: String -> Int
-qqq s = case lines s of
-          [] -> 0
-          (h:_) -> length h
-
 offsetTerm :: Int -> Term -> String
 offsetTerm = offsetTerm' False
 
@@ -127,17 +131,18 @@ offsetTerm' pp o t = case t of
   BooleanConstant b -> if b then "$true" else "$false"
 
   Variable (Typed v _) -> prettyVar v
-  Application f args -> funapp (prettyIdentifier f) (map prettyTerm args)
+  Constant f -> prettyIdentifier f
+  Application f args -> funapp (prettyIdentifier f) (fmap prettyTerm args)
 
   Unary op a    -> if isPrefix then prettyOp ++ offsetTerm' True (o + length prettyOp) a
-                               else funapp prettyOp [offsetTerm' True (o + length prettyOp + 1) a]
+                               else funapp1 prettyOp (offsetTerm' True (o + length prettyOp + 1) a)
                      where (isPrefix, prettyOp) = prettyUnaryOp op
   Binary op a b -> if isInfix
                    then let o' = o + 3
                             a' = offsetTerm' True o a
                             b' = indentedTerm' True (o', o') b
                          in parens $ infx a' prettyOp b'
-                   else funapp prettyOp [prettyTerm a, prettyTerm b]
+                   else funapp2 prettyOp (prettyTerm a) (prettyTerm b)
                      where (isInfix, prettyOp) = prettyBinaryOp op
 
   Quantify q vs t -> parens $ unwords [prettyQ, prettyVars, ":", parens (offsetTerm o' t)]
@@ -147,14 +152,14 @@ offsetTerm' pp o t = case t of
 
   Equals s a b -> parens $ infx (prettyTerm a) (prettyEq s) (prettyTerm b)
 
-  Let b t  -> funapp "$let" [offsetBinding (o + 5) b, indentedTerm io t]
+  Let b t  -> funapp2 "$let" (offsetBinding (o + 5) b) (indentedTerm io t)
                 where io = if isLet t then (o, o) else (o + 5, o + 5)
 
-  If c a b -> funapp "$ite" [offsetTerm 0 c, indentedTerm io a, indentedTerm io b]
+  If c a b -> funapp3 "$ite" (offsetTerm 0 c) (indentedTerm io a) (indentedTerm io b)
                 where io = (o + 5, o + 5)
 
-  Select a i   -> funapp "$select" [prettyTerm a, prettyTerm i]
-  Store  a i e -> funapp "$store"  [prettyTerm a, prettyTerm i, prettyTerm e]
+  Select a i   -> funapp2 "$select" (prettyTerm a) (prettyTerm i)
+  Store  a i e -> funapp3 "$store"  (prettyTerm a) (prettyTerm i) (prettyTerm e)
 
   TupleLiteral ts -> tuple (fmap prettyTerm ts)
 
@@ -167,7 +172,7 @@ prettyTerm :: Term -> String
 prettyTerm = offsetTerm 0
 
 thf :: String -> String -> String -> String
-thf n it s = funapp "thf" [n, it, s] ++ ".\n"
+thf n it s = funapp3 "thf" n it s ++ ".\n"
 
 prettyTypeUnit :: Typed Name -> String
 prettyTypeUnit n@(Typed s t) = thf s "type" (parens $ prettyTyped n)

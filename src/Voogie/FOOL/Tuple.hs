@@ -12,6 +12,9 @@ data Tuple a = a :| NonEmpty a
 toList :: Tuple a -> [a]
 toList (a :| ne) = a : NE.toList ne
 
+toNonEmpty :: Tuple a -> NonEmpty a
+toNonEmpty (a :| ne) = NE.cons a ne
+
 nonUnit :: NonEmpty a -> Either a (Tuple a)
 nonUnit (a NE.:| [])  = Left a
 nonUnit (a NE.:| b:c) = Right (a :| (b NE.:| c))
