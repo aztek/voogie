@@ -11,8 +11,7 @@ import Data.Char
 import Voogie.Theory
 import Voogie.Boogie
 
-variable = Variable
-arrayElem = ArrayElem
+lvalue = LValue
 
 integerLiteral = IntegerLiteral
 booleanLiteral = BooleanLiteral

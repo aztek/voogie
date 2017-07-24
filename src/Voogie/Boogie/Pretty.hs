@@ -6,6 +6,7 @@ module Voogie.Boogie.Pretty (
 
 import Data.List
 import qualified Data.List.NonEmpty as NE
+import qualified Voogie.NonEmpty as VNE
 import Data.List.NonEmpty (NonEmpty)
 
 import Voogie.Theory
@@ -15,8 +16,7 @@ import Voogie.Boogie
 import qualified Voogie.FOOL.Pretty as F
 
 instance Pretty LValue where
-  pretty (Variable  (Typed v _)) = v
-  pretty (ArrayElem (Typed v _) e) = v ++ brackets (intercalate "," $ NE.toList $ fmap pretty e)
+  pretty (LValue (Typed v _) is) = v ++ concatMap (brackets . commaSep) is
 
 instance Pretty Expression where
   pretty (IntegerLiteral i) = show i
@@ -42,6 +42,9 @@ braces :: Pretty s => Integer -> s -> String
 braces n s = "{" ++ (if null s' then "" else "\n" ++ s' ++ indent n) ++ "}"
   where s' = indented (n + 1) s
 
+commaSep :: Pretty a => NonEmpty a -> String
+commaSep = VNE.intercalate ", " . fmap pretty
+
 indentedIte :: (Pretty a, Pretty b) => Integer -> Expression -> a -> b -> String
 indentedIte n c a b = unwords ["if", parens (pretty c), braces n a, "else", braces n b]
 
@@ -50,11 +53,8 @@ instance Pretty (Typed Name) where
 
 instance Pretty Statement where
   indented n s = indent n ++ case s of
-    Assign pairs -> atomic [commaSep lvs, ":=", commaSep es]
-      where
-        (lvs, es) = NE.unzip pairs
-        commaSep :: Pretty a => NonEmpty a -> String
-        commaSep = intercalate ", " . fmap pretty . NE.toList
+    Assign pairs -> let (lvs, es) = NE.unzip pairs
+                     in atomic [commaSep lvs, ":=", commaSep es]
     If c False a b -> indentedIte n c a b
     If c True  a b -> indentedIte n c b a
 

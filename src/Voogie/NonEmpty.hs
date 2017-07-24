@@ -8,6 +8,9 @@ import Data.List.NonEmpty (NonEmpty)
 intercalate :: String -> NonEmpty String -> String
 intercalate s = L.intercalate s . NE.toList
 
+zipWithM :: Applicative m => (a -> b -> m c) -> NonEmpty a -> NonEmpty b -> m (NonEmpty c)
+zipWithM f xs ys = sequenceA (NE.zipWith f xs ys)
+
 one :: a -> NonEmpty a
 one a = a NE.:| []
 

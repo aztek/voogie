@@ -47,7 +47,12 @@ translateStatement opts s = F.let_ (F.Binding (F.tupleD vars) (body s))
     vars = updates s
 
     body :: B.Statement -> F.Term
-    body (B.Assign ass) = F.tupleLiteral (fmap (translateAssignment ass) vars)
+    body (B.Assign ass) = F.tupleLiteral (fmap analyzeAssignment vars)
+      where
+        assignments = NE.zip (fmap (B.lvariable . fst) ass) ass
+        analyzeAssignment :: B.Var -> F.Term
+        analyzeAssignment v = maybe (F.constant v) (uncurry translateAssign) maybeAssign
+          where maybeAssign = lookup v (NE.toList assignments)
     body (B.If c f a b) = if f then F.if_ c' b' a' else F.if_ c' a' b'
       where
         tuple = F.tupleLiteral (fmap F.constant vars)
@@ -55,28 +60,21 @@ translateStatement opts s = F.let_ (F.Binding (F.tupleD vars) (body s))
         b' = foldr (translateStatement opts) tuple b
         c' = translateExpression c
 
+translateAssign :: B.LValue -> B.Expression -> F.Term
+translateAssign (B.LValue n is) e = translateAssign' var is'
+  where
+    var = F.constant (translateConstant n)
+    is' = fmap (fmap translateExpression) is
+
+    translateAssign' :: F.Term -> [NonEmpty F.Term] -> F.Term
+    translateAssign' _ []     = translateExpression e
+    translateAssign' a (i:is) = F.store a i (translateAssign' (F.select a i) is)
+
 translateAssume :: TranslationOptions -> B.Assume -> F.Term -> F.Term
 translateAssume opts (B.Assume f) = F.binary Imply f
 
-translateAssignment :: NonEmpty (B.LValue, B.Expression) -> B.Var -> F.Term
-translateAssignment ass v = foldr translateAssignment' (F.constant v) ass
-  where
-    translateAssignment' :: (B.LValue, B.Expression) -> F.Term -> F.Term
-    translateAssignment' (B.Variable  w,   e) t | v == w = translateExpression e
-    translateAssignment' (B.ArrayElem w i, e) t | v == w = F.store t (fmap translateExpression i) (translateExpression e)
-    translateAssignment' _                    t = t
-
-
-translateAssignments :: TranslationOptions -> NonEmpty (B.LValue, B.Expression) -> NonEmpty F.Term
-translateAssignments opts = fmap translateAssignment
-  where
-    translateAssignment :: (B.LValue, B.Expression) -> F.Term
-    translateAssignment (B.Variable  _,   e) = translateExpression e
-    translateAssignment (B.ArrayElem v i, e) = F.store (F.constant v) (fmap translateExpression i) (translateExpression e)
-
-
 translateExpression :: B.Expression -> F.Term
-translateExpression (B.IntegerLiteral i) = F.integerConstant i 
+translateExpression (B.IntegerLiteral i) = F.integerConstant i
 translateExpression (B.BooleanLiteral b) = F.booleanConstant b
 translateExpression (B.Unary  op e)   = F.unary  op (translateExpression e)
 translateExpression (B.Binary op a b) = F.binary op (translateExpression a) (translateExpression b)
@@ -86,8 +84,10 @@ translateExpression (B.FunApp f args) = F.application f (map translateExpression
 translateExpression (B.Ref lval)      = translateLValue lval
 
 translateLValue :: B.LValue -> F.Term
-translateLValue (B.Variable v)    = F.constant (translateConstant v)
-translateLValue (B.ArrayElem v i) = F.select (F.constant (translateConstant v)) (fmap translateExpression i)
+translateLValue (B.LValue n is) = foldl F.select var is'
+  where
+    var = F.constant (translateConstant n)
+    is' = fmap (fmap translateExpression) is
 
 translateConstant :: B.Var -> F.Identifier
 translateConstant = fmap F.name

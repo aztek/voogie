@@ -1,6 +1,6 @@
 module Voogie.Front where
 
-import Control.Monad (zipWithM, liftM, join)
+import Control.Monad (zipWithM, liftM, foldM, join)
 import Control.Monad.Extra (mapMaybeM)
 import Control.Applicative
 import Data.Maybe
@@ -10,6 +10,7 @@ import Data.Foldable
 
 import qualified Data.List.NonEmpty as NE
 import Data.List.NonEmpty (NonEmpty((:|)))
+import qualified Voogie.NonEmpty as VNE
 
 import qualified Data.Map as Map
 import Data.Map (Map)
@@ -42,12 +43,6 @@ lookupVariable :: Name -> Env -> Either Error (Typed Name)
 lookupVariable name (Env vs) = case Map.lookup name vs of
                                  Nothing  -> Left  ("undefined variable " ++ name)
                                  Just typ -> Right (Typed name typ)
-
-lookupArrayName :: Name -> Env -> Either Error (Typed Name)
-lookupArrayName name env = do name <- lookupVariable name env
-                              case typeOf name of
-                                Array _ _ -> Right name
-                                otherwise -> Left "not an array"
 
 insertVariable :: Typed Name -> Env -> Env
 insertVariable (Typed n t) (Env vs) = Env (Map.insert n t vs)
@@ -91,15 +86,15 @@ guardType analyze t a = do b <- analyze a
                              Left $ "expected an expression of the type " ++ pretty t ++
                                     " but got " ++ pretty b ++ " of the type " ++ pretty t'
 
-guardTypes :: (TypeOf b, Pretty b) => (a -> Either Error b) -> [Type] -> [a] -> Either Error [b]
-guardTypes analyze = zipWithM (guardType analyze)
+guardTypes :: (TypeOf b, Pretty b) => (a -> Either Error b) -> NonEmpty Type -> NonEmpty a -> Either Error (NonEmpty b)
+guardTypes analyze = VNE.zipWithM (guardType analyze)
 
 infix 6 `guard`
 guard :: (TypeOf b, Pretty b) => (a -> Either Error b) -> a -> Type -> Either Error b
 guard f = flip (guardType f)
 
 infix 6 `guardAll`
-guardAll :: (TypeOf b, Pretty b) => (a -> Either Error b) -> [a] -> [Type] -> Either Error [b]
+guardAll :: (TypeOf b, Pretty b) => (a -> Either Error b) -> NonEmpty a -> NonEmpty Type -> Either Error (NonEmpty b)
 guardAll f = flip (guardTypes f)
 
 infix 5 .:
@@ -139,11 +134,18 @@ analyzeFormula' ctx f = analyzeTerm ctx `guard` f .: Boolean
 analyzeTerm :: (Env, Set (Typed Name)) -> F.AST.Term -> Either Error F.Term
 analyzeTerm _ (F.AST.IntConst  i) = return (F.integerConstant i)
 analyzeTerm _ (F.AST.BoolConst b) = return (F.booleanConstant b)
-analyzeTerm (env, qv) (F.AST.Const c) =
-  do var <- lookupVariable c env
-     return $ if Set.member var qv
-              then F.variable (fmap F.var var)
-              else F.constant var
+analyzeTerm ctx@(env, qv) (F.AST.Ref n is) =
+  do var <- lookupVariable n env
+     foldM analyzeIndex (analyzeVar var) is
+  where
+    analyzeVar :: Typed Name -> F.Term
+    analyzeVar v = if Set.member v qv then F.variable (fmap F.var v) else F.constant v
+
+    analyzeIndex :: F.Term -> NonEmpty F.AST.Term -> Either Error F.Term
+    analyzeIndex term as = case typeOf term of
+      Array ts _ -> F.select term <$> analyzeTerm ctx `guardAll` as .: ts
+      t -> Left $ "expected an expression of an array type," ++
+                  " but got " ++ pretty term ++ " of the type " ++ pretty t
 analyzeTerm ctx (F.AST.Unary op t) = F.unary op <$> analyzeTerm ctx `guard` t .: d
   where
     d = unaryOpDomain op
@@ -152,7 +154,7 @@ analyzeTerm ctx (F.AST.Binary op a b) = F.binary op <$> a' <*> b'
     a' = analyzeTerm ctx `guard` a .: d1
     b' = analyzeTerm ctx `guard` b .: d2
     (d1, d2) = binaryOpDomain op
-analyzeTerm ctx (F.AST.Ternary c a b) = 
+analyzeTerm ctx (F.AST.Ternary c a b) =
   do c' <- analyzeFormula' ctx c
      a' <- analyzeTerm ctx a
      b' <- analyzeTerm ctx `guard` b .: typeOf a'
@@ -168,26 +170,29 @@ analyzeTerm (env, qv) (F.AST.Quantified q vars term) =
      f <- analyzeFormula' (env', qv') term
      let vars' = fmap (fmap F.var) ids
      return (F.quantify q vars' f)
-analyzeTerm ctx@(env, _) (F.AST.ArrayElem arr i) =
-  do array <- F.constant <$> lookupArrayName arr env
-     let Array arrayArgs _ = typeOf array
-     indexes <- mapM (\(i, t) -> analyzeTerm ctx `guard` i .: t) (NE.zip i arrayArgs)
-     return (F.select array indexes)
 
 analyzeVarList :: NonEmpty (Typed (NonEmpty String)) -> Either Error (NonEmpty (Typed Name))
 -- TODO: check that the variables are disjoint
 analyzeVarList = Right . join . fmap propagate
   where
-    propagate :: Typed (NonEmpty String) -> NonEmpty (Typed String)
-    propagate (Typed ss t) = fmap (flip Typed t) ss
+    propagate :: Typed (NonEmpty a) -> NonEmpty (Typed a)
+    propagate (Typed a t) = fmap (flip Typed t) a
 
 analyzeLValue :: Env -> AST.LVal -> Either Error B.LValue
-analyzeLValue env (AST.Var s) = B.variable <$> lookupVariable s env
-analyzeLValue env (AST.ArrayElem arr i) =
-  do array <- lookupArrayName arr env
-     let Array arrayArgs _ = typeOf array
-     indexes <- mapM (\(i, t) -> analyzeExpr env `guard` i .: t) (NE.zip i arrayArgs)
-     return (B.arrayElem array indexes)
+analyzeLValue env (AST.Ref n is) =
+  do var <- lookupVariable n env
+     is' <- analyzeIndexes (typeOf var) is
+     return (B.lvalue var is')
+  where
+    analyzeIndexes :: Type -> [NonEmpty AST.Expr] -> Either Error [NonEmpty B.Expression]
+    analyzeIndexes _ [] = Right []
+    analyzeIndexes (Array ts r) (i:is) | length i <= length ts =
+      do i' <- analyzeExpr env `guardAll` i .: ts
+         is' <- analyzeIndexes r is
+         return (i' : is')
+    analyzeIndexes t is = Left $ "expected an expression of an array type," ++
+                                 " but got " ++ n ++ " of the type " ++ pretty t
+
 
 analyzeExpr :: Env -> AST.Expr -> Either Error B.Expression
 analyzeExpr _ (AST.IntConst  i) = return (B.integerLiteral i)

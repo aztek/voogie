@@ -8,17 +8,14 @@ import qualified Voogie.FOOL as F
 type Var = Typed Name
 type Function = Typed Name
 
-data LValue = Variable Var
-            | ArrayElem Var (NonEmpty Expression)
+data LValue = LValue Var [NonEmpty Expression]
   deriving (Show)
 
 lvariable :: LValue -> Var
-lvariable (Variable  v)   = v
-lvariable (ArrayElem v _) = v
+lvariable (LValue var _) = var
 
 instance TypeOf LValue where
-  typeOf (Variable  v) = typeOf v
-  typeOf (ArrayElem v _) = arrayElement (typeOf v)
+  typeOf (LValue v is) = foldl (const . arrayElement) (typeOf v) is
 
 data Expression = IntegerLiteral Integer
                 | BooleanLiteral Bool

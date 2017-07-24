@@ -34,19 +34,17 @@ operators = [ [prefix "-"   (Unary  Negative)          ,
                binary "==>" (Binary Imply   ) AssocLeft]
             ]
 
-arg =  try (parens quantified)
-   <|> parens term
+arg =  parens term
+   <|> quantified
    <|> constant "true"  (BoolConst True)
    <|> constant "false" (BoolConst False)
    <|> IntConst <$> integer
-   <|> try (ArrayElem <$> identifier <*> brackets (commaSep1 term))
-   <|> Const <$> identifier
+   <|> Ref <$> identifier <*> many (brackets $ commaSep1 term)
 
 quantified = do q <- quantifier
-                vars <- commaSep1 (typed (commaSep1 identifier))
+                vars <- commaSep1 (typed $ commaSep1 identifier)
                 reserved "::"
-                t <- term
-                return $ Quantified q vars t
+                Quantified q vars <$> term
 
 quantifier =  constant "forall" Forall
           <|> constant "exists" Exists

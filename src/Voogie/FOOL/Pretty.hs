@@ -61,4 +61,5 @@ instance Pretty Term where
   pretty (Equals s a b) = unwords [pretty a, pretty s, pretty b]
   pretty (If c a b) = unwords [pretty c, "?", pretty a, ":", pretty b]
   pretty (Select a i) = pretty a ++ brackets (pretty i)
+  pretty (Store a i v) = pretty a ++ brackets (pretty i) ++ " := " ++ pretty v
   pretty t = error $ "no pretty syntax for " ++ show t

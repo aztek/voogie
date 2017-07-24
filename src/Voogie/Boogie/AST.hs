@@ -7,8 +7,7 @@ import Voogie.FOOL.Tuple
 import Voogie.Theory
 import qualified Voogie.FOOL.AST as F
 
-data LVal = Var String
-          | ArrayElem String (NonEmpty Expr)
+data LVal = Ref String [NonEmpty Expr]
   deriving (Show, Eq)
 
 data Expr = IntConst Integer
