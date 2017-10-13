@@ -26,11 +26,9 @@ assign :: NonEmpty (LValue, Expression) -> Maybe Statement
 assign ass = Just (Assign ass)
 
 if_ :: Expression -> [Statement] -> [Statement] -> Maybe Statement
-if_ c a b = case NE.nonEmpty a of
-                Just a' -> Just (If c False a' b)
-                Nothing -> case NE.nonEmpty b of
-                             Nothing -> Nothing
-                             Just b' -> Just (If c True b' [])
+if_ c a b | Just a' <- NE.nonEmpty a = Just (If c False a' b)
+          | Just b' <- NE.nonEmpty b = Just (If c True b' [])
+          | otherwise = Nothing
 
 assume = Assume
 

@@ -40,9 +40,9 @@ emptyEnv :: Env
 emptyEnv = Env Map.empty
 
 lookupVariable :: Name -> Env -> Either Error (Typed Name)
-lookupVariable name (Env vs) = case Map.lookup name vs of
-                                 Nothing  -> Left  ("undefined variable " ++ name)
-                                 Just typ -> Right (Typed name typ)
+lookupVariable name (Env vs)
+  | Just typ <- Map.lookup name vs = Right (Typed name typ)
+  | otherwise = Left ("undefined variable " ++ name)
 
 insertVariable :: Typed Name -> Env -> Env
 insertVariable (Typed n t) (Env vs) = Env (Map.insert n t vs)
@@ -68,11 +68,9 @@ analyzeDecl :: AST.Decl -> Env -> Either Error Env
 analyzeDecl (AST.Declare (Typed ns t)) env = foldrM insertVariable' env ns
   where
     insertVariable' :: Name -> Env -> Either Error Env
-    insertVariable' n env =
-      case lookupVariable n env of
-        Left  _ -> Right (insertVariable (Typed n t) env)
-        Right _ -> Left  ("redefined variable " ++ n)
-
+    insertVariable' n env
+      | Left _ <- lookupVariable n env = Right (insertVariable (Typed n t) env)
+      | otherwise = Left ("redefined variable " ++ n)
 
 analyzeMain :: Env -> [Either AST.Stmt AST.Assume] -> Either Error [Either B.Statement B.Assume]
 analyzeMain env = mapMaybeM $ either (fmap (fmap   Left)  . analyzeStmt   env)
