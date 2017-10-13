@@ -2,8 +2,6 @@ module Voogie.Boogie.AST where
 
 import Data.List.NonEmpty (NonEmpty)
 
-import Voogie.FOOL.Tuple
-
 import Voogie.Theory
 import qualified Voogie.FOOL.AST as F
 

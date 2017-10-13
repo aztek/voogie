@@ -1,10 +1,5 @@
 module Voogie.TPTP where
 
-import Data.List
-import qualified Voogie.FOOL.Tuple as Tuple
-import Voogie.FOOL.Tuple (Tuple)
-import Data.Char
-
 import Voogie.Theory
 import Voogie.FOOL
 

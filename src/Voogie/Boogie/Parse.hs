@@ -1,12 +1,7 @@
 module Voogie.Boogie.Parse (parseAST) where
 
-import System.IO
-import Control.Monad
 import Control.Applicative ((<$>), (<*>))
 import Data.Maybe
-
-import qualified Data.List.NonEmpty as NE
-import Data.List.NonEmpty (NonEmpty)
 
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Expr

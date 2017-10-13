@@ -1,13 +1,9 @@
 module Voogie.FOOL.Parse (term, formula) where
 
-import System.IO
-import Control.Monad
 import Control.Applicative ((<$>), (<*>))
-import Data.Maybe
+
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Expr
-import Text.ParserCombinators.Parsec.Language
-import qualified Text.ParserCombinators.Parsec.Token as Token
 
 import Voogie.Theory
 import Voogie.Parse

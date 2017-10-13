@@ -1,23 +1,14 @@
 module Voogie.Back where
 
-import Data.Either
-import Data.Maybe
-import qualified Data.Set as S
-import Data.Set (Set, (\\), union, unions)
-
 import qualified Data.List.NonEmpty as NE
 import Data.List.NonEmpty (NonEmpty)
-
-import Control.Applicative
-
 import Data.Semigroup (sconcat)
 
 import Voogie.Theory
 import qualified Voogie.FOOL.Smart as F
-import qualified Voogie.FOOL.Tuple as F.Tuple
 
 import qualified Voogie.Boogie as B
-import Voogie.Boogie.Pretty
+import Voogie.Boogie.Pretty()
 
 import qualified Voogie.TPTP as TPTP
 import Voogie.TPTP
@@ -71,7 +62,7 @@ translateAssign (B.LValue n is) e = translateAssign' var is'
     translateAssign' a (i:is) = F.store a i (translateAssign' (F.select a i) is)
 
 translateAssume :: TranslationOptions -> B.Assume -> F.Term -> F.Term
-translateAssume opts (B.Assume f) = F.binary Imply f
+translateAssume _opts (B.Assume f) = F.binary Imply f
 
 translateExpression :: B.Expression -> F.Term
 translateExpression (B.IntegerLiteral i) = F.integerConstant i

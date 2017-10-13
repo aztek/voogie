@@ -3,11 +3,12 @@ module Main where
 import System.Environment
 
 import Voogie.Boogie.Parse
-import Voogie.Boogie.Pretty
+import Voogie.Boogie.Pretty()
 import Voogie.Front
 import Voogie.Back
 import Voogie.TPTPretty
 
+main :: IO ()
 main = do args <- getArgs
           let (source, input) = case args of
                                   []  -> ("<stdin>", getContents)

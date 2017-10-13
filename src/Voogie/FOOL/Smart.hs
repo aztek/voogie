@@ -4,15 +4,12 @@ module Voogie.FOOL.Smart (
 ) where
 
 import qualified Data.List.NonEmpty as NE
-import Data.List.NonEmpty (NonEmpty((:|)))
-
-import Data.Char
-import Data.Either
+import Data.List.NonEmpty (NonEmpty)
 
 import Voogie.Theory
 
 import Voogie.FOOL
-import Voogie.FOOL.Tuple (Tuple, nonUnit)
+import Voogie.FOOL.Tuple (nonUnit)
 import Voogie.FOOL.TypeSafe
 
 var :: String -> Var

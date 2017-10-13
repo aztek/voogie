@@ -1,15 +1,14 @@
+{-# LANGUAGE PatternGuards #-}
+
 module Voogie.Front where
 
-import Control.Monad (zipWithM, liftM, foldM, join)
+import Control.Monad (foldM, join)
 import Control.Monad.Extra (mapMaybeM)
-import Control.Applicative
 import Data.Maybe
-import Data.Bifunctor
-import Data.Bitraversable
 import Data.Foldable
 
 import qualified Data.List.NonEmpty as NE
-import Data.List.NonEmpty (NonEmpty((:|)))
+import Data.List.NonEmpty (NonEmpty)
 import qualified Voogie.NonEmpty as VNE
 
 import qualified Data.Map as Map
@@ -24,11 +23,11 @@ import Voogie.Pretty
 import Voogie.Boogie (Boogie)
 import qualified Voogie.Boogie.Smart as B
 import qualified Voogie.Boogie.AST as AST
-import Voogie.Boogie.Pretty
+import Voogie.Boogie.Pretty()
 
 import qualified Voogie.FOOL.Smart as F
 import qualified Voogie.FOOL.AST as F.AST
-import Voogie.FOOL.Pretty
+import Voogie.FOOL.Pretty()
 
 type Error = String
 
@@ -188,8 +187,8 @@ analyzeLValue env (AST.Ref n is) =
       do i' <- analyzeExpr env `guardAll` i .: ts
          is' <- analyzeIndexes r is
          return (i' : is')
-    analyzeIndexes t is = Left $ "expected an expression of an array type," ++
-                                 " but got " ++ n ++ " of the type " ++ pretty t
+    analyzeIndexes t _ = Left $ "expected an expression of an array type," ++
+                                " but got " ++ n ++ " of the type " ++ pretty t
 
 
 analyzeExpr :: Env -> AST.Expr -> Either Error B.Expression

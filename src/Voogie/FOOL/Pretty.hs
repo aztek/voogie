@@ -2,8 +2,6 @@ module Voogie.FOOL.Pretty (
   pretty
 ) where
 
-import Data.List
-import qualified Data.List.NonEmpty as NE
 import qualified Voogie.NonEmpty as VNE
 
 import Voogie.Theory

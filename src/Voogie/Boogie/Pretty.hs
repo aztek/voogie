@@ -4,7 +4,7 @@ module Voogie.Boogie.Pretty (
   pretty
 ) where
 
-import Data.List
+import Data.List (intercalate)
 import qualified Data.List.NonEmpty as NE
 import qualified Voogie.NonEmpty as VNE
 import Data.List.NonEmpty (NonEmpty)
@@ -24,7 +24,7 @@ instance Pretty Expression where
 
   pretty (Unary  op e)   = pretty e ++ F.pretty op
   pretty (Binary op a b) = unwords [pretty a, F.pretty op, pretty b]
-  pretty (IfElse a b c)  = unwords [pretty a, "?", pretty a, ":", pretty b]
+  pretty (IfElse a b c)  = unwords [pretty a, "?", pretty b, ":", pretty c]
 
   pretty (FunApp (Typed f _) args) = f ++ parens (intercalate ", " $ map pretty args)
 

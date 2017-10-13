@@ -2,9 +2,7 @@ module Voogie.TPTPretty (
   prettyTPTP
 ) where
 
-import Data.List
 import Data.List.NonEmpty (NonEmpty)
-import qualified Data.List.NonEmpty as NE
 import qualified Voogie.NonEmpty as VNE
 import qualified Voogie.FOOL.Tuple as Tuple
 import Voogie.FOOL.Tuple (Tuple)
@@ -96,9 +94,6 @@ offsetBinding :: Int -> Binding -> String
 offsetBinding o (Binding d t) = unwords [d', ":=", offsetTerm (o + length d' + 4) t]
   where d' = prettyDefinition d
 
-prettyBinding :: Binding -> String
-prettyBinding = offsetBinding 0
-
 prettyQuantifier :: Quantifier -> String
 prettyQuantifier Forall = "!"
 prettyQuantifier Exists = "?"
@@ -126,7 +121,7 @@ offsetTerm :: Int -> Term -> String
 offsetTerm = offsetTerm' False
 
 offsetTerm' :: Bool -> Int -> Term -> String
-offsetTerm' pp o t = case t of
+offsetTerm' _ o t = case t of
   IntegerConstant n -> show n
   BooleanConstant b -> if b then "$true" else "$false"
 
@@ -175,7 +170,7 @@ thf :: String -> String -> String -> String
 thf n it s = funapp3 "thf" n it s ++ ".\n"
 
 prettyTypeUnit :: Typed Name -> String
-prettyTypeUnit n@(Typed s t) = thf s "type" (parens $ prettyTyped n)
+prettyTypeUnit n@(Typed s _) = thf s "type" (parens $ prettyTyped n)
 
 prettyAxiom :: Formula -> Integer -> String
 prettyAxiom f nr = thf ("voogie_precondition_" ++ show nr) "axiom" (indentedTerm (4, 4) f)

@@ -2,7 +2,6 @@
 
 module Voogie.Theory where
 
-import Data.Set
 import Data.List.NonEmpty as NE
 import Data.List.NonEmpty (NonEmpty((:|)))
 
