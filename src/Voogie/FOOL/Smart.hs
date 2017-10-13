@@ -42,8 +42,8 @@ quantify = Quantify
 equals = Equals
 
 let_ :: Binding -> Term -> Term
-let_ (Binding (ConstantSymbol c) b) (Constant c') | c == c' = b
-let_ (Binding (TupleD t)    b) (TupleLiteral t') | fmap constant t == t' = b
+let_ (Binding (ConstantSymbol c) b) (Constant c')     | c == c'               = b
+let_ (Binding (TupleD t)         b) (TupleLiteral t') | fmap constant t == t' = b
 let_ b t = Let b t
 
 if_ = If
@@ -52,7 +52,7 @@ select :: Foldable f => Term -> f Term -> Term
 select = foldl typeSafeSelect
 
 store :: Term -> NonEmpty Term -> Term -> Term
-store a is e = store' (reverse $ NE.toList is) e
+store a = store' . reverse . NE.toList
   where
    store' :: [Term] -> Term -> Term
    store' []     t = t
