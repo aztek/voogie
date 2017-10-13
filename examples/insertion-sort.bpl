@@ -21,10 +21,10 @@ procedure main()
   requires (forall k, m: int :: 0 <= k && k < m && m < sortedFrom + 1 ==> a[k] <= a[m]);
   requires (forall k, m: int :: sortedFrom + 1 <= k && k < m && m <= sortedUntil ==> a[k] <= a[m]);
 
-  requires bad || (-1 <= sortedFrom && sortedFrom <= sortedUntil - 1);
-  requires bad || (forall k, m: int :: 0 <= k && k < sortedFrom + 1 && sortedFrom + 1 < m && m <= sortedUntil ==> a[k] <= a[m]);
-  requires bad || (forall k, m: int :: 0 <= k && k < m && m < sortedFrom + 1 ==> a[k] <= a[m]);
-  requires bad || (forall k, m: int :: sortedFrom + 1 <= k && k < m && m <= sortedUntil ==> a[k] <= a[m]);
+  ensures bad || (-1 <= sortedFrom && sortedFrom <= sortedUntil - 1);
+  ensures bad || (forall k, m: int :: 0 <= k && k < sortedFrom + 1 && sortedFrom + 1 < m && m <= sortedUntil ==> a[k] <= a[m]);
+  ensures bad || (forall k, m: int :: 0 <= k && k < m && m < sortedFrom + 1 ==> a[k] <= a[m]);
+  ensures bad || (forall k, m: int :: sortedFrom + 1 <= k && k < m && m <= sortedUntil ==> a[k] <= a[m]);
 {
   if (!(sortedFrom >= 0)) {
     bad := true;
