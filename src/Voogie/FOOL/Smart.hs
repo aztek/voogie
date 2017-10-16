@@ -32,9 +32,7 @@ constant = Constant . fmap name
 variable = Variable
 
 application :: Identifier -> [Term] -> Term
-application i as = case NE.nonEmpty as of
-  Just as' -> Application (fmap name i) as'
-  Nothing -> constant i
+application i = maybe (constant i) (Application $ name <$> i) . NE.nonEmpty
 
 binary = Binary
 unary = Unary

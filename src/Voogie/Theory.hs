@@ -72,19 +72,26 @@ unaryOpRange  = snd . unaryOpTypes
 binaryOpTypes :: BinaryOp -> ((Type, Type), Type)
 binaryOpTypes op =
   case op of
-    And      -> ((Boolean, Boolean), Boolean)
-    Or       -> ((Boolean, Boolean), Boolean)
-    Imply    -> ((Boolean, Boolean), Boolean)
-    Iff      -> ((Boolean, Boolean), Boolean)
-    Xor      -> ((Boolean, Boolean), Boolean)
-    Greater  -> ((Integer, Integer), Boolean)
-    Less     -> ((Integer, Integer), Boolean)
-    Geq      -> ((Integer, Integer), Boolean)
-    Leq      -> ((Integer, Integer), Boolean)
-    Add      -> ((Integer, Integer), Integer)
-    Subtract -> ((Integer, Integer), Integer)
-    Multiply -> ((Integer, Integer), Integer)
-    Divide   -> ((Integer, Integer), Integer)
+    And      -> logical predicate
+    Or       -> logical predicate
+    Imply    -> logical predicate
+    Iff      -> logical predicate
+    Xor      -> logical predicate
+
+    Greater  -> arithmetic predicate
+    Less     -> arithmetic predicate
+    Geq      -> arithmetic predicate
+    Leq      -> arithmetic predicate
+
+    Add      -> arithmetic function
+    Subtract -> arithmetic function
+    Multiply -> arithmetic function
+    Divide   -> arithmetic function
+  where
+    logical = (,) (Boolean, Boolean)
+    arithmetic = (,) (Integer, Integer)
+    function = Integer
+    predicate = Boolean
 
 binaryOpDomain :: BinaryOp -> (Type, Type)
 binaryOpDomain = fst . binaryOpTypes

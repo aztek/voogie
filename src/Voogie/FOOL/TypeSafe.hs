@@ -13,11 +13,15 @@ import Voogie.FOOL.Pretty
 typeSafeStore :: Term -> Term -> Term -> Term
 typeSafeStore array index element =
   case (typeOf array, typeOf index, typeOf element) of
-       (a@(Array (i :| _) _), i', e) | i == i' && e == arrayArgument a -> Store array index element
-       _ -> error $ "ill-typed expression " ++ pretty (Store array index element)
+       (a@(Array (i :| _) _), i', e) | i == i' && e == arrayArgument a -> store
+       _ -> error $ "ill-typed expression " ++ pretty store
+  where
+    store = Store array index element
 
 typeSafeSelect :: Term -> Term -> Term
 typeSafeSelect array index =
   case (typeOf array, typeOf index) of 
-       (Array (i :| _) _, i') | i == i' -> Select array index
-       _ -> error $ "ill-typed expression " ++ pretty (Select array index)
+       (Array (i :| _) _, i') | i == i' -> select
+       _ -> error $ "ill-typed expression " ++ pretty select
+  where
+    select = Select array index

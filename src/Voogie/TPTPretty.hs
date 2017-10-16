@@ -112,16 +112,10 @@ newline :: String -> String
 newline = ('\n' :)
 
 indentedTerm :: (Int, Int) -> Term -> String
-indentedTerm = indentedTerm' False
-
-indentedTerm' :: Bool -> (Int, Int) -> Term -> String
-indentedTerm' pp (i, o) t = newline $ indent i ++ offsetTerm' pp o t
+indentedTerm (i, o) t = newline $ indent i ++ offsetTerm o t
 
 offsetTerm :: Int -> Term -> String
-offsetTerm = offsetTerm' False
-
-offsetTerm' :: Bool -> Int -> Term -> String
-offsetTerm' _ o t = case t of
+offsetTerm o t = case t of
   IntegerConstant n -> show n
   BooleanConstant b -> if b then "$true" else "$false"
 
@@ -129,29 +123,33 @@ offsetTerm' _ o t = case t of
   Constant f -> prettyIdentifier f
   Application f args -> funapp (prettyIdentifier f) (fmap prettyTerm args)
 
-  Unary op a    -> if isPrefix then prettyOp ++ offsetTerm' True (o + length prettyOp) a
-                               else funapp1 prettyOp (offsetTerm' True (o + length prettyOp + 1) a)
-                     where (isPrefix, prettyOp) = prettyUnaryOp op
-  Binary op a b -> if isInfix
-                   then let o' = o + 3
-                            a' = offsetTerm' True o a
-                            b' = indentedTerm' True (o', o') b
-                         in parens $ infx a' prettyOp b'
-                   else funapp2 prettyOp (prettyTerm a) (prettyTerm b)
-                     where (isInfix, prettyOp) = prettyBinaryOp op
+  Unary op a | isPrefix  -> prettyOp ++ offsetTerm (o + length prettyOp) a
+             | otherwise -> funapp1 prettyOp (offsetTerm (o + length prettyOp + 1) a)
+    where (isPrefix, prettyOp) = prettyUnaryOp op
 
-  Quantify q vs t -> parens $ unwords [prettyQ, prettyVars, ":", parens (offsetTerm o' t)]
-                       where prettyQ = prettyQuantifier q
-                             prettyVars = vars (fmap prettyVariable vs)
-                             o' = o + length prettyQ + 1 + length prettyVars + 5
+  Binary op a b | isInfix  -> let o' = o + 3
+                                  a' = offsetTerm o a
+                                  b' = indentedTerm (o', o') b
+                               in parens $ infx a' prettyOp b'
+                | otherwise -> funapp2 prettyOp (prettyTerm a) (prettyTerm b)
+    where (isInfix, prettyOp) = prettyBinaryOp op
+
+  Quantify q vs t -> parens $ unwords [ prettyQ
+                                      , prettyVars
+                                      , ":"
+                                      , parens (offsetTerm o' t)
+                                      ]
+    where prettyQ = prettyQuantifier q
+          prettyVars = vars (fmap prettyVariable vs)
+          o' = o + length prettyQ + 1 + length prettyVars + 5
 
   Equals s a b -> parens $ infx (prettyTerm a) (prettyEq s) (prettyTerm b)
 
-  Let b t  -> funapp2 "$let" (offsetBinding (o + 5) b) (indentedTerm io t)
-                where io = if isLet t then (o, o) else (o + 5, o + 5)
+  Let b t -> funapp2 "$let" (offsetBinding (o + 5) b) (indentedTerm io t)
+    where io = if isLet t then (o, o) else (o + 5, o + 5)
 
-  If c a b -> funapp3 "$ite" (offsetTerm 0 c) (indentedTerm io a) (indentedTerm io b)
-                where io = (o + 5, o + 5)
+  If c a b -> funapp3 "$ite" (prettyTerm c) (indentedTerm io a) (indentedTerm io b)
+    where io = (o + 5, o + 5)
 
   Select a i   -> funapp2 "$select" (prettyTerm a) (prettyTerm i)
   Store  a i e -> funapp3 "$store"  (prettyTerm a) (prettyTerm i) (prettyTerm e)

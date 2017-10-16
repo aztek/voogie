@@ -104,14 +104,12 @@ analyzeStmts env = fmap catMaybes . mapM (analyzeStmt env)
 
 analyzeStmt :: Env -> AST.Stmt -> Either Error (Maybe B.Statement)
 analyzeStmt env (AST.If c a b) =
-  do c' <- analyzeExpr  env c
-     a' <- analyzeStmts env a
-     b' <- analyzeStmts env b
-     return (B.if_ c' a' b')
+  B.if_ <$> analyzeExpr  env c
+        <*> analyzeStmts env a
+        <*> analyzeStmts env b
 analyzeStmt _   (AST.Assign lvals rvals) | length lvals /= length rvals = Left ""
 analyzeStmt env (AST.Assign lvals rvals) =
-  do ass <- mapM (analyzeAssignment env) (NE.zip lvals rvals)
-     return (B.assign ass)
+  B.assign <$> mapM (analyzeAssignment env) (NE.zip lvals rvals)
 
 analyzeAssume :: Env -> AST.Assume -> Either Error B.Assume
 analyzeAssume env (AST.Assume f) = B.assume <$> analyzeFormula env f
@@ -136,7 +134,8 @@ analyzeTerm ctx@(env, qv) (F.AST.Ref n is) =
      foldM analyzeIndex (analyzeVar var) is
   where
     analyzeVar :: Typed Name -> F.Term
-    analyzeVar v = if Set.member v qv then F.variable (fmap F.var v) else F.constant v
+    analyzeVar v | v `Set.member` qv = F.variable (fmap F.var v)
+                 | otherwise = F.constant v
 
     analyzeIndex :: F.Term -> NonEmpty F.AST.Term -> Either Error F.Term
     analyzeIndex term as = case typeOf term of
