@@ -29,8 +29,10 @@ translate opts (B.Boogie decls (B.Main pre stmts post)) = TPTP (signature ++ axi
 
 
 updates :: B.Statement -> NonEmpty B.Var
-updates (B.If _ _ a b) = NE.nub $ sconcat $ fmap updates (foldl (flip NE.cons) a b)
-updates (B.Assign ass) = NE.nub $ fmap (B.lvariable . fst) ass
+updates = NE.nub . updates'
+  where
+    updates' (B.If _ _ a b) = sconcat $ fmap updates' (foldl (flip NE.cons) a b)
+    updates' (B.Assign ass) = fmap (B.lvariable . fst) ass
 
 translateStatement :: TranslationOptions -> B.Statement -> F.Term -> F.Term
 translateStatement opts s = F.let_ (F.Binding (F.tupleD vars) (body s))

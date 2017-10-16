@@ -1,6 +1,5 @@
 module Voogie.Boogie.Parse (parseAST) where
 
-import Control.Applicative ((<$>), (<*>))
 import Data.Maybe
 
 import Text.ParserCombinators.Parsec
@@ -48,33 +47,26 @@ stmt :: Parser Stmt
 stmt =  assignStmt
     <|> ifStmt
 
-atomicStmt p = do { s <- p; semi; return s }
+atomicStmt p = do { s <- p; _ <- semi; return s }
 
 assignStmt = atomicStmt $ do lvals <- commaSep1 lval
                              reserved ":="
                              rvals <- commaSep1 expr
                              return $ Assign lvals rvals
 
+keyword k p = atomicStmt $ reserved k >> p
+
 ifStmt = reserved "if" >> If <$> parens expr <*> stmts <*> elseStmts
   where
     elseStmts = fromMaybe [] <$> optionMaybe (reserved "else" >> stmts)
 
-declaration = atomicStmt $ do reserved "var"
-                              is <- commaSep1 identifier
-                              reserved ":"
-                              t <- typ
-                              return $ Declare (Typed is t)
+declaration = keyword "var" $ Declare <$> typed (commaSep1 identifier)
 
-assume = atomicStmt $ do reserved "assume"
-                         f <- F.formula
-                         return $ Assume f
+assume = keyword "assume" $ Assume <$> F.formula
 
-main = do reserved "procedure"
-          reserved "main"
-          reserved "("
-          reserved ")"
+main = do mapM_ reserved ["procedure", "main", "(", ")"]
           returns <- optionMaybe (reserved "returns" >> parens (Returns <$> commaSep1 (typed identifier)))
-          _ <- optionMaybe (atomicStmt $ reserved "modifies" >> commaSep1 identifier)
+          _ <- optionMaybe (keyword "modifies" $ commaSep1 identifier)
           pre  <- many (try precondition)
           post <- many (try postcondition)
           (ds, ss) <- braces $ do ds <- many (try declaration)
@@ -82,8 +74,8 @@ main = do reserved "procedure"
                                   return (ds, ss)
           return (Main pre returns ds ss post)
   where
-    precondition  = atomicStmt (reservedOp "requires" >> F.formula)
-    postcondition = atomicStmt (reservedOp "ensures"  >> F.formula)
+    precondition  = keyword "requires" F.formula
+    postcondition = keyword "ensures"  F.formula
 
 ast :: Parser AST
 ast = whiteSpace >> AST <$> many (try declaration) <*> main

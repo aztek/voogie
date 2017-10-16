@@ -44,7 +44,7 @@ brackets   = Token.brackets   lexer
 commaSep   = Token.commaSep   lexer
 
 commaSep1 :: Parser a -> Parser (NonEmpty a)
-commaSep1 p = fmap NE.fromList (Token.commaSep1 lexer p)
+commaSep1 = fmap NE.fromList . Token.commaSep1 lexer
 
 constant name fun = reserved name >> return fun
 

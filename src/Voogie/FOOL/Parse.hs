@@ -1,7 +1,5 @@
 module Voogie.FOOL.Parse (term, formula) where
 
-import Control.Applicative ((<$>), (<*>))
-
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Expr
 
