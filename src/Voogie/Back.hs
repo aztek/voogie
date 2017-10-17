@@ -14,7 +14,6 @@ import qualified Voogie.FOOL.Smart as F
 import qualified Voogie.Boogie as B
 import Voogie.Boogie.Pretty()
 
-import qualified Voogie.TPTP as TPTP
 import Voogie.TPTP
 
 data TranslationOptions =
@@ -29,13 +28,12 @@ updates = NE.nub . updates'
 
 translate :: TranslationOptions -> B.Boogie -> TPTP
 translate _opts (B.Boogie decls (B.Main pre stmts post))
-  | Just post <- NE.nonEmpty post = TPTP (signature ++ axioms ++ [conjecture post])
-  | otherwise = TPTP [TPTP.Conjecture $ F.booleanConstant True]
+  | Just post <- NE.nonEmpty post = TPTP signature axioms (conjecture post)
+  | otherwise = TPTP [] [] (F.booleanConstant True)
   where
-    signature = fmap TPTP.Type  decls
-    axioms    = fmap TPTP.Axiom pre
-    conjecture post = TPTP.Conjecture
-                    $ foldr (either translateStatement translateAssume)
+    signature = decls
+    axioms    = pre
+    conjecture post = foldr (either translateStatement translateAssume)
                             (foldr1 (F.binary And) post) stmts
 
     translateStatement :: B.Statement -> F.Term -> F.Term

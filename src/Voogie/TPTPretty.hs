@@ -167,19 +167,20 @@ prettyTerm = offsetTerm 0
 thf :: String -> String -> String -> String
 thf n it s = funapp3 "thf" n it s ++ ".\n"
 
-prettyTypeUnit :: Typed Name -> String
-prettyTypeUnit n@(Typed s _) = thf s "type" (parens $ prettyTyped n)
+prettyDeclaration :: Typed Name -> String
+prettyDeclaration n@(Typed s _) = thf s "type"
+                                      (parens $ prettyTyped n)
 
-prettyAxiom :: Formula -> Integer -> String
-prettyAxiom f nr = thf ("voogie_precondition_" ++ show nr) "axiom" (indentedTerm (4, 4) f)
+prettyAxiom :: (Integer, Formula) -> String
+prettyAxiom (nr, f) = thf ("voogie_precondition_" ++ show nr) "axiom"
+                          (indentedTerm (4, 4) f)
 
 prettyConjecture :: Formula -> String
-prettyConjecture f = thf "voogie_conjecture" "conjecture" (indentedTerm (4, 4) f)
-
-prettyUnit :: (String, Integer) -> Unit -> (String, Integer)
-prettyUnit (s, nr) (Type t)       = (s ++ prettyTypeUnit t,   nr)
-prettyUnit (s, nr) (Axiom f)      = (s ++ prettyAxiom f nr,   nr + 1)
-prettyUnit (s, nr) (Conjecture f) = (s ++ prettyConjecture f, nr)
+prettyConjecture f = thf "voogie_conjecture" "conjecture"
+                         (indentedTerm (4, 4) f)
 
 prettyTPTP :: TPTP -> String
-prettyTPTP (TPTP units) = fst $ foldl prettyUnit ("", 0) units
+prettyTPTP (TPTP signature axioms conjecture) =
+  concatMap prettyDeclaration signature ++
+  concatMap prettyAxiom (zip [1..] axioms) ++
+  prettyConjecture conjecture
