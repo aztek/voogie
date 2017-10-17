@@ -32,26 +32,20 @@ translate _opts (B.Boogie decls (B.Main pre stmts post)) =
     nextState = either translateStatement translateAssume
 
     translateStatement :: B.Statement -> F.Term -> F.Term
-    translateStatement s = F.let_ (F.Binding (F.tupleD vars) (body s))
+    translateStatement s = F.let_ (F.Binding (F.tupleD vars) (definition s))
       where
         vars = updates s
 
-        body :: B.Statement -> F.Term
-        body (B.Assign ass) = F.tupleLiteral (fmap analyzeAssignment vars)
+        definition :: B.Statement -> F.Term
+        definition (B.Assign ass) = F.tupleLiteral (fmap translateAssign ass)
+        definition (B.If c flipBranches a b)
+          | flipBranches = F.if_ c' b' a'
+          | otherwise    = F.if_ c' a' b'
           where
-            assignments = NE.zip (fmap (B.lvariable . fst) ass) ass
-            analyzeAssignment :: B.Var -> F.Term
-            analyzeAssignment v = maybe (F.constant v) translateAssign maybeAssign
-              where maybeAssign = lookup v (NE.toList assignments)
-        body (B.If c f a b) = if f then F.if_ c' b' a' else F.if_ c' a' b'
-          where
-            tuple = F.tupleLiteral (fmap F.constant vars)
+            c' = translateExpression c
             a' = foldr translateStatement tuple a
             b' = foldr translateStatement tuple b
-            c' = translateExpression c
-
-    translateAssume :: B.Assume -> F.Term -> F.Term
-    translateAssume (B.Assume f) = F.binary Imply f
+            tuple = F.tupleLiteral (fmap F.constant vars)
 
     translateAssign :: (B.LValue, B.Expression) -> F.Term
     translateAssign (lval, e) = maybe e' (\ is' -> F.store n is' e') is
@@ -59,22 +53,27 @@ translate _opts (B.Boogie decls (B.Main pre stmts post)) =
         (n, is) = translateLValue lval
         e' = translateExpression e
 
+    translateAssume :: B.Assume -> F.Term -> F.Term
+    translateAssume (B.Assume f) = F.binary Imply f
+
     translateExpression :: B.Expression -> F.Term
     translateExpression (B.IntegerLiteral i) = F.integerConstant i
     translateExpression (B.BooleanLiteral b) = F.booleanConstant b
-    translateExpression (B.Unary  op e)   = F.unary  op (translateExpression e)
-    translateExpression (B.Binary op a b) = F.binary op (translateExpression a) (translateExpression b)
-    translateExpression (B.IfElse c a b)  = F.if_ (translateExpression c) (translateExpression a) (translateExpression b)
-    translateExpression (B.Equals s a b)  = F.equals s (translateExpression a) (translateExpression b)
-    translateExpression (B.FunApp f args) = F.application f (map translateExpression args)
-    translateExpression (B.Ref lval)      = maybe n (F.select n) is
+    translateExpression (B.Unary op e) = F.unary op (translateExpression e)
+    translateExpression (B.Binary op a b) = F.binary op (translateExpression a)
+                                                        (translateExpression b)
+    translateExpression (B.IfElse c a b) = F.if_ (translateExpression c)
+                                                 (translateExpression a)
+                                                 (translateExpression b)
+    translateExpression (B.Equals s a b) = F.equals s (translateExpression a)
+                                                      (translateExpression b)
+    translateExpression (B.FunApp f args) =
+      F.application f (map translateExpression args)
+    translateExpression (B.Ref lval) = maybe n (F.select n) is
       where (n, is) = translateLValue lval
 
     translateLValue :: B.LValue -> (F.Term, Maybe (NonEmpty F.Term))
     translateLValue (B.LValue n is) = (n', is')
       where
-        n' = F.constant (translateConstant n)
+        n' = F.constant (fmap F.name n)
         is' = fmap (fmap translateExpression . sconcat) (NE.nonEmpty is)
-
-    translateConstant :: B.Var -> F.Identifier
-    translateConstant = fmap F.name
