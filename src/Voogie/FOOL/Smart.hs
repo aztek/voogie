@@ -1,6 +1,6 @@
 module Voogie.FOOL.Smart (
   module Voogie.FOOL.Smart,
-  Var, Identifier, Definition(..), Binding(..), Term, Formula
+  Var, Identifier, Definition(..), Binding(..), Term, Formula, Conjunction(..)
 ) where
 
 import qualified Data.List.NonEmpty as NE

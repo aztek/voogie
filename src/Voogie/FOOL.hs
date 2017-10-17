@@ -53,3 +53,10 @@ instance TypeOf Term where
   typeOf (Select array _) = arrayArgument (typeOf array)
   typeOf (Store array _ _) = typeOf array
   typeOf (TupleLiteral args) = TupleType (fmap typeOf args)
+
+newtype Conjunction = Conjunction { getConjunction :: Formula }
+  deriving (Eq, Show)
+
+instance Monoid Conjunction where
+  mempty = Conjunction (BooleanConstant True)
+  Conjunction f `mappend` Conjunction g = Conjunction (Binary And f g)

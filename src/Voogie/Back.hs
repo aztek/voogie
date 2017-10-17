@@ -1,5 +1,3 @@
-{-# LANGUAGE PatternGuards #-}
-
 module Voogie.Back (
   translate, TranslationOptions(..)
 ) where
@@ -27,14 +25,11 @@ updates = NE.nub . updates'
     updates' (B.Assign ass) = fmap (B.lvariable . fst) ass
 
 translate :: TranslationOptions -> B.Boogie -> TPTP
-translate _opts (B.Boogie decls (B.Main pre stmts post))
-  | Just post <- NE.nonEmpty post = TPTP signature axioms (conjecture post)
-  | otherwise = TPTP [] [] (F.booleanConstant True)
+translate _opts (B.Boogie decls (B.Main pre stmts post)) =
+  TPTP decls pre (foldr nextState conjecture stmts)
   where
-    signature = decls
-    axioms    = pre
-    conjecture post = foldr (either translateStatement translateAssume)
-                            (foldr1 (F.binary And) post) stmts
+    conjecture = F.getConjunction . mconcat $ fmap F.Conjunction post
+    nextState = either translateStatement translateAssume
 
     translateStatement :: B.Statement -> F.Term -> F.Term
     translateStatement s = F.let_ (F.Binding (F.tupleD vars) (body s))
