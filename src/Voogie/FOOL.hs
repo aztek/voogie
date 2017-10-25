@@ -18,6 +18,8 @@ data Definition = ConstantSymbol Identifier
 data Binding = Binding Definition Term
   deriving (Show, Eq)
 
+type VarList = NonEmpty (Typed Var)
+
 data Term = IntegerConstant Integer
           | BooleanConstant Bool
           | Variable (Typed Var)
@@ -25,7 +27,7 @@ data Term = IntegerConstant Integer
           | Application Identifier (NonEmpty Term)
           | Binary BinaryOp Term Term
           | Unary UnaryOp Term
-          | Quantify Quantifier (NonEmpty (Typed Var)) Term
+          | Quantify Quantifier VarList Term
           | Equals Sign Term Term
           | Let Binding Term
           | If Term Term Term

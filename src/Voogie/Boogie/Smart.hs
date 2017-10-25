@@ -2,7 +2,7 @@
 
 module Voogie.Boogie.Smart (
   module Voogie.Boogie.Smart,
-  Statement, Assume, Expression, LValue
+  TopLevel, Statement, Assume, Expression, LValue
 ) where
 
 import qualified Data.List.NonEmpty as NE

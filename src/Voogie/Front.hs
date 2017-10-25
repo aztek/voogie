@@ -94,7 +94,7 @@ infix 5 .:
 (.:) :: (a -> b) -> a -> b
 (.:) = ($)
 
-analyzeMain :: Env -> [Either AST.Stmt AST.Assume] -> Result [Either B.Statement B.Assume]
+analyzeMain :: Env -> [Either AST.Stmt AST.Assume] -> Result [B.TopLevel]
 analyzeMain env = mapMaybeM $ either (fmap (fmap   Left)  . analyzeStmt)
                                      (fmap (Just . Right) . analyzeAssume)
   where
@@ -102,10 +102,10 @@ analyzeMain env = mapMaybeM $ either (fmap (fmap   Left)  . analyzeStmt)
     analyzeStmts = fmap catMaybes . mapM analyzeStmt
 
     analyzeStmt :: AST.Stmt -> Result (Maybe B.Statement)
-    analyzeStmt (AST.If c a b) =
-      B.if_ <$> analyzeExpr c <*> analyzeStmts a <*> analyzeStmts b
-    analyzeStmt (AST.Assign ass) =
-      B.assign <$> mapM analyzeAssignment ass
+    analyzeStmt (AST.If c a b) = B.if_ <$> analyzeExpr c
+                                       <*> analyzeStmts a
+                                       <*> analyzeStmts b
+    analyzeStmt (AST.Assign ass) = B.assign <$> mapM analyzeAssignment ass
 
     analyzeAssume :: AST.Assume -> Result B.Assume
     analyzeAssume (AST.Assume f) = B.assume <$> analyzeFormula env f
@@ -153,10 +153,12 @@ analyzeMain env = mapMaybeM $ either (fmap (fmap   Left)  . analyzeStmt)
 analyzeFormula :: Env -> F.AST.Term -> Result F.Formula
 analyzeFormula env = analyzeFormula' (env, Set.empty)
 
-analyzeFormula' :: (Env, Set (Typed Name)) -> F.AST.Term -> Result F.Formula
+type Context = (Env, Set (Typed Name))
+
+analyzeFormula' :: Context -> F.AST.Term -> Result F.Formula
 analyzeFormula' ctx f = analyzeTerm ctx <:$> f .: Boolean
 
-analyzeTerm :: (Env, Set (Typed Name)) -> F.AST.Term -> Result F.Term
+analyzeTerm :: Context -> F.AST.Term -> Result F.Term
 analyzeTerm _ (F.AST.IntConst  i) = return (F.integerConstant i)
 analyzeTerm _ (F.AST.BoolConst b) = return (F.booleanConstant b)
 analyzeTerm ctx@(env, qv) (F.AST.Ref n is) =
@@ -189,17 +191,18 @@ analyzeTerm ctx (F.AST.Equals s a b) =
   do a' <- analyzeTerm ctx a
      b' <- analyzeTerm ctx <:$> b .: typeOf a'
      return (F.equals s a' b')
-analyzeTerm (env, qv) (F.AST.Quantified q vars term) =
-  do ids <- analyzeVarList vars
-     let env' = foldr insertVariable env ids
-     let qv'  = foldr Set.insert     qv  ids
-     f <- analyzeFormula' (env', qv') term
-     let vars' = fmap (fmap F.var) ids
-     return (F.quantify q vars' f)
+analyzeTerm (env, qv) (F.AST.Quantified q vars f) =
+  do (ctx', vars') <- analyzeVarList vars
+     f' <- analyzeFormula' ctx' f
+     return (F.quantify q vars' f')
   where
-    analyzeVarList :: NonEmpty (Typed (NonEmpty String)) -> Result (NonEmpty (Typed Name))
+    analyzeVarList :: F.AST.VarList -> Result (Context, F.VarList)
     -- TODO: check that the variables are disjoint
-    analyzeVarList = Right . join . fmap propagate
+    analyzeVarList vars = Right ((env', qv'), fmap (fmap F.var) vars')
       where
-        propagate :: Typed (NonEmpty a) -> NonEmpty (Typed a)
-        propagate (Typed a t) = fmap (flip Typed t) a
+        vars' = join (fmap propagate vars)
+        env' = foldr insertVariable env vars'
+        qv'  = foldr Set.insert     qv  vars'
+    
+    propagate :: Typed (NonEmpty a) -> NonEmpty (Typed a)
+    propagate (Typed a t) = fmap (flip Typed t) a

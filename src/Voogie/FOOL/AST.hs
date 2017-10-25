@@ -4,6 +4,8 @@ import Data.List.NonEmpty (NonEmpty)
 
 import Voogie.Theory
 
+type VarList = NonEmpty (Typed (NonEmpty String))
+
 data Term = IntConst Integer
           | BoolConst Bool
           | Ref String [NonEmpty Term]
@@ -11,7 +13,7 @@ data Term = IntConst Integer
           | Binary  BinaryOp Term Term
           | Ternary          Term Term Term
           | Equals Sign Term Term
-          | Quantified Quantifier (NonEmpty (Typed (NonEmpty String))) Term
+          | Quantified Quantifier VarList Term
   deriving (Show, Eq)
 
 type Formula = Term

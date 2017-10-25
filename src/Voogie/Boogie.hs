@@ -44,7 +44,9 @@ data Statement = Assign (NonEmpty (LValue, Expression))
 data Assume = Assume F.Formula
   deriving (Show)
 
-data Main = Main [F.Formula] [Either Statement Assume] [F.Formula]
+type TopLevel = Either Statement Assume
+
+data Main = Main [F.Formula] [TopLevel] [F.Formula]
   deriving (Show)
 
 data Boogie = Boogie [Var] Main
