@@ -59,4 +59,12 @@ newtype Conjunction = Conjunction { getConjunction :: Formula }
 
 instance Monoid Conjunction where
   mempty = Conjunction (BooleanConstant True)
-  Conjunction f `mappend` Conjunction g = Conjunction (Binary And f g)
+  Conjunction f `mappend` Conjunction g = Conjunction (binaryAnd f g)
+    where
+      binaryAnd :: Formula -> Formula -> Formula
+      binaryAnd f (BooleanConstant True) = f
+      binaryAnd (BooleanConstant True) g = g
+      -- This case is only needed to satisfy the associativity law of Monoid
+      binaryAnd (Binary And f g) h = Binary And f (Binary And g h)
+      binaryAnd f g = Binary And f g
+
