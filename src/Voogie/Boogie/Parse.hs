@@ -1,6 +1,8 @@
 module Voogie.Boogie.Parse (parseAST) where
 
+import Control.Monad (guard)
 import Data.Maybe
+import qualified Data.List.NonEmpty as NE
 
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Expr
@@ -52,7 +54,8 @@ atomicStmt p = do { s <- p; _ <- semi; return s }
 assignStmt = atomicStmt $ do lvals <- commaSep1 lval
                              reserved ":="
                              rvals <- commaSep1 expr
-                             return $ Assign lvals rvals
+                             guard (length lvals == length rvals)
+                             return $ Assign (NE.zip lvals rvals)
 
 keyword k p = atomicStmt $ reserved k >> p
 

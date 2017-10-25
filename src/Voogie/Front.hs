@@ -9,7 +9,6 @@ import Control.Monad.Extra (mapMaybeM)
 import Data.Maybe
 import Data.Foldable
 
-import qualified Data.List.NonEmpty as NE
 import Data.List.NonEmpty (NonEmpty)
 import qualified Voogie.NonEmpty as VNE
 
@@ -105,9 +104,8 @@ analyzeMain env = mapMaybeM $ either (fmap (fmap   Left)  . analyzeStmt)
     analyzeStmt :: AST.Stmt -> Result (Maybe B.Statement)
     analyzeStmt (AST.If c a b) =
       B.if_ <$> analyzeExpr c <*> analyzeStmts a <*> analyzeStmts b
-    analyzeStmt (AST.Assign lvals rvals) | length lvals /= length rvals = Left ""
-    analyzeStmt (AST.Assign lvals rvals) =
-      B.assign <$> mapM analyzeAssignment (NE.zip lvals rvals)
+    analyzeStmt (AST.Assign ass) =
+      B.assign <$> mapM analyzeAssignment ass
 
     analyzeAssume :: AST.Assume -> Result B.Assume
     analyzeAssume (AST.Assume f) = B.assume <$> analyzeFormula env f

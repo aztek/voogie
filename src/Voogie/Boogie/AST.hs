@@ -18,7 +18,7 @@ data Expr = IntConst Integer
   deriving (Show, Eq)
 
 data Stmt = If Expr [Stmt] [Stmt]
-          | Assign (NonEmpty LVal) (NonEmpty Expr)
+          | Assign (NonEmpty (LVal, Expr))
   deriving (Show, Eq)
 
 data Decl = Declare (Typed (NonEmpty String))
