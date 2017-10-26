@@ -75,20 +75,20 @@ guardType :: (TypeOf b, Pretty b) => (a -> Result b) -> Type -> a -> Result b
 guardType analyze t a = do
   b <- analyze a
   let t' = typeOf b
-  if t == t' then return b else
-    Left $ "expected an expression of the type " ++ pretty t ++
-           " but got " ++ pretty b ++ " of the type " ++ pretty t'
-
-guardTypes :: (TypeOf b, Pretty b) => (a -> Result b) -> NonEmpty Type -> NonEmpty a -> Result (NonEmpty b)
-guardTypes analyze = VNE.zipWithM (guardType analyze)
+  if t == t'
+  then return b
+  else Left $ "expected an expression of the type " ++ pretty t ++
+              " but got " ++ pretty b ++ " of the type " ++ pretty t'
 
 infix 6 <:$>
 (<:$>) :: (TypeOf b, Pretty b) => (a -> Result b) -> a -> Type -> Result b
-(<:$>) f = flip (guardType f)
+f <:$> a = \t -> guardType f t a
 
 infix 6 `guardAll`
-guardAll :: (TypeOf b, Pretty b) => (a -> Result b) -> NonEmpty a -> NonEmpty Type -> Result (NonEmpty b)
-guardAll f = flip (guardTypes f)
+guardAll :: (TypeOf b, Pretty b)
+         => (a -> Result b) -> NonEmpty a -> NonEmpty Type
+         -> Result (NonEmpty b)
+guardAll f as ts = VNE.zipWithM (guardType f) ts as
 
 infix 5 .:
 (.:) :: (a -> b) -> a -> b
@@ -119,17 +119,12 @@ analyzeMain env = mapMaybeM $ either (fmap (fmap   Left)  . analyzeStmt)
     analyzeLValue :: AST.LVal -> Result B.LValue
     analyzeLValue (AST.Ref n is) = do
       var <- lookupVariable n env
-      B.lvalue var <$> analyzeIndexes (typeOf var) is
-      where
-        analyzeIndexes :: Type -> [NonEmpty AST.Expr] -> Result [NonEmpty B.Expression]
-        analyzeIndexes _ [] = Right []
-        analyzeIndexes (Array ts r) (i:is) | length i <= length ts = do
-          i' <- analyzeExpr `guardAll` i .: ts
-          is' <- analyzeIndexes r is
-          return (i' : is')
-        analyzeIndexes t _ =
-          Left $ "expected an expression of an array type," ++
-                 " but got " ++ n ++ " of the type " ++ pretty t
+      let t = typeOf var
+      let ais = arrayIndexes t
+      xs <- if length is > length ais
+            then Left $ "Too many array indexes for type " ++ show t
+            else Right $ zip is ais
+      B.lvalue var <$> mapM (uncurry $ guardAll analyzeExpr) xs
 
     analyzeExpr :: AST.Expr -> Result B.Expression
     analyzeExpr (AST.IntConst  i) = return (B.integerLiteral i)

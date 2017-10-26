@@ -14,10 +14,6 @@ data Type = Boolean
           | TupleType (Tuple Type)
   deriving (Show, Eq, Ord)
 
-isArray :: Type -> Bool
-isArray (Array _ _) = True
-isArray _ = False
-
 arrayElement :: Type -> Type
 arrayElement (Array _ r) = r
 arrayElement t = error (show t ++ " is not an array")
@@ -28,6 +24,10 @@ arrayArgument (Array (_ :| is) r) =
     Nothing  -> r
     Just is' -> Array is' r
 arrayArgument t = error (show t ++ " is not an array")
+
+arrayIndexes :: Type -> [NonEmpty Type]
+arrayIndexes (Array i r) = i : arrayIndexes r
+arrayIndexes _ = []
 
 tupleType :: NonEmpty Type -> Type
 tupleType = either id TupleType . Tuple.nonUnit
