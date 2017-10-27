@@ -39,15 +39,15 @@ emptyEnv :: Env
 emptyEnv = Env Map.empty
 
 lookupVariable :: Name -> Env -> Result (Typed Name)
-lookupVariable name (Env vs)
-  | Just typ <- Map.lookup name vs = Right (Typed name typ)
-  | otherwise = Left ("undefined variable " ++ name)
+lookupVariable n (Env vs)
+  | Just t <- Map.lookup n vs = Right (Typed t n)
+  | otherwise = Left ("undefined variable " ++ n)
 
 insertVariable :: Typed Name -> Env -> Env
-insertVariable (Typed n t) (Env vs) = Env (Map.insert n t vs)
+insertVariable (Typed t n) (Env vs) = Env (Map.insert n t vs)
 
 variables :: Env -> [Typed Name]
-variables (Env vs) = map (uncurry Typed) (Map.toList vs)
+variables (Env vs) = fmap (\(n, t) -> Typed t n) (Map.toList vs)
 
 analyze :: AST.AST -> Result Boogie
 analyze (AST.AST globalDecls (AST.Main pre r mainDecls ss post)) =
@@ -64,11 +64,11 @@ analyze (AST.AST globalDecls (AST.Main pre r mainDecls ss post)) =
      return (B.boogie vars main)
 
 analyzeDecl :: AST.Decl -> Env -> Result Env
-analyzeDecl (AST.Declare (Typed ns t)) env = foldrM tryInsertVariable env ns
+analyzeDecl (AST.Declare (Typed t ns)) env = foldrM tryInsertVariable env ns
   where
     tryInsertVariable :: Name -> Env -> Result Env
     tryInsertVariable n env
-      | Left _ <- lookupVariable n env = Right (insertVariable (Typed n t) env)
+      | Left _ <- lookupVariable n env = Right (insertVariable (Typed t n) env)
       | otherwise = Left ("redefined variable " ++ n)
 
 guardType :: (TypeOf b, Pretty b) => (a -> Result b) -> Type -> a -> Result b
@@ -200,4 +200,4 @@ analyzeTerm (env, qv) (F.AST.Quantified q vars f) =
         qv'  = foldr Set.insert     qv  vars'
     
     propagate :: Typed (NonEmpty a) -> NonEmpty (Typed a)
-    propagate (Typed a t) = fmap (flip Typed t) a
+    propagate (Typed t a) = fmap (Typed t) a

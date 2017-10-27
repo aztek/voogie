@@ -76,11 +76,11 @@ prettyVar (Var []) = error "empty variable name"
 prettyVar (Var (c:cs)) = toUpper c : cs
 
 prettyIdentifier :: Identifier -> String
-prettyIdentifier (Typed [] _) = error "empty identifier"
-prettyIdentifier (Typed (c:cs) _) = toLower c : cs
+prettyIdentifier (Typed _ []) = error "empty identifier"
+prettyIdentifier (Typed _ (c:cs)) = toLower c : cs
 
 prettyTyped :: Typed String -> String
-prettyTyped (Typed s t) = s ++ ":" ++ prettyType t
+prettyTyped (Typed t s) = s ++ ":" ++ prettyType t
 
 prettyVariable :: Typed Var -> String
 prettyVariable = prettyTyped . fmap prettyVar
@@ -119,7 +119,7 @@ offsetTerm o t = case t of
   IntegerConstant n -> show n
   BooleanConstant b -> if b then "$true" else "$false"
 
-  Variable (Typed v _) -> prettyVar v
+  Variable (Typed _ v) -> prettyVar v
   Constant f -> prettyIdentifier f
   Application f args -> funapp (prettyIdentifier f) (fmap prettyTerm args)
 
@@ -168,7 +168,7 @@ thf :: String -> String -> String -> String
 thf n it s = funapp3 "thf" n it s ++ ".\n"
 
 prettyDeclaration :: Typed Name -> String
-prettyDeclaration n@(Typed s _) = thf s "type"
+prettyDeclaration n@(Typed _ s) = thf s "type"
                                       (parens $ prettyTyped n)
 
 prettyAxiom :: (Integer, Formula) -> String

@@ -21,7 +21,7 @@ instance Pretty Type where
   pretty (TupleType ts) = parens (Tuple.intercalate ", " $ fmap pretty ts)
 
 instance Pretty (Typed Name) where
-  pretty (Typed n t) = unwords [pretty t, n]
+  pretty (Typed t n) = unwords [pretty t, n]
 
 instance Pretty Quantifier where
   pretty Forall = "forall"

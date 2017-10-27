@@ -34,14 +34,14 @@ tupleType = either id TupleType . Tuple.nonUnit
 
 type Name = String
 
-data Typed n = Typed n Type
+data Typed a = Typed Type a
   deriving (Show, Eq, Ord, Functor)
 
 class TypeOf a where
   typeOf :: a -> Type
 
 instance TypeOf (Typed a) where
-  typeOf (Typed _ t) = t
+  typeOf (Typed t _) = t
 
 data Quantifier = Forall | Exists
   deriving (Show, Eq)

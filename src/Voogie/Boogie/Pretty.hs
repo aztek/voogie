@@ -16,7 +16,7 @@ import Voogie.Boogie
 import Voogie.FOOL.Pretty (pretty)
 
 instance Pretty LValue where
-  pretty (LValue (Typed v _) is) = v ++ concatMap (brackets . commaSep) is
+  pretty (LValue (Typed _ v) is) = v ++ concatMap (brackets . commaSep) is
 
 instance Pretty Expression where
   pretty (IntegerLiteral i) = pretty i
@@ -26,7 +26,7 @@ instance Pretty Expression where
   pretty (Binary op a b) = unwords [pretty a, pretty op, pretty b]
   pretty (IfElse a b c)  = unwords [pretty a, "?", pretty b, ":", pretty c]
 
-  pretty (FunApp (Typed f _) args) = f ++ parens (intercalate ", " $ map pretty args)
+  pretty (FunApp (Typed _ f) args) = f ++ parens (intercalate ", " $ map pretty args)
 
   pretty (Equals s a b) = unwords [pretty a, pretty s, pretty b]
 

@@ -65,4 +65,4 @@ typed :: Parser a -> Parser (Typed a)
 typed p = do v <- p
              reservedOp ":"
              t <- typ
-             return (Typed v t)
+             return (Typed t v)
