@@ -122,19 +122,25 @@ analyzeMain env = mapMaybeM $ either (fmap (fmap   Left)  . analyzeStmt)
       let t = typeOf var
       let ais = arrayIndexes t
       xs <- if length is > length ais
-            then Left $ "Too many array indexes for type " ++ show t
-            else Right $ zip is ais
+            then Left ("Too many array indexes for type " ++ show t)
+            else Right (zip is ais)
       B.lvalue var <$> mapM (uncurry $ guardAll analyzeExpr) xs
 
     analyzeExpr :: AST.Expr -> Result B.Expression
     analyzeExpr (AST.IntConst  i) = return (B.integerLiteral i)
     analyzeExpr (AST.BoolConst b) = return (B.booleanLiteral b)
-    analyzeExpr (AST.LVal lval) = B.ref <$> analyzeLValue lval
-    analyzeExpr (AST.Unary op e) = B.unary op <$> analyzeExpr <:$> e .: d
-      where d = unaryOpDomain op
-    analyzeExpr (AST.Binary op a b) = B.binary op <$> analyzeExpr <:$> a .: d1
-                                                  <*> analyzeExpr <:$> b .: d2
-      where (d1, d2) = binaryOpDomain op
+    analyzeExpr (AST.LVal lval) = do
+      lval' <- analyzeLValue lval
+      return (B.ref lval')
+    analyzeExpr (AST.Unary op e) = do
+      let d = unaryOpDomain op
+      e' <- analyzeExpr <:$> e .: d
+      return (B.unary op e')
+    analyzeExpr (AST.Binary op a b) = do
+      let (d1, d2) = binaryOpDomain op
+      a' <- analyzeExpr <:$> a .: d1
+      b' <- analyzeExpr <:$> b .: d2
+      return (B.binary op a' b')
     analyzeExpr (AST.Equals s a b) = do
       a' <- analyzeExpr a
       b' <- analyzeExpr <:$> b .: typeOf a'
@@ -153,46 +159,50 @@ type Context = (Env, Set (Typed Name))
 extendContext :: Typed Name -> Context -> Context
 extendContext v (env, qv) = (insertVariable v env, Set.insert v qv)
 
+analyzeVar :: Context -> Name -> Result F.Term
+analyzeVar (env, qv) n = do
+  v <- lookupVariable n env
+  return $ if v `Set.member` qv
+           then F.variable (F.var <$> v)
+           else F.constant v
+
 analyzeFormula' :: Context -> F.AST.Term -> Result F.Formula
 analyzeFormula' ctx f = analyzeTerm ctx <:$> f .: Boolean
 
 analyzeTerm :: Context -> F.AST.Term -> Result F.Term
 analyzeTerm _ (F.AST.IntConst  i) = return (F.integerConstant i)
 analyzeTerm _ (F.AST.BoolConst b) = return (F.booleanConstant b)
-analyzeTerm ctx@(env, qv) (F.AST.Ref n is) =
-  do var <- lookupVariable n env
-     foldM analyzeIndex (analyzeVar var) is
-  where
-    analyzeVar :: Typed Name -> F.Term
-    analyzeVar v | v `Set.member` qv = F.variable (fmap F.var v)
-                 | otherwise = F.constant v
+analyzeTerm ctx (F.AST.Ref n is) = do
+  var <- analyzeVar ctx n
+  foldM (analyzeSelect ctx) var is
+analyzeTerm ctx (F.AST.Unary op t) = do
+  let d = unaryOpDomain op
+  t' <- analyzeTerm ctx <:$> t .: d
+  return (F.unary op t')
+analyzeTerm ctx (F.AST.Binary op a b) = do
+  let (d1, d2) = binaryOpDomain op
+  a' <- analyzeTerm ctx <:$> a .: d1
+  b' <- analyzeTerm ctx <:$> b .: d2
+  return (F.binary op a' b')
+analyzeTerm ctx (F.AST.Ternary c a b) = do
+  c' <- analyzeFormula' ctx c
+  a' <- analyzeTerm ctx a
+  b' <- analyzeTerm ctx <:$> b .: typeOf a'
+  return (F.if_ c' a' b')
+analyzeTerm ctx (F.AST.Equals s a b) = do
+  a' <- analyzeTerm ctx a
+  b' <- analyzeTerm ctx <:$> b .: typeOf a'
+  return (F.equals s a' b')
+analyzeTerm ctx (F.AST.Quantified q vars f) = do
+  (ctx', vars') <- analyzeVarList ctx vars
+  f' <- analyzeFormula' ctx' f
+  return (F.quantify q vars' f')
 
-    analyzeIndex :: F.Term -> NonEmpty F.AST.Term -> Result F.Term
-    analyzeIndex term as = case typeOf term of
-      Array ts _ -> F.select term <$> analyzeTerm ctx `guardAll` as .: ts
-      t -> Left $ "expected an expression of an array type," ++
-                  " but got " ++ pretty term ++ " of the type " ++ pretty t
-analyzeTerm ctx (F.AST.Unary op t) = F.unary op <$> analyzeTerm ctx <:$> t .: d
-  where
-    d = unaryOpDomain op
-analyzeTerm ctx (F.AST.Binary op a b) = F.binary op <$> a' <*> b'
-  where
-    a' = analyzeTerm ctx <:$> a .: d1
-    b' = analyzeTerm ctx <:$> b .: d2
-    (d1, d2) = binaryOpDomain op
-analyzeTerm ctx (F.AST.Ternary c a b) =
-  do c' <- analyzeFormula' ctx c
-     a' <- analyzeTerm ctx a
-     b' <- analyzeTerm ctx <:$> b .: typeOf a'
-     return (F.if_ c' a' b')
-analyzeTerm ctx (F.AST.Equals s a b) =
-  do a' <- analyzeTerm ctx a
-     b' <- analyzeTerm ctx <:$> b .: typeOf a'
-     return (F.equals s a' b')
-analyzeTerm ctx (F.AST.Quantified q vars f) =
-  do (ctx', vars') <- analyzeVarList ctx vars
-     f' <- analyzeFormula' ctx' f
-     return (F.quantify q vars' f')
+analyzeSelect :: Context -> F.Term -> NonEmpty F.AST.Term -> Result F.Term
+analyzeSelect ctx term as = case typeOf term of
+  Array ts _ -> F.select term <$> analyzeTerm ctx `guardAll` as .: ts
+  t -> Left ("expected an expression of an array type," ++
+             " but got " ++ pretty term ++ " of the type " ++ pretty t)
 
 analyzeVarList :: Context -> F.AST.VarList -> Result (Context, F.VarList)
 -- TODO: check that the variables are disjoint
