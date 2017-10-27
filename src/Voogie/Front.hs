@@ -57,8 +57,8 @@ analyze (AST.AST globalDecls (AST.Main pre r mainDecls ss post)) =
                      Just (AST.Returns r) -> foldr insertVariable mainEnv' r
                      Nothing -> mainEnv'
      ss'   <- analyzeMain mainEnv ss
-     pre'  <- mapM (analyzeFormula globalEnv) pre
-     post' <- mapM (analyzeFormula mainEnv)   post
+     pre'  <- mapM (analyzeProperty globalEnv) pre
+     post' <- mapM (analyzeProperty mainEnv)   post
      let main = B.main pre' ss' post'
      let vars = variables mainEnv
      return (B.boogie vars main)
@@ -108,7 +108,7 @@ analyzeMain env = mapMaybeM $ either (fmap (fmap   Left)  . analyzeStmt)
     analyzeStmt (AST.Assign ass) = B.assign <$> mapM analyzeAssignment ass
 
     analyzeAssume :: AST.Assume -> Result B.Assume
-    analyzeAssume (AST.Assume f) = B.assume <$> analyzeFormula env f
+    analyzeAssume (AST.Assume f) = B.assume <$> analyzeProperty env f
 
     analyzeAssignment :: (AST.LVal, AST.Expr) -> Result (B.LValue, B.Expression)
     analyzeAssignment (lval, e) = do
@@ -151,62 +151,62 @@ analyzeMain env = mapMaybeM $ either (fmap (fmap   Left)  . analyzeStmt)
       b' <- analyzeExpr <:$> b .: typeOf a'
       return (B.ifElse c' a' b')
 
-analyzeFormula :: Env -> F.AST.Term -> Result F.Formula
-analyzeFormula env = analyzeFormula' (env, Set.empty)
+analyzeProperty :: Env -> F.AST.Term -> Result F.Formula
+analyzeProperty env = analyzeFormula (env, Set.empty)
 
 type Context = (Env, Set (Typed Name))
 
 extendContext :: Typed Name -> Context -> Context
 extendContext v (env, qv) = (insertVariable v env, Set.insert v qv)
 
-analyzeVar :: Context -> Name -> Result F.Term
-analyzeVar (env, qv) n = do
-  v <- lookupVariable n env
-  return $ if v `Set.member` qv
-           then F.variable (F.var <$> v)
-           else F.constant v
-
-analyzeFormula' :: Context -> F.AST.Term -> Result F.Formula
-analyzeFormula' ctx f = analyzeTerm ctx <:$> f .: Boolean
-
-analyzeTerm :: Context -> F.AST.Term -> Result F.Term
-analyzeTerm _ (F.AST.IntConst  i) = return (F.integerConstant i)
-analyzeTerm _ (F.AST.BoolConst b) = return (F.booleanConstant b)
-analyzeTerm ctx (F.AST.Ref n is) = do
-  var <- analyzeVar ctx n
-  foldM (analyzeSelect ctx) var is
-analyzeTerm ctx (F.AST.Unary op t) = do
-  let d = unaryOpDomain op
-  t' <- analyzeTerm ctx <:$> t .: d
-  return (F.unary op t')
-analyzeTerm ctx (F.AST.Binary op a b) = do
-  let (d1, d2) = binaryOpDomain op
-  a' <- analyzeTerm ctx <:$> a .: d1
-  b' <- analyzeTerm ctx <:$> b .: d2
-  return (F.binary op a' b')
-analyzeTerm ctx (F.AST.Ternary c a b) = do
-  c' <- analyzeFormula' ctx c
-  a' <- analyzeTerm ctx a
-  b' <- analyzeTerm ctx <:$> b .: typeOf a'
-  return (F.if_ c' a' b')
-analyzeTerm ctx (F.AST.Equals s a b) = do
-  a' <- analyzeTerm ctx a
-  b' <- analyzeTerm ctx <:$> b .: typeOf a'
-  return (F.equals s a' b')
-analyzeTerm ctx (F.AST.Quantified q vars f) = do
-  (ctx', vars') <- analyzeVarList ctx vars
-  f' <- analyzeFormula' ctx' f
-  return (F.quantify q vars' f')
-
-analyzeSelect :: Context -> F.Term -> NonEmpty F.AST.Term -> Result F.Term
-analyzeSelect ctx term as = case typeOf term of
-  Array ts _ -> F.select term <$> analyzeTerm ctx `guardAll` as .: ts
-  t -> Left ("expected an expression of an array type," ++
-             " but got " ++ pretty term ++ " of the type " ++ pretty t)
-
-analyzeVarList :: Context -> F.AST.VarList -> Result (Context, F.VarList)
--- TODO: check that the variables are disjoint
-analyzeVarList ctx vars = Right (ctx', fmap (fmap F.var) vars')
+analyzeFormula :: Context -> F.AST.Term -> Result F.Formula
+analyzeFormula ctx@(env, qv) f = analyzeTerm <:$> f .: Boolean
   where
-    vars' = join (fmap sequence vars)
-    ctx' = foldr extendContext ctx vars'
+    analyzeTerm :: F.AST.Term -> Result F.Term
+    analyzeTerm (F.AST.IntConst  i) = return (F.integerConstant i)
+    analyzeTerm (F.AST.BoolConst b) = return (F.booleanConstant b)
+    analyzeTerm (F.AST.Ref n is) = do
+      var <- analyzeVar n
+      foldM analyzeSelect var is
+    analyzeTerm (F.AST.Unary op t) = do
+      let d = unaryOpDomain op
+      t' <- analyzeTerm <:$> t .: d
+      return (F.unary op t')
+    analyzeTerm (F.AST.Binary op a b) = do
+      let (d1, d2) = binaryOpDomain op
+      a' <- analyzeTerm <:$> a .: d1
+      b' <- analyzeTerm <:$> b .: d2
+      return (F.binary op a' b')
+    analyzeTerm (F.AST.Ternary c a b) = do
+      c' <- analyzeFormula ctx c
+      a' <- analyzeTerm a
+      b' <- analyzeTerm <:$> b .: typeOf a'
+      return (F.if_ c' a' b')
+    analyzeTerm (F.AST.Equals s a b) = do
+      a' <- analyzeTerm a
+      b' <- analyzeTerm <:$> b .: typeOf a'
+      return (F.equals s a' b')
+    analyzeTerm (F.AST.Quantified q vars f) = do
+      (ctx', vars') <- analyzeVarList vars
+      f' <- analyzeFormula ctx' f
+      return (F.quantify q vars' f')
+
+    analyzeVar :: Name -> Result F.Term
+    analyzeVar n = do
+      v <- lookupVariable n env
+      return $ if v `Set.member` qv
+               then F.variable (F.var <$> v)
+               else F.constant v
+
+    analyzeSelect :: F.Term -> NonEmpty F.AST.Term -> Result F.Term
+    analyzeSelect term as = case typeOf term of
+      Array ts _ -> F.select term <$> analyzeTerm `guardAll` as .: ts
+      t -> Left ("expected an expression of an array type," ++
+                 " but got " ++ pretty term ++ " of the type " ++ pretty t)
+
+    analyzeVarList :: F.AST.VarList -> Result (Context, F.VarList)
+    -- TODO: check that the variables are disjoint
+    analyzeVarList vars = Right (ctx', fmap (fmap F.var) vars')
+      where
+        vars' = join (fmap sequence vars)
+        ctx' = foldr extendContext ctx vars'
