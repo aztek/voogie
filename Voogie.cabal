@@ -10,8 +10,8 @@ maintainer:          evgeny.kotelnikov@gmail.com
 category:            Language
 build-type:          Simple
 extra-source-files:  README.md
-cabal-version:       >= 2
-compiler:            ghc >= 8.2
+cabal-version:       >= 1.10
+tested-with:         GHC >= 8.0.2
 
 source-repository head
   type: git
