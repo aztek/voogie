@@ -10,7 +10,8 @@ maintainer:          evgeny.kotelnikov@gmail.com
 category:            Language
 build-type:          Simple
 extra-source-files:  README.md
-cabal-version:       >=1.10
+cabal-version:       >= 2
+compiler:            ghc >= 8.2
 
 source-repository head
   type: git
@@ -19,7 +20,9 @@ source-repository head
 executable voogie
   hs-source-dirs:      src
   main-is:             Main.hs
-  ghc-options:         -Wall -fno-warn-missing-signatures -Wno-orphans -Wno-name-shadowing -Werror -threaded
+  ghc-options:         -Wall -fno-warn-missing-signatures
+                       -Wno-missing-home-modules
+                       -Wno-orphans -Wno-name-shadowing -Werror -threaded
   default-extensions:  DeriveFunctor, FlexibleInstances, Safe
   build-depends:
     base       >= 4 && < 5,

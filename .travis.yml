@@ -1,1 +1,7 @@
 language: haskell
+
+ghc:
+  - 8.2
+
+cabal:
+  - 2.0
