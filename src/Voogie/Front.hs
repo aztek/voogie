@@ -150,6 +150,9 @@ analyzeFormula env = analyzeFormula' (env, Set.empty)
 
 type Context = (Env, Set (Typed Name))
 
+extendContext :: Typed Name -> Context -> Context
+extendContext v (env, qv) = (insertVariable v env, Set.insert v qv)
+
 analyzeFormula' :: Context -> F.AST.Term -> Result F.Formula
 analyzeFormula' ctx f = analyzeTerm ctx <:$> f .: Boolean
 
@@ -186,18 +189,14 @@ analyzeTerm ctx (F.AST.Equals s a b) =
   do a' <- analyzeTerm ctx a
      b' <- analyzeTerm ctx <:$> b .: typeOf a'
      return (F.equals s a' b')
-analyzeTerm (env, qv) (F.AST.Quantified q vars f) =
-  do (ctx', vars') <- analyzeVarList vars
+analyzeTerm ctx (F.AST.Quantified q vars f) =
+  do (ctx', vars') <- analyzeVarList ctx vars
      f' <- analyzeFormula' ctx' f
      return (F.quantify q vars' f')
+
+analyzeVarList :: Context -> F.AST.VarList -> Result (Context, F.VarList)
+-- TODO: check that the variables are disjoint
+analyzeVarList ctx vars = Right (ctx', fmap (fmap F.var) vars')
   where
-    analyzeVarList :: F.AST.VarList -> Result (Context, F.VarList)
-    -- TODO: check that the variables are disjoint
-    analyzeVarList vars = Right ((env', qv'), fmap (fmap F.var) vars')
-      where
-        vars' = join (fmap propagate vars)
-        env' = foldr insertVariable env vars'
-        qv'  = foldr Set.insert     qv  vars'
-    
-    propagate :: Typed (NonEmpty a) -> NonEmpty (Typed a)
-    propagate (Typed t a) = fmap (Typed t) a
+    vars' = join (fmap sequence vars)
+    ctx' = foldr extendContext ctx vars'

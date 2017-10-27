@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE DeriveFunctor, DeriveFoldable #-}
 
 module Voogie.Theory where
 
@@ -35,7 +35,10 @@ tupleType = either id TupleType . Tuple.nonUnit
 type Name = String
 
 data Typed a = Typed Type a
-  deriving (Show, Eq, Ord, Functor)
+  deriving (Show, Eq, Ord, Functor, Foldable)
+
+instance Traversable Typed where
+  traverse f (Typed t a) = Typed t <$> f a
 
 class TypeOf a where
   typeOf :: a -> Type
