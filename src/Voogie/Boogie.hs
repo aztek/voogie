@@ -37,7 +37,9 @@ instance TypeOf Expression where
   typeOf (FunApp f _) = typeOf f
   typeOf Equals{} = Boolean
 
-data Statement = Assign (NonEmpty (LValue, Expression))
+type Assignment = (LValue, Expression)
+
+data Statement = Assign (NonEmpty Assignment)
                | If Expression Bool (NonEmpty Statement) [Statement]
   deriving (Show)
 

@@ -95,9 +95,12 @@ infix 5 .:
 (.:) = ($)
 
 analyzeMain :: Env -> [Either AST.Stmt AST.Assume] -> Result [B.TopLevel]
-analyzeMain env = mapMaybeM $ either (fmap (fmap   Left)  . analyzeStmt)
-                                     (fmap (Just . Right) . analyzeAssume)
+analyzeMain env = mapMaybeM analyzeTopLevel
   where
+    analyzeTopLevel :: Either AST.Stmt AST.Assume -> Result (Maybe B.TopLevel)
+    analyzeTopLevel (Left stmt) = fmap Left <$> analyzeStmt stmt
+    analyzeTopLevel (Right assume) = Just . Right <$> analyzeAssume assume
+
     analyzeStmts :: [AST.Stmt] -> Result [B.Statement]
     analyzeStmts = fmap catMaybes . mapM analyzeStmt
 
@@ -110,7 +113,7 @@ analyzeMain env = mapMaybeM $ either (fmap (fmap   Left)  . analyzeStmt)
     analyzeAssume :: AST.Assume -> Result B.Assume
     analyzeAssume (AST.Assume f) = B.assume <$> analyzeProperty env f
 
-    analyzeAssignment :: (AST.LVal, AST.Expr) -> Result (B.LValue, B.Expression)
+    analyzeAssignment :: (AST.LVal, AST.Expr) -> Result B.Assignment
     analyzeAssignment (lval, e) = do
       lv <- analyzeLValue lval
       e' <- analyzeExpr <:$> e .: typeOf lv
