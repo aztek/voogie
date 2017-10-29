@@ -11,7 +11,7 @@ category:            Language
 build-type:          Simple
 extra-source-files:  README.md
 cabal-version:       >= 1.10
-tested-with:         GHC >= 8.0.2
+tested-with:         GHC >= 7.10
 
 source-repository head
   type: git
@@ -21,12 +21,17 @@ executable voogie
   hs-source-dirs:      src
   main-is:             Main.hs
   ghc-options:         -Wall -fno-warn-missing-signatures
-                       -Wno-missing-home-modules
-                       -Wno-orphans -Wno-name-shadowing -Werror -threaded
+                       -Werror -threaded
+  if impl(ghc < 8)
+    ghc-options:       -fno-warn-name-shadowing -fno-warn-orphans
+  if impl(ghc >= 8)
+    ghc-options:       -Wno-name-shadowing -Wno-orphans 
+                       -Wno-missing-home-modules 
   default-extensions:  DeriveFunctor, FlexibleInstances, Safe
   build-depends:
     base       >= 4 && < 5,
     containers >= 0.5 && < 0.6,
     extra      >= 1.4,
+    semigroups >= 0.18,
     parsec     >= 3.1 && < 3.2
   default-language:    Haskell2010

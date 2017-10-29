@@ -2,7 +2,7 @@
 
 module Voogie.Theory where
 
-import Data.List.NonEmpty as NE
+import qualified Data.List.NonEmpty as NE
 import Data.List.NonEmpty (NonEmpty((:|)))
 
 import qualified Voogie.FOOL.Tuple as Tuple

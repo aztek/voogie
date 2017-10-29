@@ -10,10 +10,10 @@ import qualified Voogie.NonEmpty as VNE
 import Data.List.NonEmpty (NonEmpty)
 
 import Voogie.Theory
-import Voogie.Pretty
+import Voogie.Pretty 
 import Voogie.Boogie
 
-import Voogie.FOOL.Pretty (pretty)
+import Voogie.FOOL.Pretty()
 
 instance Pretty LValue where
   pretty (LValue (Typed _ v) is) = v ++ concatMap (brackets . commaSep) is
