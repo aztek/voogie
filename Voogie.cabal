@@ -1,6 +1,11 @@
 name:                Voogie
 version:             0.1.0.0
 synopsis:            A verification conditions generator for simple Boogie programs
+description:         Voogie reads simple Boogie programs and generates their
+                     verification conditions as formulas in the FOOL logic.
+                     These formulas are written in the TPTP language and can be
+                     checked by automated first-order theorem provers. As of now,
+                     only Vampire supports all features of FOOL.
 homepage:            https://github.com/aztek/voogie
 bug-reports:         https://github.com/aztek/voogie/issues
 license:             GPL-3
@@ -20,13 +25,32 @@ source-repository head
 executable voogie
   hs-source-dirs:      src
   main-is:             Main.hs
+  other-modules:       Voogie.Back
+                       Voogie.Boogie
+                       Voogie.Boogie.AST
+                       Voogie.Boogie.Parse
+                       Voogie.Boogie.Pretty
+                       Voogie.Boogie.Smart
+                       Voogie.FOOL
+                       Voogie.FOOL.AST
+                       Voogie.FOOL.Tuple
+                       Voogie.FOOL.TypeSafe
+                       Voogie.FOOL.Parse
+                       Voogie.FOOL.Pretty
+                       Voogie.FOOL.Smart
+                       Voogie.Front
+                       Voogie.NonEmpty
+                       Voogie.Parse
+                       Voogie.Pretty
+                       Voogie.Theory
+                       Voogie.TPTP
+                       Voogie.TPTPretty
   ghc-options:         -Wall -fno-warn-missing-signatures
                        -Werror -threaded
   if impl(ghc < 8)
     ghc-options:       -fno-warn-name-shadowing -fno-warn-orphans
   if impl(ghc >= 8)
     ghc-options:       -Wno-name-shadowing -Wno-orphans 
-                       -Wno-missing-home-modules 
   default-extensions:  DeriveFunctor, FlexibleInstances, Safe
   build-depends:
     base       >= 4 && < 5,
