@@ -1,0 +1,10 @@
+# HLint configuration file
+# https://github.com/ndmitchell/hlint
+##########################
+
+# Replace a $ b $ c with a . b $ c
+ - group: {name: dollar, enabled: true}
+
+# Ignore some builtin hints
+ - ignore: {name: Use newtype instead of data}
+ 

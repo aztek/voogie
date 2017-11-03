@@ -33,7 +33,7 @@ import Voogie.FOOL.Pretty()
 type Error = String
 type Result = Either Error
 
-data Env = Env (Map Name Type)
+newtype Env = Env (Map Name Type)
 
 emptyEnv :: Env
 emptyEnv = Env Map.empty
