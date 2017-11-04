@@ -14,14 +14,17 @@ class Pretty a where
   pretty :: a -> String
   pretty = indented 0
 
+instance Pretty Name where
+  pretty n = n
+
 instance Pretty Type where
   pretty Integer = "int"
   pretty Boolean = "bool"
   pretty (Array i t) = brackets (VNE.intercalate ", " $ fmap pretty i) ++ " " ++ pretty t
   pretty (TupleType ts) = parens (Tuple.intercalate ", " $ fmap pretty ts)
 
-instance Pretty (Typed Name) where
-  pretty (Typed t n) = unwords [pretty t, n]
+instance Pretty a => Pretty (Typed a) where
+  pretty (Typed _ a) = pretty a
 
 instance Pretty Quantifier where
   pretty Forall = "forall"
@@ -33,21 +36,20 @@ instance Pretty UnaryOp where
   pretty Negative = "-"
 
 instance Pretty BinaryOp where
-  pretty op =
-    case op of
-      And      -> "&&"
-      Or       -> "||"
-      Imply    -> "=>"
-      Iff      -> "=="
-      Xor      -> "!="
-      Greater  -> ">"
-      Less     -> "<"
-      Geq      -> ">="
-      Leq      -> "<="
-      Add      -> "+"
-      Subtract -> "-"
-      Multiply -> "*"
-      Divide   -> "/"
+  pretty op = case op of
+    And      -> "&&"
+    Or       -> "||"
+    Imply    -> "=>"
+    Iff      -> "=="
+    Xor      -> "!="
+    Greater  -> ">"
+    Less     -> "<"
+    Geq      -> ">="
+    Leq      -> "<="
+    Add      -> "+"
+    Subtract -> "-"
+    Multiply -> "*"
+    Divide   -> "/"
 
 instance Pretty Integer where
   pretty = show

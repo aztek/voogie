@@ -9,14 +9,13 @@ import qualified Data.List.NonEmpty as NE
 import qualified Voogie.NonEmpty as VNE
 import Data.List.NonEmpty (NonEmpty)
 
-import Voogie.Theory
 import Voogie.Pretty 
 import Voogie.Boogie
 
 import Voogie.FOOL.Pretty()
 
 instance Pretty LValue where
-  pretty (LValue (Typed _ v) is) = v ++ concatMap (brackets . commaSep) is
+  pretty (LValue v is) = pretty v ++ concatMap (brackets . commaSep) is
 
 instance Pretty Expression where
   pretty (IntegerLiteral i) = pretty i
@@ -26,7 +25,7 @@ instance Pretty Expression where
   pretty (Binary op a b) = unwords [pretty a, pretty op, pretty b]
   pretty (IfElse a b c)  = unwords [pretty a, "?", pretty b, ":", pretty c]
 
-  pretty (FunApp (Typed _ f) args) = f ++ parens (intercalate ", " $ map pretty args)
+  pretty (FunApp f args) = pretty f ++ parens (intercalate ", " $ map pretty args)
 
   pretty (Equals s a b) = unwords [pretty a, pretty s, pretty b]
 
@@ -46,8 +45,15 @@ braces n s | null s'   = "{}"
 commaSep :: Pretty a => NonEmpty a -> String
 commaSep = VNE.intercalate ", " . fmap pretty
 
-indentedIte :: (Pretty a, Pretty b) => Integer -> Expression -> a -> b -> String
-indentedIte n c a b = unwords ["if", parens (pretty c), braces n a, "else", braces n b]
+indentedIte :: (Pretty a, Pretty b) 
+            => Integer -> Expression -> a -> b -> String
+indentedIte n c a b =
+  unwords [ "if"
+          , parens (pretty c)
+          , braces n a
+          , "else"
+          , braces n b
+          ]
 
 instance Pretty Statement where
   indented n s = indent n ++ case s of

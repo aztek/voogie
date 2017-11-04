@@ -105,7 +105,7 @@ analyzeMain env = mapMaybeM analyzeTopLevel
     analyzeStmts = fmap catMaybes . mapM analyzeStmt
 
     analyzeStmt :: AST.Stmt -> Result (Maybe B.Statement)
-    analyzeStmt (AST.If c a b) = B.if_ <$> analyzeExpr c
+    analyzeStmt (AST.If c a b) = B.if_ <$> analyzeExpr <:$> c .: Boolean
                                        <*> analyzeStmts a
                                        <*> analyzeStmts b
     analyzeStmt (AST.Assign ass) = B.assign <$> mapM analyzeAssignment ass

@@ -8,12 +8,15 @@ import Voogie.Theory
 import Voogie.Pretty
 import Voogie.FOOL
 
+instance Pretty Var where
+  pretty (Var v) = v
+
 instance Pretty Term where
   pretty (IntegerConstant i) = pretty i
   pretty (BooleanConstant b) = pretty b
-  pretty (Variable (Typed _ (Var v))) = v
-  pretty (Constant (Typed _ f)) = f
-  pretty (Application (Typed _ f) args) = f ++ parens (VNE.intercalate ", " $ fmap pretty args)
+  pretty (Variable v) = pretty v
+  pretty (Constant f) = pretty f
+  pretty (Application f args) = pretty f ++ parens (VNE.intercalate ", " $ fmap pretty args)
   pretty (Binary op a b) = unwords [pretty a, pretty op, pretty b]
   pretty (Unary op t) = pretty op ++ pretty t
   pretty (Quantify q vars t) = pretty q ++ " " ++ parens (VNE.intercalate ", " $ fmap p vars) ++ pretty t

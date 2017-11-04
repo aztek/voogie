@@ -40,36 +40,33 @@ funapp3 :: String -> String -> String -> String -> String
 funapp3 f a b c = funapp f (VNE.three a b c)
 
 prettyBinaryOp :: BinaryOp -> (Bool, String)
-prettyBinaryOp op =
-  case op of
-    And      -> (True,  "&")
-    Or       -> (True,  "|")
-    Imply    -> (True,  "=>")
-    Iff      -> (True,  "<=>")
-    Xor      -> (True,  "<~>")
-    Greater  -> (False, "$greater")
-    Less     -> (False, "$less")
-    Geq      -> (False, "$greatereq")
-    Leq      -> (False, "$lesseq")
-    Add      -> (False, "$sum")
-    Subtract -> (False, "$difference")
-    Multiply -> (False, "$product")
-    Divide   -> (False, "$quotient_e")
+prettyBinaryOp op = case op of
+  And      -> (True,  "&")
+  Or       -> (True,  "|")
+  Imply    -> (True,  "=>")
+  Iff      -> (True,  "<=>")
+  Xor      -> (True,  "<~>")
+  Greater  -> (False, "$greater")
+  Less     -> (False, "$less")
+  Geq      -> (False, "$greatereq")
+  Leq      -> (False, "$lesseq")
+  Add      -> (False, "$sum")
+  Subtract -> (False, "$difference")
+  Multiply -> (False, "$product")
+  Divide   -> (False, "$quotient_e")
 
 prettyUnaryOp :: UnaryOp -> (Bool, String)
-prettyUnaryOp op =
-  case op of
-    Negate   -> (True, "~")
-    Positive -> (False, "$uplus")
-    Negative -> (False, "$uminus")
+prettyUnaryOp op = case op of
+  Negate   -> (True, "~")
+  Positive -> (False, "$uplus")
+  Negative -> (False, "$uminus")
 
 prettyType :: Type -> String
-prettyType s =
-  case s of
-    Boolean -> "$o"
-    Integer -> "$int"
-    Array i t -> foldr (funapp2 "$array") (prettyType t) (fmap prettyType i)
-    TupleType ts -> tuple (fmap prettyType ts)
+prettyType s = case s of
+  Boolean -> "$o"
+  Integer -> "$int"
+  Array i t -> foldr (funapp2 "$array") (prettyType t) (fmap prettyType i)
+  TupleType ts -> tuple (fmap prettyType ts)
 
 prettyVar :: Var -> String
 prettyVar (Var []) = error "empty variable name"
@@ -87,11 +84,16 @@ prettyVariable = prettyTyped . fmap prettyVar
 
 prettyDefinition :: Definition -> String
 prettyDefinition (ConstantSymbol c) = prettyIdentifier c
-prettyDefinition (Function c vs) = funapp (prettyIdentifier c) (fmap prettyVariable vs)
+prettyDefinition (Function c vs) = funapp (prettyIdentifier c)
+                                          (fmap prettyVariable vs)
 prettyDefinition (TupleD es) = tuple (fmap prettyIdentifier es)
 
 offsetBinding :: Int -> Binding -> String
-offsetBinding o (Binding d t) = unwords [d', ":=", offsetTerm (o + length d' + 4) t]
+offsetBinding o (Binding d t) =
+  unwords [ d'
+          , ":="
+          , offsetTerm (o + length d' + 4) t
+          ]
   where d' = prettyDefinition d
 
 prettyQuantifier :: Quantifier -> String
@@ -123,9 +125,10 @@ offsetTerm o t = case t of
   Constant f -> prettyIdentifier f
   Application f args -> funapp (prettyIdentifier f) (fmap prettyTerm args)
 
-  Unary op a | isPrefix  -> prettyOp ++ offsetTerm (o + length prettyOp) a
-             | otherwise -> funapp1 prettyOp (offsetTerm (o + length prettyOp + 1) a)
+  Unary op a | isPrefix  -> prettyOp ++ offsetTerm o' a
+             | otherwise -> funapp1 prettyOp (offsetTerm (o' + 1) a)
     where (isPrefix, prettyOp) = prettyUnaryOp op
+          o' = o + length prettyOp
 
   Binary op a b | isInfix  -> let o' = o + 3
                                   a' = offsetTerm o a
@@ -145,11 +148,13 @@ offsetTerm o t = case t of
 
   Equals s a b -> parens $ infx (prettyTerm a) (prettyEq s) (prettyTerm b)
 
-  Let b t -> funapp2 "$let" (offsetBinding (o + 5) b) (indentedTerm io t)
-    where io = if isLet t then (o, o) else (o + 5, o + 5)
+  Let b t -> funapp2 "$let" (offsetBinding o' b) (indentedTerm io t)
+    where io = if isLet t then (o, o) else (o', o')
+          o' = o + 5
 
   If c a b -> funapp3 "$ite" (prettyTerm c) (indentedTerm io a) (indentedTerm io b)
-    where io = (o + 5, o + 5)
+    where io = (o', o')
+          o' = o + 5
 
   Select a i   -> funapp2 "$select" (prettyTerm a) (prettyTerm i)
   Store  a i e -> funapp3 "$store"  (prettyTerm a) (prettyTerm i) (prettyTerm e)
