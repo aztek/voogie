@@ -8,17 +8,19 @@ import qualified Voogie.FOOL.AST as F
 data LVal = Ref String [NonEmpty Expr]
   deriving (Show, Eq)
 
-data Expr = IntConst Integer
-          | BoolConst Bool
-          | Unary   UnaryOp  Expr
-          | Binary  BinaryOp Expr Expr
-          | Ternary          Expr Expr Expr
-          | Equals Sign Expr Expr
-          | LVal LVal
+data Expr
+  = IntConst Integer
+  | BoolConst Bool
+  | Unary   UnaryOp  Expr
+  | Binary  BinaryOp Expr Expr
+  | Ternary          Expr Expr Expr
+  | Equals Sign Expr Expr
+  | LVal LVal
   deriving (Show, Eq)
 
-data Stmt = If Expr [Stmt] [Stmt]
-          | Assign (NonEmpty (LVal, Expr))
+data Stmt
+  = If Expr [Stmt] [Stmt]
+  | Assign (NonEmpty (LVal, Expr))
   deriving (Show, Eq)
 
 data Decl = Declare (Typed (NonEmpty String))
@@ -33,7 +35,8 @@ data Assume = Assume F.Formula
 data Returns = Returns (NonEmpty (Typed String))
   deriving (Show, Eq)
 
-data Main = Main [F.Formula] (Maybe Returns) [Decl] [Either Stmt Assume] [F.Formula]
+data Main = Main [F.Formula] (Maybe Returns)
+                 [Decl] [Either Stmt Assume] [F.Formula]
   deriving (Show, Eq)
 
 data AST = AST [Decl] Main

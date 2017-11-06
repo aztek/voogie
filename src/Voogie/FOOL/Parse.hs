@@ -35,10 +35,11 @@ arg =  parens term
    <|> IntConst <$> integer
    <|> Ref <$> identifier <*> many (brackets $ commaSep1 term)
 
-quantified = do q <- quantifier
-                vars <- commaSep1 (typed $ commaSep1 identifier)
-                reserved "::"
-                Quantified q vars <$> term
+quantified = do
+  q <- quantifier
+  vars <- commaSep1 (typed $ commaSep1 identifier)
+  reserved "::"
+  Quantified q vars <$> term
 
 quantifier =  constant "forall" Forall
           <|> constant "exists" Exists

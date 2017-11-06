@@ -10,9 +10,10 @@ newtype Var = Var Name
 
 type Identifier = Typed Name
 
-data Definition = ConstantSymbol Identifier
-                | Function Identifier (NonEmpty (Typed Var))
-                | TupleD (Tuple Identifier)
+data Definition
+  = ConstantSymbol Identifier
+  | Function Identifier (NonEmpty (Typed Var))
+  | TupleD (Tuple Identifier)
   deriving (Show, Eq)
 
 data Binding = Binding Definition Term
@@ -20,22 +21,23 @@ data Binding = Binding Definition Term
 
 type VarList = NonEmpty (Typed Var)
 
-data Term = IntegerConstant Integer
-          | BooleanConstant Bool
-          | Variable (Typed Var)
-          | Constant Identifier
-          | Application Identifier (NonEmpty Term)
-          | Binary BinaryOp Term Term
-          | Unary UnaryOp Term
-          | Quantify Quantifier VarList Term
-          | Equals Sign Term Term
-          | Let Binding Term
-          | If Term Term Term
-          -- Arrays
-          | Select Term Term
-          | Store Term Term Term
-          -- Tuples
-          | TupleLiteral (Tuple Term)
+data Term
+  = IntegerConstant Integer
+  | BooleanConstant Bool
+  | Variable (Typed Var)
+  | Constant Identifier
+  | Application Identifier (NonEmpty Term)
+  | Binary BinaryOp Term Term
+  | Unary UnaryOp Term
+  | Quantify Quantifier VarList Term
+  | Equals Sign Term Term
+  | Let Binding Term
+  | If Term Term Term
+  -- Arrays
+  | Select Term Term
+  | Store Term Term Term
+  -- Tuples
+  | TupleLiteral (Tuple Term)
   deriving (Show, Eq)
 
 type Formula = Term
@@ -69,4 +71,3 @@ instance Monoid Conjunction where
       -- This case is only needed to satisfy the associativity law of Monoid
       binaryAnd (Binary And f g) h = Binary And f (Binary And g h)
       binaryAnd f g = Binary And f g
-

@@ -9,7 +9,7 @@ type Var = Typed Name
 type Function = Typed Name
 
 data LValue = LValue Var [NonEmpty Expression]
-  deriving (Show)
+  deriving (Show, Eq)
 
 lvariable :: LValue -> Var
 lvariable (LValue var _) = var
@@ -17,15 +17,16 @@ lvariable (LValue var _) = var
 instance TypeOf LValue where
   typeOf (LValue v is) = foldl (const . arrayElement) (typeOf v) is
 
-data Expression = IntegerLiteral Integer
-                | BooleanLiteral Bool
-                | Ref LValue
-                | Unary  UnaryOp    Expression
-                | Binary BinaryOp   Expression Expression
-                | IfElse Expression Expression Expression
-                | FunApp Function [Expression]
-                | Equals Sign Expression Expression
-  deriving (Show)
+data Expression
+  = IntegerLiteral Integer
+  | BooleanLiteral Bool
+  | Ref LValue
+  | Unary  UnaryOp    Expression
+  | Binary BinaryOp   Expression Expression
+  | IfElse Expression Expression Expression
+  | FunApp Function [Expression]
+  | Equals Sign Expression Expression
+  deriving (Show, Eq)
 
 instance TypeOf Expression where
   typeOf (IntegerLiteral _) = Integer
@@ -39,17 +40,18 @@ instance TypeOf Expression where
 
 type Assignment = (LValue, Expression)
 
-data Statement = Assign (NonEmpty Assignment)
-               | If Expression Bool (NonEmpty Statement) [Statement]
-  deriving (Show)
+data Statement
+  = Assign (NonEmpty Assignment)
+  | If Expression Bool (NonEmpty Statement) [Statement]
+  deriving (Show, Eq)
 
 data Assume = Assume F.Formula
-  deriving (Show)
+  deriving (Show, Eq)
 
 type TopLevel = Either Statement Assume
 
 data Main = Main [F.Formula] [TopLevel] [F.Formula]
-  deriving (Show)
+  deriving (Show, Eq)
 
 data Boogie = Boogie [Var] Main
-  deriving (Show)
+  deriving (Show, Eq)
