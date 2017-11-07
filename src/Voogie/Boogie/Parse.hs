@@ -1,8 +1,6 @@
-module Voogie.Boogie.Parse (
-  parseAST
-) where
+module Voogie.Boogie.Parse (parseAST) where
 
-import Control.Monad (guard)
+import Control.Monad (guard, void)
 import Data.Maybe
 import qualified Data.List.NonEmpty as NE
 
@@ -18,22 +16,23 @@ import qualified Voogie.FOOL.Parse as F
 expr :: Parser Expr
 expr = buildExpressionParser operators term
 
-operators = [ [prefix "-"   (Unary  Negative)          ,
-               prefix "+"   (Unary  Positive)          ]
-            , [binary "*"   (Binary Multiply) AssocLeft,
-               binary "div" (Binary Divide)   AssocLeft]
-            , [binary "+"   (Binary Add     ) AssocLeft,
-               binary "-"   (Binary Subtract) AssocLeft]
-            , [binary ">"   (Binary Greater ) AssocNone,
-               binary "<"   (Binary Less    ) AssocNone,
-               binary ">="  (Binary Geq     ) AssocNone,
-               binary "<="  (Binary Leq     ) AssocNone]
-            , [binary "=="  (Equals Pos     ) AssocLeft,
-               binary "!="  (Equals Neg     ) AssocLeft]
-            , [prefix "!"   (Unary  Negate  )          ]
-            , [binary "&&"  (Binary And     ) AssocLeft,
-               binary "||"  (Binary Or      ) AssocLeft]
-            ]
+operators =
+  [ [ prefix "-"   (Unary Negative)
+    , prefix "+"   (Unary Positive) ]
+  , [ prefix "!"   (Unary Negate) ]
+  , [ binary "*"   (Binary Multiply) AssocLeft
+    , binary "div" (Binary Divide)   AssocLeft ]
+  , [ binary "+"   (Binary Add)      AssocLeft
+    , binary "-"   (Binary Subtract) AssocLeft ]
+  , [ binary ">"   (Binary Greater)  AssocNone
+    , binary "<"   (Binary Less)     AssocNone
+    , binary ">="  (Binary Geq)      AssocNone
+    , binary "<="  (Binary Leq)      AssocNone ]
+  , [ binary "=="  (Equals Pos)      AssocLeft
+    , binary "!="  (Equals Neg)      AssocLeft ]
+  , [ binary "&&"  (Binary And)      AssocLeft
+    , binary "||"  (Binary Or)       AssocLeft ]
+  ]
 
 term =  parens expr
     <|> constant "true"  (BoolConst True)
@@ -61,7 +60,7 @@ assignStmt = atomicStmt $ do
 ifStmt = reserved "if" >> If <$> parens expr <*> stmts <*> elseStmts
 elseStmts = fromMaybe [] <$> optionMaybe (reserved "else" >> stmts)
 
-atomicStmt p = do { s <- p; _ <- semi; return s }
+atomicStmt p = do { s <- p; void semi; return s }
 
 keyword k p = atomicStmt (reserved k >> p)
 
@@ -72,7 +71,7 @@ main :: Parser Main
 main = do
   mapM_ reserved ["procedure", "main", "(", ")"]
   returns <- optionMaybe returns
-  _ <- optionMaybe modifies
+  void (optionMaybe modifies)
   pre  <- many (try precondition)
   post <- many (try postcondition)
   (ds, ss) <- braces $ do

@@ -1,14 +1,13 @@
 {-# LANGUAGE PatternGuards #-}
 
-module Voogie.Front (
-  analyze
-) where
+module Voogie.Front (analyze) where
 
 import Control.Monad (foldM, join)
 import Control.Monad.Extra (mapMaybeM)
 import Data.Maybe
 import Data.Foldable
 
+import qualified Data.List.NonEmpty as NE
 import Data.List.NonEmpty (NonEmpty)
 import qualified Voogie.NonEmpty as VNE
 
@@ -46,30 +45,35 @@ lookupVariable n (Env vs)
 insertVariable :: Typed Name -> Env -> Env
 insertVariable (Typed t n) (Env vs) = Env (Map.insert n t vs)
 
+extendEnv :: Typed Name -> Env -> Result Env
+extendEnv v@(Typed _ n) env
+  | Left _ <- lookupVariable n env = Right (insertVariable v env)
+  | otherwise = Left ("redefined variable " ++ n)
+
 variables :: Env -> [Typed Name]
 variables (Env vs) = fmap (\(n, t) -> Typed t n) (Map.toList vs)
 
 analyze :: AST.AST -> Result Boogie
-analyze (AST.AST globalDecls (AST.Main pre r mainDecls ss post)) =
-  do globalEnv <- foldrM analyzeDecl emptyEnv  globalDecls
-     mainEnv'  <- foldrM analyzeDecl globalEnv mainDecls
-     let mainEnv = case r of -- TODO: check for name clash
-                     Just (AST.Returns r) -> foldr insertVariable mainEnv' r
-                     Nothing -> mainEnv'
-     ss'   <- analyzeMain mainEnv ss
-     pre'  <- mapM (analyzeProperty globalEnv) pre
-     post' <- mapM (analyzeProperty mainEnv)   post
-     let main = B.main pre' ss' post'
-     let vars = variables mainEnv
-     return (B.boogie vars main)
+analyze (AST.AST globals main) = do
+  env <- foldrM analyzeDecl emptyEnv globals
+  (env', main') <- analyzeMain env main
+  return (B.boogie (variables env') main')
+
+analyzeMain :: Env -> AST.Main -> Result (Env, B.Main)
+analyzeMain env (AST.Main pre returns locals toplevel post) = do
+  env'  <- foldrM analyzeDecl env locals
+  env'' <- foldrM extendEnv env' returnVars
+  pre' <- mapM (analyzeProperty env) pre
+  toplevel' <- analyzeTopLevels env'' toplevel
+  post' <- mapM (analyzeProperty env'') post
+  return (env'', B.main pre' toplevel' post')
+  where
+    returnVars = case returns of
+      Just (AST.Returns r) -> NE.toList r
+      Nothing -> []
 
 analyzeDecl :: AST.Decl -> Env -> Result Env
-analyzeDecl (AST.Declare (Typed t ns)) env = foldrM tryInsertVariable env ns
-  where
-    tryInsertVariable :: Name -> Env -> Result Env
-    tryInsertVariable n env
-      | Left _ <- lookupVariable n env = Right (insertVariable (Typed t n) env)
-      | otherwise = Left ("redefined variable " ++ n)
+analyzeDecl (AST.Declare ns) env = foldrM extendEnv env (sequence ns)
 
 guardType :: (TypeOf b, Pretty b) => (a -> Result b) -> Type -> a -> Result b
 guardType analyze t a = do
@@ -94,8 +98,8 @@ infix 5 .:
 (.:) :: (a -> b) -> a -> b
 (.:) = ($)
 
-analyzeMain :: Env -> [Either AST.Stmt AST.Assume] -> Result [B.TopLevel]
-analyzeMain env = mapMaybeM analyzeTopLevel
+analyzeTopLevels :: Env -> [Either AST.Stmt AST.Assume] -> Result [B.TopLevel]
+analyzeTopLevels env = mapMaybeM analyzeTopLevel
   where
     analyzeTopLevel :: Either AST.Stmt AST.Assume -> Result (Maybe B.TopLevel)
     analyzeTopLevel (Left stmt) = fmap Left <$> analyzeStmt stmt

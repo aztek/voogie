@@ -29,14 +29,15 @@ data Expression
   deriving (Show, Eq)
 
 instance TypeOf Expression where
-  typeOf (IntegerLiteral _) = Integer
-  typeOf (BooleanLiteral _) = Boolean
-  typeOf (Ref lval) = typeOf lval
-  typeOf (Unary op _) = unaryOpRange op
-  typeOf (Binary op _ _) = binaryOpRange op
-  typeOf (IfElse _ a _) = typeOf a
-  typeOf (FunApp f _) = typeOf f
-  typeOf Equals{} = Boolean
+  typeOf e = case e of
+    IntegerLiteral _ -> Integer
+    BooleanLiteral _ -> Boolean
+    Ref lv -> typeOf lv
+    Unary op _ -> unaryOpRange op
+    Binary op _ _ -> binaryOpRange op
+    IfElse _ a _ -> typeOf a
+    FunApp f _ -> typeOf f
+    Equals{} -> Boolean
 
 type Assignment = (LValue, Expression)
 

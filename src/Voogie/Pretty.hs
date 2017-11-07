@@ -20,11 +20,15 @@ instance Pretty Name where
 instance Pretty Type where
   pretty Integer = "int"
   pretty Boolean = "bool"
-  pretty (Array i t) = brackets (VNE.intercalate ", " $ fmap pretty i) ++ " " ++ pretty t
-  pretty (TupleType ts) = parens (Tuple.intercalate ", " $ fmap pretty ts)
+  pretty (Array i t) = unwords [ brackets $ VNE.intercalate ", " (fmap pretty i)
+                               , pretty t ]
+  pretty (TupleType ts) = parens $ Tuple.intercalate ", " (fmap pretty ts)
 
 instance Pretty a => Pretty (Typed a) where
   pretty (Typed _ a) = pretty a
+
+prettyTyped :: Pretty a => Typed a -> String
+prettyTyped (Typed t a) = unwords [pretty t, pretty a]
 
 instance Pretty Quantifier where
   pretty Forall = "forall"

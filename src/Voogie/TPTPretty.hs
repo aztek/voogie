@@ -1,6 +1,4 @@
-module Voogie.TPTPretty (
-  prettyTPTP
-) where
+module Voogie.TPTPretty (prettyTPTP) where
 
 import Data.List.NonEmpty (NonEmpty)
 import qualified Voogie.NonEmpty as VNE
@@ -163,7 +161,7 @@ offsetTerm o t = case t of
 
 
 isLet :: Term -> Bool
-isLet (Let _ _) = True
+isLet Let{} = True
 isLet _ = False
 
 prettyTerm :: Term -> String

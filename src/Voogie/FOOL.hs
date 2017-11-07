@@ -1,4 +1,8 @@
-module Voogie.FOOL where
+module Voogie.FOOL (
+  Var(..), VarList, Identifier,
+  Definition(..), Binding(..), Term(..),
+  Formula, Conjunction(..)
+) where
 
 import Data.List.NonEmpty (NonEmpty)
 
@@ -43,20 +47,21 @@ data Term
 type Formula = Term
 
 instance TypeOf Term where
-  typeOf (IntegerConstant _) = Integer
-  typeOf (BooleanConstant _) = Boolean
-  typeOf (Variable v) = typeOf v
-  typeOf (Constant i) = typeOf i
-  typeOf (Application i _) = typeOf i
-  typeOf (Binary op _ _) = binaryOpRange op
-  typeOf (Unary  op _) = unaryOpRange op
-  typeOf Quantify{} = Boolean
-  typeOf Equals{} = Boolean
-  typeOf (Let _ t) = typeOf t
-  typeOf (If _ a _) = typeOf a
-  typeOf (Select array _) = arrayArgument (typeOf array)
-  typeOf (Store array _ _) = typeOf array
-  typeOf (TupleLiteral args) = TupleType (fmap typeOf args)
+  typeOf t = case t of
+    IntegerConstant _ -> Integer
+    BooleanConstant _ -> Boolean
+    Variable v -> typeOf v
+    Constant i -> typeOf i
+    Application i _ -> typeOf i
+    Binary op _ _ -> binaryOpRange op
+    Unary  op _ -> unaryOpRange op
+    Quantify{} -> Boolean
+    Equals{} -> Boolean
+    Let _ t -> typeOf t
+    If _ a _ -> typeOf a
+    Select a _ -> arrayArgument (typeOf a)
+    Store a _ _ -> typeOf a
+    TupleLiteral es -> TupleType (fmap typeOf es)
 
 newtype Conjunction = Conjunction { getConjunction :: Formula }
   deriving (Eq, Show)

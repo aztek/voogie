@@ -1,8 +1,6 @@
 {-# LANGUAGE FlexibleInstances #-}
 
-module Voogie.Boogie.Pretty (
-  pretty
-) where
+module Voogie.Boogie.Pretty (pretty) where
 
 import Data.List (intercalate)
 import qualified Data.List.NonEmpty as NE
@@ -18,18 +16,15 @@ instance Pretty LValue where
   pretty (LValue v is) = pretty v ++ concatMap (brackets . commaSep) is
 
 instance Pretty Expression where
-  pretty (IntegerLiteral i) = pretty i
-  pretty (BooleanLiteral b) = pretty b
-
-  pretty (Unary  op e)   = pretty e ++ pretty op
-  pretty (Binary op a b) = unwords [pretty a, pretty op, pretty b]
-  pretty (IfElse a b c)  = unwords [pretty a, "?", pretty b, ":", pretty c]
-
-  pretty (FunApp f args) = pretty f ++ parens (intercalate ", " $ map pretty args)
-
-  pretty (Equals s a b) = unwords [pretty a, pretty s, pretty b]
-
-  pretty (Ref lval) = pretty lval
+  pretty e = case e of
+    IntegerLiteral i -> pretty i
+    BooleanLiteral b -> pretty b
+    Unary  op e -> pretty e ++ pretty op
+    Binary op a b -> unwords [pretty a, pretty op, pretty b]
+    IfElse a b c -> unwords [pretty a, "?", pretty b, ":", pretty c]
+    FunApp f as -> pretty f ++ parens (intercalate ", " $ map pretty as)
+    Equals s a b -> unwords [pretty a, pretty s, pretty b]
+    Ref lv -> pretty lv
 
 indent :: Integer -> String
 indent n = replicate (fromIntegral n * 2) ' '
