@@ -2,9 +2,9 @@
 
 [![Build Status](https://travis-ci.org/aztek/voogie.svg?branch=master)](https://travis-ci.org/aztek/voogie)
 
-[Vampire](http://vprover.org) meets [Boogie](https://www.microsoft.com/en-us/research/project/boogie-an-intermediate-verification-language/)!
+[Vampire](https://vprover.github.io/) meets [Boogie](https://www.microsoft.com/en-us/research/project/boogie-an-intermediate-verification-language/)!
 
-Voogie reads simple Boogie programs and generates their verification conditions as formulas in the [FOOL logic](https://link.springer.com/chapter/10.1007/978-3-319-20615-8_5). These formulas are written in the [TPTP language](http://www.cs.miami.edu/~tptp/) and can be checked by automated first-order theorem provers. As of now, only Vampire supports all features of FOOL.
+Voogie reads simple Boogie programs and generates their verification conditions as formulas in the [FOOL logic](https://link.springer.com/chapter/10.1007/978-3-319-20615-8_5). These formulas are written in the [TPTP language](http://www.cs.miami.edu/~tptp/) and can be checked by automated first-order theorem provers. Currently, only the Vampire theorem prover fully supports FOOL.
 
 Voogie is not a full-blown program verifier. Its goal is to explore which extensions of first-order logic are adequate for naturally representing fragments of imperative programs.
 
@@ -19,7 +19,7 @@ The current version of Voogie supports the following features of Boogie.
 - `if` statements
 - A single procedure `main`, possibly annotated with pre-conditions using the keyword `requires` and post-conditions using the keyword `ensures`.
 
-Run `cabal install` to compile and install Voogie.
+Voogie is written in Haskell and must be built with [GHC and Cabal](https://www.haskell.org/platform/). Run `cabal install` to compile and install Voogie.
 
 ```
 $ cat examples/simple.bpl
@@ -81,3 +81,4 @@ $ voogie examples/simple.bpl | vampire -newcnf on -p off
 % ------------------------------
 % ------------------------------
 ```
+Voogie was developed by [Evgenii Kotelnikov](www.cse.chalmers.se/~evgenyk/).
