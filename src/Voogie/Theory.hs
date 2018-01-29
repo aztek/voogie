@@ -70,23 +70,21 @@ unaryOpDomain, unaryOpRange :: UnaryOp -> Type
 unaryOpDomain = fst . unaryOpTypes
 unaryOpRange  = snd . unaryOpTypes
 
+logicalConnectives :: [BinaryOp]
+logicalConnectives = [And, Or, Imply, Iff, Xor]
+
+arithmeticPredicates :: [BinaryOp]
+arithmeticPredicates = [Greater, Less, Geq, Leq]
+
+arithmeticFunctions :: [BinaryOp]
+arithmeticFunctions = [Add, Subtract, Multiply, Divide]
+
 binaryOpTypes :: BinaryOp -> ((Type, Type), Type)
-binaryOpTypes op = case op of
-  And      -> logical predicate
-  Or       -> logical predicate
-  Imply    -> logical predicate
-  Iff      -> logical predicate
-  Xor      -> logical predicate
-
-  Greater  -> arithmetic predicate
-  Less     -> arithmetic predicate
-  Geq      -> arithmetic predicate
-  Leq      -> arithmetic predicate
-
-  Add      -> arithmetic function
-  Subtract -> arithmetic function
-  Multiply -> arithmetic function
-  Divide   -> arithmetic function
+binaryOpTypes op
+  | op `elem` logicalConnectives   = logical predicate
+  | op `elem` arithmeticPredicates = arithmetic predicate
+  | op `elem` arithmeticFunctions  = arithmetic function
+  | otherwise = error "binaryOpTypes: unknown binary operator"
   where
     logical = (,) (Boolean, Boolean)
     arithmetic = (,) (Integer, Integer)

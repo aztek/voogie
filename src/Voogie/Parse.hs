@@ -49,9 +49,12 @@ commaSep1 p = NE.fromList <$> Token.commaSep1 lexer p
 constant name fun = reserved name >> return fun
 
 operator fix name fun = fix (reservedOp name >> return fun)
-binary  = operator Infix
+infix'  = operator Infix
 prefix  = operator Prefix
 postfix = operator Postfix
+
+assocLeft = map ($ AssocLeft)
+assocNone = map ($ AssocNone)
 
 typ :: Parser Type
 typ = atomicType <|> arrayType

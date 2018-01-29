@@ -16,22 +16,18 @@ import qualified Voogie.FOOL.Parse as F
 expr :: Parser Expr
 expr = buildExpressionParser operators term
 
-operators =
-  [ [ prefix "-"   (Unary Negative)
-    , prefix "+"   (Unary Positive) ]
-  , [ prefix "!"   (Unary Negate) ]
-  , [ binary "*"   (Binary Multiply) AssocLeft
-    , binary "div" (Binary Divide)   AssocLeft ]
-  , [ binary "+"   (Binary Add)      AssocLeft
-    , binary "-"   (Binary Subtract) AssocLeft ]
-  , [ binary ">"   (Binary Greater)  AssocNone
-    , binary "<"   (Binary Less)     AssocNone
-    , binary ">="  (Binary Geq)      AssocNone
-    , binary "<="  (Binary Leq)      AssocNone ]
-  , [ binary "=="  (Equals Pos)      AssocLeft
-    , binary "!="  (Equals Neg)      AssocLeft ]
-  , [ binary "&&"  (Binary And)      AssocLeft
-    , binary "||"  (Binary Or)       AssocLeft ]
+unary  = fmap (\(n, op) -> prefix n (Unary op))
+binary = fmap (\(n, op) -> infix' n (Binary op))
+equals = fmap (\(n, op) -> infix' n (Equals op))
+
+operators = [
+  unary [("-", Negative), ("+", Positive)],
+  assocLeft $ binary [("*", Multiply), ("div", Divide)],
+  assocLeft $ binary [("+", Add), ("-", Subtract)],
+  assocNone $ binary [(">", Greater), ("<", Less), (">=", Geq), ("<=", Leq)],
+  assocLeft $ equals [("==", Pos), ("!=", Neg)],
+  unary [("!", Negate)],
+  assocLeft $ binary [("&&", And), ("||", Or)]
   ]
 
 term =  parens expr
