@@ -47,6 +47,9 @@ returnType t = error (show t ++ " is not a function")
 data Typed a = Typed Type a
   deriving (Show, Eq, Ord, Functor, Foldable, Traversable)
 
+valueOf :: Typed a -> a
+valueOf (Typed _ a) = a
+
 class TypeOf a where
   typeOf :: a -> Type
 

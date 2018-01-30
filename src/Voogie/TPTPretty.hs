@@ -77,7 +77,7 @@ prettyIdentifier :: Identifier -> String
 prettyIdentifier (Typed _ []) = error "empty identifier"
 prettyIdentifier (Typed _ (c:cs)) = toLower c : cs
 
-prettyTyped :: Typed String -> String
+prettyTyped :: Identifier -> String
 prettyTyped (Typed t s) = s ++ ":" ++ prettyType t
 
 prettyVariable :: Typed Var -> String
@@ -89,13 +89,17 @@ prettyDefinition (Function c vs) = funapp (prettyIdentifier c)
                                           (fmap prettyVariable vs)
 prettyDefinition (TupleD es) = tuple (fmap prettyIdentifier es)
 
-offsetBinding :: Int -> Binding -> String
-offsetBinding o (Binding d t) =
-  unwords [ d'
-          , ":="
-          , offsetTerm (o + length d' + 4) t
-          ]
-  where d' = prettyDefinition d
+prettyTypedDefinition :: Definition -> String
+prettyTypedDefinition (ConstantSymbol c) = prettyTyped c
+prettyTypedDefinition (Function c _) = prettyTyped c
+prettyTypedDefinition (TupleD es) = tuple (prettyTyped <$> es)
+
+indentedBinding :: (Int, Int) -> Binding -> String
+indentedBinding (i, o) (Binding d t) =
+  newline $ indent i ++ unwords [d', ":=", offsetTerm o' t]
+  where
+    d' = prettyDefinition d
+    o' = o + length d' + 4
 
 prettyQuantifier :: Quantifier -> String
 prettyQuantifier Forall = "!"
@@ -149,9 +153,13 @@ offsetTerm o t = case t of
 
   Equals s a b -> parens $ infx (prettyTerm a) (prettyEq s) (prettyTerm b)
 
-  Let b t -> funapp2 "$let" (offsetBinding o' b) (indentedTerm io t)
-    where io = if isLet t then (o, o) else (o', o')
+  Let b@(Binding d _) t -> funapp3 "$let" d'
+                                          (indentedBinding (i', o') b)
+                                          (indentedTerm io t)
+    where d' = prettyTypedDefinition d
+          i' = o + 5
           o' = o + 5
+          io = if isLet t then (o, o) else (o', o')
 
   If c a b -> funapp3 "$ite" (prettyTerm c) (indentedTerm io a) (indentedTerm io b)
     where io = (o', o')
@@ -170,8 +178,8 @@ isLet _ = False
 prettyTerm :: Term -> String
 prettyTerm = offsetTerm 0
 
-thf :: String -> String -> String -> String
-thf n it s = funapp3 "thf" n it s ++ ".\n"
+tfx :: String -> String -> String -> String
+tfx n it s = funapp3 "tfx" n it s ++ ".\n"
 
 prettyTypeDeclaration :: Name -> String
 prettyTypeDeclaration n = thf n "type" (n ++ " : $tType")
@@ -181,11 +189,11 @@ prettySymbolDeclaration n@(Typed _ s) = thf s "type"
                                             (parens $ prettyTyped n)
 
 prettyAxiom :: (Integer, Formula) -> String
-prettyAxiom (nr, f) = thf ("voogie_precondition_" ++ show nr) "axiom"
+prettyAxiom (nr, f) = tfx ("voogie_precondition_" ++ show nr) "axiom"
                           (indentedTerm (4, 4) f)
 
 prettyConjecture :: Formula -> String
-prettyConjecture f = thf "voogie_conjecture" "conjecture"
+prettyConjecture f = tfx "voogie_conjecture" "conjecture"
                          (indentedTerm (4, 4) f)
 
 prettyTPTP :: TPTP -> String
