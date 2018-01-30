@@ -185,7 +185,7 @@ tff :: String -> String -> String -> String
 tff n it s = funapp3 "tff" n it s ++ ".\n"
 
 prettyTypeDeclaration :: Name -> String
-prettyTypeDeclaration n = thf n "type" (n ++ " : $tType")
+prettyTypeDeclaration n = tfx n "type" (n ++ " : $tType")
 
 prettySymbolDeclaration :: Typed Name -> String
 prettySymbolDeclaration n@(Typed _ s) = thf s "type"
