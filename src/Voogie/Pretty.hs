@@ -28,7 +28,7 @@ instance Pretty a => Pretty (Typed a) where
   pretty (Typed _ a) = pretty a
 
 prettyTyped :: Pretty a => Typed a -> String
-prettyTyped (Typed t a) = unwords [pretty t, pretty a]
+prettyTyped (Typed t a) = unwords [pretty a ++ ":", pretty t]
 
 instance Pretty Quantifier where
   pretty Forall = "forall"

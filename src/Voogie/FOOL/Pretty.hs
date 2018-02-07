@@ -18,7 +18,7 @@ instance Pretty Term where
       where args = VNE.intercalate ", " (fmap pretty as)
     Binary op a b -> unwords [pretty a, pretty op, pretty b]
     Unary op t -> pretty op ++ pretty t
-    Quantify q vs t -> unwords [pretty q, parens vars ++ pretty t]
+    Quantify q vs t -> parens $ unwords [pretty q, vars, "::", pretty t]
       where vars = VNE.intercalate ", " (fmap prettyTyped vs)
     Equals s a b -> unwords [pretty a, pretty s, pretty b]
     If c a b -> unwords [pretty c, "?", pretty a, ":", pretty b]
