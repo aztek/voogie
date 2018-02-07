@@ -39,9 +39,26 @@ application i ts
   | otherwise = constant i
 
 binary = Binary
+
+infixl 5 ==>
+(==>) :: Formula -> Formula -> Formula
+f ==> g = binary Imply f g
+
 unary = Unary
+
 quantify = Quantify
+forall = quantify Forall
+exists = quantify Exists
+
 equals = Equals
+
+infixl 6 ===
+(===) :: Term -> Term -> Term
+x === y = equals Pos x y
+
+infixl 6 =/=
+(=/=) :: Term -> Term -> Term
+x =/= y = equals Neg x y
 
 conjunction :: [Formula] -> Formula
 conjunction = getConjunction . mconcat . fmap Conjunction
