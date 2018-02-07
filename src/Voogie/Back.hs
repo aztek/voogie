@@ -24,7 +24,7 @@ updates = NE.nub . updates'
 
 translate :: TranslationOptions -> B.Boogie -> TPTP
 translate _opts (B.Boogie decls (B.Main _ pre stmts post)) =
-  TPTP decls pre (foldr nextState conjecture stmts)
+  TPTP [] decls pre (foldr nextState conjecture stmts)
   where
     conjecture = F.conjunction post
     nextState = either translateStmt translateAssume

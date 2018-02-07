@@ -65,6 +65,7 @@ prettyType s = case s of
   Integer -> "$int"
   Array i t -> foldr (funapp2 "$array") (prettyType t) (fmap prettyType i)
   TupleType ts -> tuple (fmap prettyType ts)
+  Custom n -> n
 
 prettyVar :: Var -> String
 prettyVar (Var []) = error "empty variable name"
@@ -170,9 +171,12 @@ prettyTerm = offsetTerm 0
 thf :: String -> String -> String -> String
 thf n it s = funapp3 "thf" n it s ++ ".\n"
 
-prettyDeclaration :: Typed Name -> String
-prettyDeclaration n@(Typed _ s) = thf s "type"
-                                      (parens $ prettyTyped n)
+prettyTypeDeclaration :: Name -> String
+prettyTypeDeclaration n = thf n "type" (n ++ " : $oType")
+
+prettySymbolDeclaration :: Typed Name -> String
+prettySymbolDeclaration n@(Typed _ s) = thf s "type"
+                                            (parens $ prettyTyped n)
 
 prettyAxiom :: (Integer, Formula) -> String
 prettyAxiom (nr, f) = thf ("voogie_precondition_" ++ show nr) "axiom"
@@ -183,7 +187,8 @@ prettyConjecture f = thf "voogie_conjecture" "conjecture"
                          (indentedTerm (4, 4) f)
 
 prettyTPTP :: TPTP -> String
-prettyTPTP (TPTP signature axioms conjecture) =
-  concatMap prettyDeclaration signature ++
+prettyTPTP (TPTP types symbols axioms conjecture) =
+  concatMap prettyTypeDeclaration types ++
+  concatMap prettySymbolDeclaration symbols ++
   concatMap prettyAxiom (zip [1..] axioms) ++
   prettyConjecture conjecture

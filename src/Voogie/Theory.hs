@@ -8,11 +8,14 @@ import Data.List.NonEmpty (NonEmpty((:|)))
 import qualified Voogie.FOOL.Tuple as Tuple
 import Voogie.FOOL.Tuple (Tuple)
 
+type Name = String
+
 data Type
   = Boolean
   | Integer
   | Array (NonEmpty Type) Type
   | TupleType (Tuple Type)
+  | Custom Name
   deriving (Show, Eq, Ord)
 
 arrayElement :: Type -> Type
@@ -31,8 +34,6 @@ arrayIndexes _ = []
 
 tupleType :: NonEmpty Type -> Type
 tupleType = either id TupleType . Tuple.nonUnit
-
-type Name = String
 
 data Typed a = Typed Type a
   deriving (Show, Eq, Ord, Functor, Foldable, Traversable)
