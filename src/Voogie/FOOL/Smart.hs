@@ -35,7 +35,7 @@ variable = Variable
 
 application :: Identifier -> [Term] -> Term
 application i ts
-  | Just ts' <- NE.nonEmpty ts = Application (name <$> i) ts'
+  | Just ts' <- NE.nonEmpty ts = typeSafeApplication (name <$> i) ts'
   | otherwise = constant i
 
 binary = Binary
