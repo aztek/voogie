@@ -12,9 +12,9 @@ import Voogie.Boogie.Pretty()
 
 import Voogie.TPTP
 
-data TranslationOptions =
-  TranslationOptions { useArrayTheory :: Bool
-                     }
+data TranslationOptions = TranslationOptions
+  { useArrayTheory :: Bool
+  }
 
 updates :: B.Statement -> NonEmpty B.Var
 updates = NE.nub . updates'
@@ -23,7 +23,7 @@ updates = NE.nub . updates'
     updates' (B.Assign ass) = fmap (B.lvariable . fst) ass
 
 translate :: TranslationOptions -> B.Boogie -> TPTP
-translate _opts (B.Boogie decls (B.Main pre stmts post)) =
+translate _opts (B.Boogie decls (B.Main _ pre stmts post)) =
   TPTP decls pre (foldr nextState conjecture stmts)
   where
     conjecture = F.conjunction post

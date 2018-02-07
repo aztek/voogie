@@ -51,7 +51,12 @@ data Assume = Assume F.Formula
 
 type TopLevel = Either Statement Assume
 
-data Main = Main [F.Formula] [TopLevel] [F.Formula]
+data Main = Main
+  { modifies :: [Name]
+  , requires :: [F.Formula]
+  , contents :: [TopLevel]
+  , ensures  :: [F.Formula]
+  }
   deriving (Show, Eq)
 
 data Boogie = Boogie [Var] Main

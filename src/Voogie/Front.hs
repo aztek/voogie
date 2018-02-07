@@ -60,13 +60,13 @@ analyze (AST.AST globals main) = do
   return (B.boogie (variables env') main')
 
 analyzeMain :: Env -> AST.Main -> Result (Env, B.Main)
-analyzeMain env (AST.Main pre returns locals toplevel post) = do
+analyzeMain env (AST.Main modifies pre returns locals toplevel post) = do
   env'  <- foldrM analyzeDecl env locals
   env'' <- foldrM extendEnv env' returnVars
   pre' <- mapM (analyzeProperty env) pre
   toplevel' <- analyzeTopLevels env'' toplevel
   post' <- mapM (analyzeProperty env'') post
-  return (env'', B.main pre' toplevel' post')
+  return (env'', B.main modifies pre' toplevel' post')
   where
     returnVars = case returns of
       Just (AST.Returns r) -> NE.toList r

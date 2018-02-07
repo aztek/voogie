@@ -67,14 +67,14 @@ main :: Parser Main
 main = do
   mapM_ reserved ["procedure", "main", "(", ")"]
   returns <- optionMaybe returns
-  void (optionMaybe modifies)
+  ms <- optionMaybe modifies
   pre  <- many (try precondition)
   post <- many (try postcondition)
   (ds, ss) <- braces $ do
     ds <- many (try decl)
     ss <- many topLevel
     return (ds, ss)
-  return (Main pre returns ds ss post)
+  return (Main (maybe [] NE.toList ms) pre returns ds ss post)
 
 returns = reserved "returns" >> parens (Returns <$> commaSep1 (typed identifier))
 modifies = keyword "modifies" (commaSep1 identifier)

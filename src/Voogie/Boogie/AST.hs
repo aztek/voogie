@@ -35,7 +35,7 @@ data Assume = Assume F.Formula
 data Returns = Returns (NonEmpty (Typed String))
   deriving (Show, Eq)
 
-data Main = Main [F.Formula] (Maybe Returns)
+data Main = Main [String] [F.Formula] (Maybe Returns)
                  [Decl] [Either Stmt Assume] [F.Formula]
   deriving (Show, Eq)
 

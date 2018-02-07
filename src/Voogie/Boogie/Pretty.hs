@@ -67,12 +67,14 @@ instance Pretty [TopLevel] where
   indented n = concatMap (indented n)
 
 instance Pretty Main where
-  pretty (Main pre stmts post) =
+  pretty (Main modifies requires contents ensures) =
        "procedure main()\n"
-    ++ concatMap prettyPre pre
-    ++ concatMap prettyPost post
-    ++ braces 0 stmts
+    ++ if null modifies then "" else prettyModifies
+    ++ concatMap prettyPre requires
+    ++ concatMap prettyPost ensures
+    ++ braces 0 contents
     where
+      prettyModifies = atomic 1 ["modifies", intercalate ", " $ map pretty modifies]
       prettyPre f = atomic 1 ["requires", pretty f]
       prettyPost f = atomic 1 ["ensures", pretty f]
 
