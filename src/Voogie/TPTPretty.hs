@@ -65,8 +65,11 @@ prettyType s = case s of
   Integer -> "$int"
   Array i t -> foldr (funapp2 "$array") (prettyType t) (fmap prettyType i)
   TupleType ts -> tuple (fmap prettyType ts)
+<<<<<<< HEAD
   Functional ts t -> unwords [parens ts', ">", prettyType t]
     where ts' = VNE.intercalate "*" (fmap prettyType ts)
+=======
+>>>>>>> Represent type declarations in TPTP
   Custom n -> n
 
 prettyVar :: Var -> String
@@ -178,8 +181,8 @@ isLet _ = False
 prettyTerm :: Term -> String
 prettyTerm = offsetTerm 0
 
-tfx :: String -> String -> String -> String
-tfx n it s = funapp3 "tfx" n it s ++ ".\n"
+tff :: String -> String -> String -> String
+tff n it s = funapp3 "tff" n it s ++ ".\n"
 
 prettyTypeDeclaration :: Name -> String
 prettyTypeDeclaration n = thf n "type" (n ++ " : $tType")
@@ -189,11 +192,11 @@ prettySymbolDeclaration n@(Typed _ s) = thf s "type"
                                             (parens $ prettyTyped n)
 
 prettyAxiom :: (Integer, Formula) -> String
-prettyAxiom (nr, f) = tfx ("voogie_precondition_" ++ show nr) "axiom"
+prettyAxiom (nr, f) = tff ("voogie_precondition_" ++ show nr) "axiom"
                           (indentedTerm (4, 4) f)
 
 prettyConjecture :: Formula -> String
-prettyConjecture f = tfx "voogie_conjecture" "conjecture"
+prettyConjecture f = tff "voogie_conjecture" "conjecture"
                          (indentedTerm (4, 4) f)
 
 prettyTPTP :: TPTP -> String
