@@ -23,6 +23,8 @@ instance Pretty Type where
   pretty (Array i t) = unwords [ brackets $ VNE.intercalate ", " (fmap pretty i)
                                , pretty t ]
   pretty (TupleType ts) = parens $ Tuple.intercalate ", " (fmap pretty ts)
+  pretty (Functional ts t) = unwords [ts', "->", pretty t]
+    where ts' = VNE.intercalate " * " (fmap pretty ts)
   pretty (Custom n) = n
 
 instance Pretty a => Pretty (Typed a) where

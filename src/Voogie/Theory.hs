@@ -15,6 +15,7 @@ data Type
   | Integer
   | Array (NonEmpty Type) Type
   | TupleType (Tuple Type)
+  | Functional (NonEmpty Type) Type
   | Custom Name
   deriving (Show, Eq, Ord)
 
