@@ -20,3 +20,6 @@ two a b = a :| [b]
 
 three :: a -> a -> a -> NonEmpty a
 three a b c = a :| [b, c]
+
+four :: a -> a -> a -> a -> NonEmpty a
+four a b c d = a :| [b, c, d]
