@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveFunctor, DeriveFoldable #-}
+{-# LANGUAGE DeriveFunctor, DeriveFoldable, DeriveTraversable #-}
 
 module Voogie.FOOL.Tuple where
 
@@ -7,7 +7,7 @@ import qualified Data.List.NonEmpty as NE
 import Data.List.NonEmpty (NonEmpty)
 
 data Tuple a = a :| NonEmpty a
-  deriving (Eq, Show, Ord, Functor, Foldable)
+  deriving (Eq, Show, Ord, Functor, Foldable, Traversable)
 
 toList :: Tuple a -> [a]
 toList (a :| ne) = a : NE.toList ne
