@@ -36,6 +36,10 @@ arrayIndexes _ = []
 tupleType :: NonEmpty Type -> Type
 tupleType = either id TupleType . Tuple.nonUnit
 
+returnType :: Type -> Type
+returnType (Functional _ r) = r
+returnType t = error (show t ++ " is not a function")
+
 data Typed a = Typed Type a
   deriving (Show, Eq, Ord, Functor, Foldable, Traversable)
 
