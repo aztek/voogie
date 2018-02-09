@@ -33,6 +33,10 @@ arrayIndexes :: Type -> [NonEmpty Type]
 arrayIndexes (Array i r) = i : arrayIndexes r
 arrayIndexes _ = []
 
+array :: [Type] -> Type -> Type
+array [] s = s
+array (t:ts) s = Array (t :| ts) s
+
 tupleType :: NonEmpty Type -> Type
 tupleType = either id TupleType . Tuple.nonUnit
 

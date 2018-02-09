@@ -1,7 +1,9 @@
 module Voogie.Back (translate, TranslationOptions(..)) where
 
+import qualified Data.List as L
+
 import qualified Data.List.NonEmpty as NE
-import Data.List.NonEmpty (NonEmpty)
+import Data.List.NonEmpty (NonEmpty((:|)))
 import Data.Semigroup (sconcat)
 
 import Voogie.Theory
@@ -9,6 +11,9 @@ import qualified Voogie.FOOL.Smart as F
 
 import qualified Voogie.Boogie as B
 import Voogie.Boogie.Pretty()
+
+import qualified Voogie.FOOL.ArrayTheory as AT
+import Voogie.FOOL.Rewrite
 
 import Voogie.TPTP
 
@@ -23,9 +28,11 @@ updates = NE.nub . updates'
     updates' (B.Assign ass) = fmap (B.lvariable . fst) ass
 
 translate :: TranslationOptions -> B.Boogie -> TPTP
-translate _opts (B.Boogie decls (B.Main _ pre stmts post)) =
-  TPTP [] decls pre (foldr nextState conjecture stmts)
+translate opts (B.Boogie decls (B.Main _ pre stmts post))
+  | not (useArrayTheory opts) = eliminateArrayTheory tptp
+  | otherwise = tptp
   where
+    tptp = TPTP [] decls pre (foldr nextState conjecture stmts)
     conjecture = F.conjunction post
     nextState = either translateStmt translateAssume
 
@@ -74,3 +81,34 @@ translate _opts (B.Boogie decls (B.Main _ pre stmts post)) =
       where
         n' = F.constant (F.name <$> n)
         is' = fmap translateExpr . sconcat <$> NE.nonEmpty is
+
+eliminateArrayTheory :: TPTP -> TPTP
+eliminateArrayTheory (TPTP types symbols axioms conjecture) =
+  appendTheory tptp' (mconcat theories)
+  where
+    theories = map AT.theory (L.nub instantiations)
+
+    Accumulate (tptp', instantiations) =
+      TPTP types <$> traverse (rewriteSymbol typeRewriter) symbols
+                 <*> traverse rewrite axioms
+                 <*> rewrite conjecture
+
+    rewrite = rewriteTerm termRewriter typeRewriter
+
+    termRewriter :: Rewriter [AT.Instantiation] F.Term
+    termRewriter (F.Select a i) = select <$> accumulateInstantiations (typeOf a)
+      where
+        select t = F.application . AT.selectSymbol <$> t <*> traverse rewrite [a, i]
+    termRewriter (F.Store a i v) = store <$> accumulateInstantiations (typeOf a)
+      where
+        store t = F.application . AT.storeSymbol <$> t <*> traverse rewrite [a, i, v]
+    termRewriter _ = Nothing
+
+    typeRewriter :: Rewriter [AT.Instantiation] Type
+    typeRewriter = fmap (fmap AT.arrayType) . accumulateInstantiations
+
+    accumulateInstantiations :: Type -> Maybe (Accumulate [AT.Instantiation] AT.Instantiation)
+    accumulateInstantiations (Array (t :| ts) s) = Just $ Accumulate (i, i:is)
+      where
+        Accumulate (i, is) = traverse (rewriteType typeRewriter) (t, array ts s)
+    accumulateInstantiations _ = Nothing
