@@ -1,7 +1,8 @@
 module Voogie.FOOL (
   Var(..), VarList, Identifier,
   Definition(..), Binding(..), Term(..),
-  Formula, Conjunction(..)
+  Formula, Conjunction(..),
+  Theory(..)
 ) where
 
 import Data.List.NonEmpty (NonEmpty)
@@ -76,3 +77,16 @@ instance Monoid Conjunction where
       -- This case is only needed to satisfy the associativity law of Monoid
       binaryAnd (Binary And f g) h = Binary And f (Binary And g h)
       binaryAnd f g = Binary And f g
+
+data Theory = Theory
+  { types :: [Name]
+  , symbols :: [Identifier]
+  , axioms :: [Formula]
+  }
+  deriving (Show, Eq)
+
+instance Monoid Theory where
+  mempty = Theory mempty mempty mempty
+  a `mappend` b = Theory (types a `mappend` types b)
+                         (symbols a `mappend` symbols b)
+                         (axioms a `mappend` axioms b)
