@@ -65,11 +65,7 @@ prettyType s = case s of
   Integer -> "$int"
   Array i t -> foldr (funapp2 "$array") (prettyType t) (fmap prettyType i)
   TupleType ts -> tuple (fmap prettyType ts)
-<<<<<<< HEAD
-  Functional ts t -> unwords [parens ts', ">", prettyType t]
-    where ts' = VNE.intercalate "*" (fmap prettyType ts)
-=======
->>>>>>> Represent type declarations in TPTP
+    where ts' = VNE.intercalate " * " (fmap prettyType ts)
   Custom n -> n
 
 prettyVar :: Var -> String
@@ -81,7 +77,7 @@ prettyIdentifier (Typed _ []) = error "empty identifier"
 prettyIdentifier (Typed _ (c:cs)) = toLower c : cs
 
 prettyTyped :: Identifier -> String
-prettyTyped (Typed t s) = s ++ ":" ++ prettyType t
+prettyTyped (Typed t s) = unwords [s, ":", prettyType t]
 
 prettyVariable :: Typed Var -> String
 prettyVariable = prettyTyped . fmap prettyVar
@@ -185,11 +181,10 @@ tff :: String -> String -> String -> String
 tff n it s = funapp3 "tff" n it s ++ ".\n"
 
 prettyTypeDeclaration :: Name -> String
-prettyTypeDeclaration n = tfx n "type" (n ++ " : $tType")
+prettyTypeDeclaration n = tff n "type" (n ++ " : $tType")
 
 prettySymbolDeclaration :: Typed Name -> String
-prettySymbolDeclaration n@(Typed _ s) = thf s "type"
-                                            (parens $ prettyTyped n)
+prettySymbolDeclaration n@(Typed _ s) = tff s "type"
 
 prettyAxiom :: (Integer, Formula) -> String
 prettyAxiom (nr, f) = tff ("voogie_precondition_" ++ show nr) "axiom"
