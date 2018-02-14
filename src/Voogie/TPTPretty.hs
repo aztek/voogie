@@ -184,7 +184,7 @@ prettyTypeDeclaration :: Name -> String
 prettyTypeDeclaration n = tff n "type" (n ++ " : $tType")
 
 prettySymbolDeclaration :: Typed Name -> String
-prettySymbolDeclaration n@(Typed _ s) = tff s "type"
+prettySymbolDeclaration n@(Typed _ s) = tff s "type" (prettyTyped n)
 
 prettyAxiom :: (Integer, Formula) -> String
 prettyAxiom (nr, f) = tff ("voogie_precondition_" ++ show nr) "axiom"
