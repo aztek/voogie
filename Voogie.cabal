@@ -1,63 +1,63 @@
-name:                Voogie
-version:             0.1.0.0
-synopsis:            A verification conditions generator for simple Boogie programs
-description:         Voogie reads simple Boogie programs and generates their
-                     verification conditions as formulas in the FOOL logic.
-                     These formulas are written in the TPTP language and can be
-                     checked by automated first-order theorem provers. As of now,
-                     only Vampire supports all features of FOOL.
-homepage:            https://github.com/aztek/voogie
-bug-reports:         https://github.com/aztek/voogie/issues
-license:             GPL-3
-license-file:        LICENSE
-author:              Evgenii Kotelnikov
-maintainer:          evgeny.kotelnikov@gmail.com
-category:            Language
-build-type:          Simple
-extra-source-files:  README.md
-cabal-version:       >= 1.10
-tested-with:         GHC >= 7.10
+name: Voogie
+version: 0.1.0.0
+synopsis: A verification conditions generator for simple Boogie programs
+description:
+  Voogie reads simple Boogie programs and generates their verification
+  conditions as formulas in the FOOL logic. These formulas are written in the
+  TPTP language and can be checked by automated first-order theorem provers.
+  Currently, only the Vampire theorem prover fully supports FOOL.
+homepage: https://github.com/aztek/voogie
+bug-reports: https://github.com/aztek/voogie/issues
+license: GPL-3
+license-file: LICENSE
+author: Evgenii Kotelnikov
+maintainer: evgeny.kotelnikov@gmail.com
+category: Language
+build-type: Simple
+extra-source-files: README.md
+cabal-version: >= 1.10
+tested-with: GHC >= 7.10
 
 source-repository head
   type: git
   location: git://github.com/aztek/voogie.git
 
 executable voogie
-  hs-source-dirs:      src
-  main-is:             Main.hs
-  other-modules:       Voogie.Back
-                       Voogie.Boogie
-                       Voogie.Boogie.AST
-                       Voogie.Boogie.Parse
-                       Voogie.Boogie.Pretty
-                       Voogie.Boogie.Smart
-                       Voogie.FOOL
-                       Voogie.FOOL.ArrayTheory
-                       Voogie.FOOL.AST
-                       Voogie.FOOL.Tuple
-                       Voogie.FOOL.TypeSafe
-                       Voogie.FOOL.Parse
-                       Voogie.FOOL.Pretty
-                       Voogie.FOOL.Rewrite
-                       Voogie.FOOL.Smart
-                       Voogie.Front
-                       Voogie.NonEmpty
-                       Voogie.Parse
-                       Voogie.Pretty
-                       Voogie.Theory
-                       Voogie.TPTP
-                       Voogie.TPTPretty
-  ghc-options:         -Wall -fno-warn-missing-signatures
-                       -Werror -threaded
+  hs-source-dirs: src
+  main-is: Main.hs
+  other-modules:
+    Voogie.Back
+    Voogie.Boogie
+    Voogie.Boogie.AST
+    Voogie.Boogie.Parse
+    Voogie.Boogie.Pretty
+    Voogie.Boogie.Smart
+    Voogie.FOOL
+    Voogie.FOOL.ArrayTheory
+    Voogie.FOOL.AST
+    Voogie.FOOL.Tuple
+    Voogie.FOOL.TypeSafe
+    Voogie.FOOL.Parse
+    Voogie.FOOL.Pretty
+    Voogie.FOOL.Rewrite
+    Voogie.FOOL.Smart
+    Voogie.Front
+    Voogie.NonEmpty
+    Voogie.Parse
+    Voogie.Pretty
+    Voogie.Theory
+    Voogie.TPTP
+    Voogie.TPTPretty
+  ghc-options: -Wall -fno-warn-missing-signatures -Werror -threaded
   if impl(ghc < 8)
-    ghc-options:       -fno-warn-name-shadowing -fno-warn-orphans
+    ghc-options: -fno-warn-name-shadowing -fno-warn-orphans
   if impl(ghc >= 8)
-    ghc-options:       -Wno-name-shadowing -Wno-orphans 
-  default-extensions:  DeriveFunctor, FlexibleInstances, Safe
+    ghc-options: -Wno-name-shadowing -Wno-orphans
+  default-extensions: DeriveFunctor, FlexibleInstances, Safe
   build-depends:
-    base       >= 4 && < 5,
+    base >= 4 && < 5,
     containers >= 0.5 && < 0.6,
-    extra      >= 1.4,
+    extra >= 1.4,
     semigroups >= 0.18,
-    parsec     >= 3.1 && < 3.2
-  default-language:    Haskell2010
+    parsec >= 3.1 && < 3.2
+  default-language: Haskell2010
