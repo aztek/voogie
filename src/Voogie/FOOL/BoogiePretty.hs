@@ -1,14 +1,14 @@
-module Voogie.FOOL.Pretty (pretty) where
+module Voogie.FOOL.BoogiePretty (pretty) where
 
 import qualified Voogie.NonEmpty as VNE
 
-import Voogie.Pretty
+import Voogie.BoogiePretty
 import Voogie.FOOL
 
-instance Pretty Var where
+instance BoogiePretty Var where
   pretty (Var v) = v
 
-instance Pretty Term where
+instance BoogiePretty Term where
   pretty t = case t of
     IntegerConstant i -> pretty i
     BooleanConstant b -> pretty b

@@ -1,21 +1,21 @@
 {-# LANGUAGE FlexibleInstances #-}
 
-module Voogie.Boogie.Pretty (pretty) where
+module Voogie.Boogie.BoogiePretty (pretty) where
 
 import Data.List (intercalate)
 import qualified Data.List.NonEmpty as NE
 import qualified Voogie.NonEmpty as VNE
 import Data.List.NonEmpty (NonEmpty)
 
-import Voogie.Pretty
+import Voogie.BoogiePretty
 import Voogie.Boogie
 
-import Voogie.FOOL.Pretty()
+import Voogie.FOOL.BoogiePretty()
 
-instance Pretty LValue where
+instance BoogiePretty LValue where
   pretty (LValue v is) = pretty v ++ concatMap (brackets . commaSep) is
 
-instance Pretty Expression where
+instance BoogiePretty Expression where
   pretty e = case e of
     IntegerLiteral i -> pretty i
     BooleanLiteral b -> pretty b
@@ -32,12 +32,12 @@ indent n = replicate (fromIntegral n * 2) ' '
 atomic :: Integer -> [String] -> String
 atomic n ss = indent n ++ unwords ss ++ ";\n"
 
-braces :: Pretty s => Integer -> s -> String
+braces :: BoogiePretty s => Integer -> s -> String
 braces n s | null s'   = "{}"
            | otherwise = "{\n" ++ s' ++ indent n ++ "}"
   where s' = indented (n + 1) s
 
-commaSep :: Pretty a => NonEmpty a -> String
+commaSep :: BoogiePretty a => NonEmpty a -> String
 commaSep = VNE.intercalate ", " . fmap pretty
 
 indentedIte :: Integer -> Expression -> [Statement] -> [Statement] -> String
@@ -46,27 +46,27 @@ indentedIte n c a b = indent n ++ unwords (thenBranch ++ elseBranch) ++ "\n"
     thenBranch = ["if", parens (pretty c), braces n a]
     elseBranch = if null b then [] else ["else", braces n b]
 
-instance Pretty Statement where
+instance BoogiePretty Statement where
   indented n s = case s of
     Assign pairs -> atomic n [commaSep lvs, ":=", commaSep es]
       where (lvs, es) = NE.unzip pairs
     If c False a b -> indentedIte n c (NE.toList a) b
     If c True  a b -> indentedIte n c b (NE.toList a)
 
-instance Pretty Assume where
+instance BoogiePretty Assume where
   indented n (Assume f) = atomic n ["assume", pretty f]
 
-instance Pretty TopLevel where
+instance BoogiePretty TopLevel where
   indented n (Left stmt) = indented n stmt
   indented n (Right ass) = indented n ass
 
-instance Pretty [Statement] where
+instance BoogiePretty [Statement] where
   indented n = concatMap (indented n)
 
-instance Pretty [TopLevel] where
+instance BoogiePretty [TopLevel] where
   indented n = concatMap (indented n)
 
-instance Pretty Main where
+instance BoogiePretty Main where
   pretty (Main modifies requires contents ensures) =
        "procedure main()\n"
     ++ if null modifies then "" else prettyModifies
@@ -78,7 +78,7 @@ instance Pretty Main where
       prettyPre f = atomic 1 ["requires", pretty f]
       prettyPost f = atomic 1 ["ensures", pretty f]
 
-instance Pretty Boogie where
+instance BoogiePretty Boogie where
   pretty (Boogie vars main) = prettyVars ++ pretty main
     where
       prettyVars = concatMap prettyVarDecl vars

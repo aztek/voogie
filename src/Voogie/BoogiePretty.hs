@@ -1,23 +1,23 @@
 {-# LANGUAGE FlexibleInstances #-}
 
-module Voogie.Pretty where
+module Voogie.BoogiePretty where
 
 import qualified Voogie.NonEmpty as VNE
 import qualified Voogie.FOOL.Tuple as Tuple
 
 import Voogie.Theory
 
-class Pretty a where
+class BoogiePretty a where
   indented :: Integer -> a -> String
   indented _ = pretty
 
   pretty :: a -> String
   pretty = indented 0
 
-instance Pretty Name where
+instance BoogiePretty Name where
   pretty n = n
 
-instance Pretty Type where
+instance BoogiePretty Type where
   pretty Integer = "int"
   pretty Boolean = "bool"
   pretty (Array i t) = unwords [ brackets $ VNE.intercalate ", " (fmap pretty i)
@@ -27,22 +27,22 @@ instance Pretty Type where
     where ts' = VNE.intercalate " * " (fmap pretty ts)
   pretty (Custom n) = n
 
-instance Pretty a => Pretty (Typed a) where
+instance BoogiePretty a => BoogiePretty (Typed a) where
   pretty (Typed _ a) = pretty a
 
-prettyTyped :: Pretty a => Typed a -> String
+prettyTyped :: BoogiePretty a => Typed a -> String
 prettyTyped (Typed t a) = unwords [pretty a ++ ":", pretty t]
 
-instance Pretty Quantifier where
+instance BoogiePretty Quantifier where
   pretty Forall = "forall"
   pretty Exists = "exists"
 
-instance Pretty UnaryOp where
+instance BoogiePretty UnaryOp where
   pretty Negate   = "!"
   pretty Positive = "+"
   pretty Negative = "-"
 
-instance Pretty BinaryOp where
+instance BoogiePretty BinaryOp where
   pretty op = case op of
     And      -> "&&"
     Or       -> "||"
@@ -58,14 +58,14 @@ instance Pretty BinaryOp where
     Multiply -> "*"
     Divide   -> "/"
 
-instance Pretty Integer where
+instance BoogiePretty Integer where
   pretty = show
 
-instance Pretty Bool where
+instance BoogiePretty Bool where
   pretty True  = "true"
   pretty False = "false"
 
-instance Pretty Sign where
+instance BoogiePretty Sign where
   pretty Pos = "=="
   pretty Neg = "!="
 

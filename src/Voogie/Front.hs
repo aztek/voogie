@@ -18,16 +18,16 @@ import qualified Data.Set as Set
 import Data.Set (Set)
 
 import Voogie.Theory
-import Voogie.Pretty
+import Voogie.BoogiePretty
 
 import Voogie.Boogie (Boogie)
 import qualified Voogie.Boogie.Smart as B
 import qualified Voogie.Boogie.AST as AST
-import Voogie.Boogie.Pretty()
+import Voogie.Boogie.BoogiePretty()
 
 import qualified Voogie.FOOL.Smart as F
 import qualified Voogie.FOOL.AST as F.AST
-import Voogie.FOOL.Pretty()
+import Voogie.FOOL.BoogiePretty()
 
 type Error = String
 type Result = Either Error
@@ -75,7 +75,7 @@ analyzeMain env (AST.Main modifies pre returns locals toplevel post) = do
 analyzeDecl :: AST.Decl -> Env -> Result Env
 analyzeDecl (AST.Declare ns) env = foldrM extendEnv env (sequence ns)
 
-guardType :: (TypeOf b, Pretty b) => (a -> Result b) -> Type -> a -> Result b
+guardType :: (TypeOf b, BoogiePretty b) => (a -> Result b) -> Type -> a -> Result b
 guardType analyze t a = do
   b <- analyze a
   let t' = typeOf b
@@ -85,11 +85,11 @@ guardType analyze t a = do
               " but got " ++ pretty b ++ " of the type " ++ pretty t'
 
 infix 6 <:$>
-(<:$>) :: (TypeOf b, Pretty b) => (a -> Result b) -> a -> Type -> Result b
+(<:$>) :: (TypeOf b, BoogiePretty b) => (a -> Result b) -> a -> Type -> Result b
 f <:$> a = \t -> guardType f t a
 
 infix 6 `guardAll`
-guardAll :: (TypeOf b, Pretty b)
+guardAll :: (TypeOf b, BoogiePretty b)
          => (a -> Result b) -> NonEmpty a -> NonEmpty Type
          -> Result (NonEmpty b)
 guardAll f as ts = VNE.zipWithM (guardType f) ts as

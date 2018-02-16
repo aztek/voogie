@@ -30,7 +30,7 @@ executable voogie
     Voogie.Boogie
     Voogie.Boogie.AST
     Voogie.Boogie.Parse
-    Voogie.Boogie.Pretty
+    Voogie.Boogie.BoogiePretty
     Voogie.Boogie.Smart
     Voogie.FOOL
     Voogie.FOOL.ArrayTheory
@@ -38,13 +38,13 @@ executable voogie
     Voogie.FOOL.Tuple
     Voogie.FOOL.TypeSafe
     Voogie.FOOL.Parse
-    Voogie.FOOL.Pretty
+    Voogie.FOOL.BoogiePretty
     Voogie.FOOL.Rewrite
     Voogie.FOOL.Smart
     Voogie.Front
     Voogie.NonEmpty
     Voogie.Parse
-    Voogie.Pretty
+    Voogie.BoogiePretty
     Voogie.Theory
     Voogie.TPTP
     Voogie.TPTPretty

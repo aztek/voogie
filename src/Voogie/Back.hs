@@ -10,7 +10,7 @@ import Voogie.Theory
 import qualified Voogie.FOOL.Smart as F
 
 import qualified Voogie.Boogie as B
-import Voogie.Boogie.Pretty()
+import Voogie.Boogie.BoogiePretty()
 
 import qualified Voogie.FOOL.ArrayTheory as AT
 import Voogie.FOOL.Rewrite

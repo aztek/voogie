@@ -6,7 +6,7 @@ import Data.Semigroup ((<>))
 import Data.Maybe
 
 import Voogie.Boogie.Parse
-import Voogie.Boogie.Pretty()
+import Voogie.Boogie.BoogiePretty (pretty)
 import Voogie.Front
 import Voogie.Back
 import Voogie.TPTPretty

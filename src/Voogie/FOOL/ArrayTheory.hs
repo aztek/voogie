@@ -11,7 +11,7 @@ import Voogie.Theory
 import Voogie.FOOL
 import Voogie.FOOL.Smart
 
-import Voogie.Pretty
+import Voogie.BoogiePretty
 
 type Instantiation = (Type, Type)
 

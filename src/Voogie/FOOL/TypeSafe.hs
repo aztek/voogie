@@ -11,7 +11,7 @@ import Data.List.NonEmpty (NonEmpty((:|)))
 import Voogie.Theory
 
 import Voogie.FOOL
-import Voogie.FOOL.Pretty
+import Voogie.FOOL.BoogiePretty
 
 typeSafeApplication :: Identifier -> NonEmpty Term -> Term
 typeSafeApplication f ts
