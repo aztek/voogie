@@ -33,6 +33,7 @@ executable voogie
     Voogie.Boogie.Parse
     Voogie.Boogie.BoogiePretty
     Voogie.Boogie.Smart
+    Voogie.CmdArgs
     Voogie.FOOL
     Voogie.FOOL.ArrayTheory
     Voogie.FOOL.AST
