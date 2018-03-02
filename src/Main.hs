@@ -11,13 +11,13 @@ import Voogie.Front
 import Voogie.Back
 import Voogie.TPTPretty
 
+import Paths_Voogie (version)
+import Data.Version (showVersion)
+
 data Action = Parse | Check | Translate
   deriving (Eq, Show, Enum, Bounded)
 
 actions = [("parse", Parse), ("check", Check), ("translate", Translate)]
-
-c :: String -> Maybe Action
-c s = lookup s actions
 
 data CmdArgs = CmdArgs
   { fileName :: Maybe String
@@ -35,7 +35,7 @@ cmdArgsParser = CmdArgs
     stdIn = flag' Nothing
       $ long "stdin"
      <> help "Read from the standart input rather than a file"
-    action = option (maybeReader c)
+    action = option (maybeReader $ \s -> lookup s actions)
       $ long "action"
      <> metavar "ACTION"
      <> value Translate
@@ -46,10 +46,16 @@ cmdArgsParser = CmdArgs
      <> help "Do not use polymorhic theory of arrays"
 
 cmdArgsParserInfo :: ParserInfo CmdArgs
-cmdArgsParserInfo = info (cmdArgsParser <**> helper)
+cmdArgsParserInfo = info (cmdArgsParser <**> versionOption <**> helper)
   $ fullDesc
  <> header ("Voogie - a verification conditions generator " ++
             "for simple Boogie programs")
+  where
+    versionOption = abortOption (InfoMsg $ showVersion version)
+      $ long "version"
+     <> short 'v'
+     <> help "Display the version number"
+     <> hidden
 
 collectOptions :: CmdArgs -> TranslationOptions
 collectOptions cmdArgs = TranslationOptions (not $ noArrayTheory cmdArgs)
