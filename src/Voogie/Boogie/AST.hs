@@ -2,13 +2,15 @@ module Voogie.Boogie.AST where
 
 import Data.List.NonEmpty (NonEmpty)
 
+import Voogie.AST
 import Voogie.Theory
 import qualified Voogie.FOOL.AST as F
 
 data LVal = Ref String [NonEmpty Expr]
   deriving (Show, Eq)
 
-data Expr
+type Expr = AST Expr'
+data Expr'
   = IntConst Integer
   | BoolConst Bool
   | Unary   UnaryOp  Expr
@@ -18,7 +20,8 @@ data Expr
   | LVal LVal
   deriving (Show, Eq)
 
-data Stmt
+type Stmt = AST Stmt'
+data Stmt'
   = If Expr [Stmt] [Stmt]
   | Assign (NonEmpty (LVal, Expr))
   deriving (Show, Eq)
@@ -39,5 +42,5 @@ data Main = Main [String] [F.Formula] (Maybe Returns)
                  [Decl] [Either Stmt Assume] [F.Formula]
   deriving (Show, Eq)
 
-data AST = AST [Decl] Main
+data Boogie = Boogie [Decl] Main
   deriving (Show, Eq)

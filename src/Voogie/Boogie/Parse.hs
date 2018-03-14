@@ -4,8 +4,9 @@ import Control.Monad (guard, void)
 import Data.Maybe
 import qualified Data.List.NonEmpty as NE
 
-import Text.ParserCombinators.Parsec
-import Text.ParserCombinators.Parsec.Expr
+import Text.Parsec
+import Text.Parsec.String
+import Text.Parsec.Expr
 
 import Voogie.Theory
 import Voogie.Boogie.AST
@@ -31,10 +32,10 @@ operators = [
   ]
 
 term =  parens expr
-    <|> constant "true"  (BoolConst True)
-    <|> constant "false" (BoolConst False)
-    <|> IntConst <$> integer
-    <|> LVal <$> lval
+    <|> ast (constant "true"  (BoolConst True))
+    <|> ast (constant "false" (BoolConst False))
+    <|> ast (IntConst <$> integer)
+    <|> ast (LVal <$> lval)
 
 lval :: Parser LVal
 lval = Ref <$> identifier <*> many (brackets $ commaSep1 expr)
@@ -44,7 +45,7 @@ stmts =  braces (many stmt)
      <|> (:[]) <$> stmt
 
 stmt :: Parser Stmt
-stmt = assignStmt <|> ifStmt
+stmt = ast (assignStmt <|> ifStmt)
 
 assignStmt = atomicStmt $ do
   lvals <- commaSep1 lval
@@ -86,8 +87,5 @@ assume = keyword "assume" (Assume <$> F.formula)
 
 topLevel = Left <$> stmt <|> Right <$> assume
 
-ast :: Parser AST
-ast = whiteSpace >> AST <$> many (try decl) <*> main
-
-parseAST :: SourceName -> String -> Either ParseError AST
-parseAST = parse ast
+parseAST :: SourceName -> String -> Either ParseError Boogie
+parseAST = parse $ whiteSpace >> Boogie <$> many (try decl) <*> main

@@ -27,6 +27,7 @@ executable voogie
   main-is: Main.hs
   other-modules:
     Paths_Voogie
+    Voogie.AST
     Voogie.Back
     Voogie.Boogie
     Voogie.Boogie.AST

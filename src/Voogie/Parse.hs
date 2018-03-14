@@ -3,11 +3,13 @@ module Voogie.Parse where
 import qualified Data.List.NonEmpty as NE
 import Data.List.NonEmpty (NonEmpty)
 
-import Text.ParserCombinators.Parsec
-import Text.ParserCombinators.Parsec.Expr
-import Text.ParserCombinators.Parsec.Language
-import qualified Text.ParserCombinators.Parsec.Token as Token
+import Text.Parsec.Prim
+import Text.Parsec.String
+import Text.Parsec.Expr
+import Text.Parsec.Language
+import qualified Text.Parsec.Token as Token
 
+import Voogie.AST
 import Voogie.Theory
 
 language = emptyDef
@@ -48,13 +50,26 @@ commaSep1 p = NE.fromList <$> Token.commaSep1 lexer p
 
 constant name fun = reserved name >> return fun
 
-operator fix name fun = fix (reservedOp name >> return fun)
-infix'  = operator Infix
-prefix  = operator Prefix
-postfix = operator Postfix
+infix' name fun = Infix $ do
+  reservedOp name
+  p <- getPosition
+  return $ \a b -> AST p (fun a b)
+
+prefix name fun = Prefix $ do
+  p <- getPosition
+  reservedOp name
+  return $ AST p . fun
+
+postfix name fun = Postfix $ do
+  reservedOp name
+  p <- getPosition
+  return $ AST p . fun
 
 assocLeft = map ($ AssocLeft)
 assocNone = map ($ AssocNone)
+
+ast :: Parser a -> Parser (AST a)
+ast p = AST <$> getPosition <*> p
 
 typ :: Parser Type
 typ = atomicType <|> arrayType

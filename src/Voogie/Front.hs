@@ -20,6 +20,8 @@ import Data.Set (Set)
 import Voogie.Theory
 import Voogie.BoogiePretty
 
+import qualified Voogie.AST as A
+
 import Voogie.Boogie (Boogie)
 import qualified Voogie.Boogie.Smart as B
 import qualified Voogie.Boogie.AST as AST
@@ -53,8 +55,8 @@ extendEnv v@(Typed _ n) env
 variables :: Env -> [Typed Name]
 variables (Env vs) = fmap (\(n, t) -> Typed t n) (Map.toList vs)
 
-analyze :: AST.AST -> Result Boogie
-analyze (AST.AST globals main) = do
+analyze :: AST.Boogie -> Result Boogie
+analyze (AST.Boogie globals main) = do
   env <- foldrM analyzeDecl emptyEnv globals
   (env', main') <- analyzeMain env main
   return (B.boogie (variables env') main')
@@ -75,22 +77,24 @@ analyzeMain env (AST.Main modifies pre returns locals toplevel post) = do
 analyzeDecl :: AST.Decl -> Env -> Result Env
 analyzeDecl (AST.Declare ns) env = foldrM extendEnv env (sequence ns)
 
-guardType :: (TypeOf b, BoogiePretty b) => (a -> Result b) -> Type -> a -> Result b
-guardType analyze t a = do
+guardType :: (TypeOf b, BoogiePretty b)
+          => (a -> Result b) -> Type -> A.AST a -> Result b
+guardType analyze t (A.AST pos a) = do
   b <- analyze a
   let t' = typeOf b
   if t == t'
   then return b
-  else Left $ "expected an expression of the type " ++ pretty t ++
-              " but got " ++ pretty b ++ " of the type " ++ pretty t'
+  else Left $ show pos ++ ": Type error: expected an expression of the type " ++
+              pretty t ++ " but got " ++ pretty b ++ " of the type " ++ pretty t'
 
 infix 6 <:$>
-(<:$>) :: (TypeOf b, BoogiePretty b) => (a -> Result b) -> a -> Type -> Result b
+(<:$>) :: (TypeOf b, BoogiePretty b)
+       => (a -> Result b) -> A.AST a -> Type -> Result b
 f <:$> a = \t -> guardType f t a
 
 infix 6 `guardAll`
 guardAll :: (TypeOf b, BoogiePretty b)
-         => (a -> Result b) -> NonEmpty a -> NonEmpty Type
+         => (a -> Result b) -> NonEmpty (A.AST a) -> NonEmpty Type
          -> Result (NonEmpty b)
 guardAll f as ts = VNE.zipWithM (guardType f) ts as
 
@@ -102,13 +106,13 @@ analyzeTopLevels :: Env -> [Either AST.Stmt AST.Assume] -> Result [B.TopLevel]
 analyzeTopLevels env = mapMaybeM analyzeTopLevel
   where
     analyzeTopLevel :: Either AST.Stmt AST.Assume -> Result (Maybe B.TopLevel)
-    analyzeTopLevel (Left stmt) = fmap Left <$> analyzeStmt stmt
+    analyzeTopLevel (Left stmt) = fmap Left <$> analyzeStmt (A.astValue stmt)
     analyzeTopLevel (Right assume) = Just . Right <$> analyzeAssume assume
 
     analyzeStmts :: [AST.Stmt] -> Result [B.Statement]
-    analyzeStmts = fmap catMaybes . mapM analyzeStmt
+    analyzeStmts = fmap catMaybes . mapM (analyzeStmt . A.astValue)
 
-    analyzeStmt :: AST.Stmt -> Result (Maybe B.Statement)
+    analyzeStmt :: AST.Stmt' -> Result (Maybe B.Statement)
     analyzeStmt (AST.If c a b) = B.if_ <$> analyzeExpr <:$> c .: Boolean
                                        <*> analyzeStmts a
                                        <*> analyzeStmts b
@@ -133,7 +137,7 @@ analyzeTopLevels env = mapMaybeM analyzeTopLevel
             else Right (zip is ais)
       B.lvalue var <$> mapM (uncurry $ guardAll analyzeExpr) xs
 
-    analyzeExpr :: AST.Expr -> Result B.Expression
+    analyzeExpr :: AST.Expr' -> Result B.Expression
     analyzeExpr (AST.IntConst  i) = return (B.integerLiteral i)
     analyzeExpr (AST.BoolConst b) = return (B.booleanLiteral b)
     analyzeExpr (AST.LVal lval) = do
@@ -149,12 +153,12 @@ analyzeTopLevels env = mapMaybeM analyzeTopLevel
       b' <- analyzeExpr <:$> b .: d2
       return (B.binary op a' b')
     analyzeExpr (AST.Equals s a b) = do
-      a' <- analyzeExpr a
+      a' <- analyzeExpr (A.astValue a)
       b' <- analyzeExpr <:$> b .: typeOf a'
       return (B.equals s a' b')
     analyzeExpr (AST.Ternary c a b) = do
       c' <- analyzeExpr <:$> c .: Boolean
-      a' <- analyzeExpr a
+      a' <- analyzeExpr (A.astValue a)
       b' <- analyzeExpr <:$> b .: typeOf a'
       return (B.ifElse c' a' b')
 
@@ -169,7 +173,7 @@ extendContext v (env, qv) = (insertVariable v env, Set.insert v qv)
 analyzeFormula :: Context -> F.AST.Term -> Result F.Formula
 analyzeFormula ctx@(env, qv) f = analyzeTerm <:$> f .: Boolean
   where
-    analyzeTerm :: F.AST.Term -> Result F.Term
+    analyzeTerm :: F.AST.Term' -> Result F.Term
     analyzeTerm (F.AST.IntConst  i) = return (F.integerConstant i)
     analyzeTerm (F.AST.BoolConst b) = return (F.booleanConstant b)
     analyzeTerm (F.AST.Ref n is) = do
@@ -186,11 +190,11 @@ analyzeFormula ctx@(env, qv) f = analyzeTerm <:$> f .: Boolean
       return (F.binary op a' b')
     analyzeTerm (F.AST.Ternary c a b) = do
       c' <- analyzeFormula ctx c
-      a' <- analyzeTerm a
+      a' <- analyzeTerm (A.astValue a)
       b' <- analyzeTerm <:$> b .: typeOf a'
       return (F.if_ c' a' b')
     analyzeTerm (F.AST.Equals s a b) = do
-      a' <- analyzeTerm a
+      a' <- analyzeTerm (A.astValue a)
       b' <- analyzeTerm <:$> b .: typeOf a'
       return (F.equals s a' b')
     analyzeTerm (F.AST.Quantified q vars f) = do

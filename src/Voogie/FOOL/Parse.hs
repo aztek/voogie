@@ -1,7 +1,8 @@
 module Voogie.FOOL.Parse (term, formula) where
 
-import Text.ParserCombinators.Parsec
-import Text.ParserCombinators.Parsec.Expr
+import Text.Parsec
+import Text.Parsec.String
+import Text.Parsec.Expr
 
 import Voogie.Theory
 import Voogie.Parse
@@ -26,16 +27,16 @@ operators = [
 
 arg =  parens term
    <|> quantified
-   <|> constant "true"  (BoolConst True)
-   <|> constant "false" (BoolConst False)
-   <|> IntConst <$> integer
-   <|> Ref <$> identifier <*> many (brackets $ commaSep1 term)
+   <|> ast (constant "true"  (BoolConst True))
+   <|> ast (constant "false" (BoolConst False))
+   <|> ast (IntConst <$> integer)
+   <|> ast (Ref <$> identifier <*> many (brackets $ commaSep1 term))
 
 quantified = do
   q <- quantifier
   vars <- commaSep1 (typed $ commaSep1 identifier)
   reserved "::"
-  Quantified q vars <$> term
+  ast (Quantified q vars <$> term)
 
 quantifier =  constant "forall" Forall
           <|> constant "exists" Exists
