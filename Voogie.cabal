@@ -35,6 +35,7 @@ executable voogie
     Voogie.Boogie.BoogiePretty
     Voogie.Boogie.Smart
     Voogie.CmdArgs
+    Voogie.Error
     Voogie.FOOL
     Voogie.FOOL.ArrayTheory
     Voogie.FOOL.AST

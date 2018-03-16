@@ -17,6 +17,7 @@ import Data.Map (Map)
 import qualified Data.Set as Set
 import Data.Set (Set)
 
+import Voogie.Error
 import Voogie.Theory
 import Voogie.BoogiePretty
 
@@ -31,9 +32,6 @@ import qualified Voogie.FOOL.Smart as F
 import qualified Voogie.FOOL.AST as F.AST
 import Voogie.FOOL.BoogiePretty()
 
-type Error = String
-type Result = Either Error
-
 newtype Env = Env (Map Name Type)
 
 emptyEnv :: Env
@@ -42,7 +40,7 @@ emptyEnv = Env Map.empty
 lookupVariable :: Name -> Env -> Result (Typed Name)
 lookupVariable n (Env vs)
   | Just t <- Map.lookup n vs = Right (Typed t n)
-  | otherwise = Left ("undefined variable " ++ n)
+  | otherwise = Left (UndefinedVariable n)
 
 insertVariable :: Typed Name -> Env -> Env
 insertVariable (Typed t n) (Env vs) = Env (Map.insert n t vs)
@@ -50,7 +48,7 @@ insertVariable (Typed t n) (Env vs) = Env (Map.insert n t vs)
 extendEnv :: Typed Name -> Env -> Result Env
 extendEnv v@(Typed _ n) env
   | Left _ <- lookupVariable n env = Right (insertVariable v env)
-  | otherwise = Left ("redefined variable " ++ n)
+  | otherwise = Left (MultipleDefinitions n)
 
 variables :: Env -> [Typed Name]
 variables (Env vs) = fmap (\(n, t) -> Typed t n) (Map.toList vs)
@@ -83,9 +81,8 @@ guardType analyze t (A.AST pos a) = do
   b <- analyze a
   let t' = typeOf b
   if t == t'
-  then return b
-  else Left $ show pos ++ ": Type error: expected an expression of the type " ++
-              pretty t ++ " but got " ++ pretty b ++ " of the type " ++ pretty t'
+  then Right b
+  else Left (TypeMismatch pos t t' b)
 
 infix 6 <:$>
 (<:$>) :: (TypeOf b, BoogiePretty b)
@@ -133,7 +130,7 @@ analyzeTopLevels env = mapMaybeM analyzeTopLevel
       let t = typeOf var
       let ais = arrayIndexes t
       xs <- if length is > length ais
-            then Left ("Too many array indexes for type " ++ show t)
+            then Left (ArrayDimensionMismatch t)
             else Right (zip is ais)
       B.lvalue var <$> mapM (uncurry $ guardAll analyzeExpr) xs
 
@@ -212,8 +209,7 @@ analyzeFormula ctx@(env, qv) f = analyzeTerm <:$> f .: Boolean
     analyzeSelect :: F.Term -> NonEmpty F.AST.Term -> Result F.Term
     analyzeSelect term as = case typeOf term of
       Array ts _ -> F.select term <$> analyzeTerm `guardAll` as .: ts
-      t -> Left ("expected an expression of an array type," ++
-                 " but got " ++ pretty term ++ " of the type " ++ pretty t)
+      t -> Left (NonArraySelect t term)
 
     analyzeVarList :: F.AST.VarList -> Result (Context, F.VarList)
     -- TODO: check that the variables are disjoint

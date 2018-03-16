@@ -4,6 +4,7 @@ import Options.Applicative (execParser)
 
 import Data.Maybe
 
+import Voogie.Error
 import Voogie.CmdArgs
 import Voogie.Boogie.Parse
 import Voogie.Boogie.BoogiePretty (pretty)
@@ -21,11 +22,12 @@ main = do
   let source = fromMaybe "<stdin>" (fileName cmdArgs)
   stream <- maybe getContents readFile (fileName cmdArgs)
 
-  let runParser f = either print f (parseAST source stream)
-  let runAnalyzer f = either putStrLn f . analyze
+  let ast = parseAST source stream
+  let runParser f = either renderError f ast
+  let runAnalyzer f = either renderError f . analyze
   let runTranslator = translate options
 
-  case action cmdArgs of
-    Parse -> runParser print
-    Check -> runParser . runAnalyzer $ (putStr . pretty)
-    Translate -> runParser . runAnalyzer $ (putStr . prettyTPTP . runTranslator)
+  putStrLn $ case action cmdArgs of
+    Parse -> runParser show
+    Check -> runParser . runAnalyzer $ pretty
+    Translate -> runParser . runAnalyzer $ (prettyTPTP . runTranslator)

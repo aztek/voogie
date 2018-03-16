@@ -8,6 +8,7 @@ import Text.Parsec
 import Text.Parsec.String
 import Text.Parsec.Expr
 
+import Voogie.Error
 import Voogie.Theory
 import Voogie.Boogie.AST
 
@@ -87,5 +88,9 @@ assume = keyword "assume" (Assume <$> F.formula)
 
 topLevel = Left <$> stmt <|> Right <$> assume
 
-parseAST :: SourceName -> String -> Either ParseError Boogie
-parseAST = parse $ whiteSpace >> Boogie <$> many (try decl) <*> main
+boogie = whiteSpace >> Boogie <$> many (try decl) <*> main
+
+parseAST :: SourceName -> String -> Result Boogie
+parseAST sn s = case parse boogie sn s of
+  Left e -> Left (ParsingError e)
+  Right b -> Right b
