@@ -3,7 +3,6 @@ module Main(main) where
 import Options.Applicative (execParser)
 
 import Data.Maybe
-import System.IO
 import System.Exit
 
 import Voogie.Error
@@ -18,12 +17,8 @@ collectOptions :: CmdArgs -> TranslationOptions
 collectOptions cmdArgs = TranslationOptions (not $ noArrayTheory cmdArgs)
 
 renderOutput' :: String -> (a -> String) -> Result a -> IO ()
-renderOutput' contents _ (Left error) = do
-  hPutStrLn stderr (renderError contents error)
-  exitFailure
-renderOutput' _ render (Right a) = do
-  putStrLn (render a)
-  exitSuccess
+renderOutput' contents _ (Left error) = renderError contents error >> exitFailure
+renderOutput' _ render (Right a) = putStrLn (render a) >> exitSuccess
 
 main :: IO ()
 main = do

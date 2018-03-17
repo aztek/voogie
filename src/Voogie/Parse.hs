@@ -52,24 +52,25 @@ constant name fun = reserved name >> return fun
 
 infix' name fun = Infix $ do
   reservedOp name
-  p <- getPosition
-  return $ \a b -> AST p (fun a b)
+  return $ \a b -> AST (fst $ position a, snd $ position b) (fun a b)
 
 prefix name fun = Prefix $ do
-  p <- getPosition
-  reservedOp name
-  return $ AST p . fun
+  AST (b, _) _ <- ast (reservedOp name)
+  return $ \a -> AST (b, snd $ position a) (fun a)
 
 postfix name fun = Postfix $ do
-  reservedOp name
-  p <- getPosition
-  return $ AST p . fun
+  AST (_, e) _ <- ast (reservedOp name)
+  return $ \a -> AST (fst $ position a, e) (fun a)
 
 assocLeft = map ($ AssocLeft)
 assocNone = map ($ AssocNone)
 
 ast :: Parser a -> Parser (AST a)
-ast p = AST <$> getPosition <*> p
+ast p = do
+  begin <- getPosition
+  a <- p
+  end <- getPosition
+  return $ AST (begin, end) a
 
 typ :: Parser Type
 typ = atomicType <|> arrayType
