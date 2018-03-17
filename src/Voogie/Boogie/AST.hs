@@ -6,7 +6,9 @@ import Voogie.AST
 import Voogie.Theory
 import qualified Voogie.FOOL.AST as F
 
-data LVal = Ref String [NonEmpty Expr]
+type Identifier = AST String
+
+data LVal = Ref Identifier [NonEmpty Expr]
   deriving (Show, Eq)
 
 type Expr = AST Expr'
@@ -26,19 +28,19 @@ data Stmt'
   | Assign (NonEmpty (LVal, Expr))
   deriving (Show, Eq)
 
-data Decl = Declare (Typed (NonEmpty String))
+data Decl = Declare (Typed (NonEmpty Identifier))
   deriving (Show, Eq)
 
-data FunDef = FunDef Type String [Typed String] [Stmt]
+data FunDef = FunDef Type Identifier [Typed Identifier] [Stmt]
   deriving (Show, Eq)
 
 data Assume = Assume F.Formula
   deriving (Show, Eq)
 
-data Returns = Returns (NonEmpty (Typed String))
+data Returns = Returns (NonEmpty (Typed Identifier))
   deriving (Show, Eq)
 
-data Main = Main [String] [F.Formula] (Maybe Returns)
+data Main = Main [Identifier] [F.Formula] (Maybe Returns)
                  [Decl] [Either Stmt Assume] [F.Formula]
   deriving (Show, Eq)
 

@@ -5,14 +5,16 @@ import Data.List.NonEmpty (NonEmpty)
 import Voogie.AST
 import Voogie.Theory
 
-type VarList = NonEmpty (Typed (NonEmpty String))
+type Identifier = AST String
+
+type VarList = NonEmpty (Typed (NonEmpty Identifier))
 
 type Term = AST Term'
 
 data Term'
   = IntConst Integer
   | BoolConst Bool
-  | Ref String [NonEmpty Term]
+  | Ref Identifier [NonEmpty Term]
   | Unary   UnaryOp  Term
   | Binary  BinaryOp Term Term
   | Ternary          Term Term Term

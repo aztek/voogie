@@ -37,18 +37,19 @@ newtype Env = Env (Map Name Type)
 emptyEnv :: Env
 emptyEnv = Env Map.empty
 
-lookupVariable :: Name -> Env -> Result (Typed Name)
-lookupVariable n (Env vs)
-  | Just t <- Map.lookup n vs = Right (Typed t n)
-  | otherwise = Left (UndefinedVariable n)
+lookupVariable :: A.AST Name -> Env -> Result (A.AST (Typed Name))
+lookupVariable ast (Env vs)
+  | Just t <- Map.lookup (A.astValue ast) vs = Right (Typed t <$> ast)
+  | otherwise = Left (UndefinedVariable ast)
 
 insertVariable :: Typed Name -> Env -> Env
 insertVariable (Typed t n) (Env vs) = Env (Map.insert n t vs)
 
-extendEnv :: Typed Name -> Env -> Result Env
-extendEnv v@(Typed _ n) env
-  | Left _ <- lookupVariable n env = Right (insertVariable v env)
-  | otherwise = Left (MultipleDefinitions n)
+extendEnv :: Typed (A.AST Name) -> Env -> Result Env
+extendEnv (Typed t ast@(A.AST pos n)) env
+  | Left _ <- lookupVariable ast env = Right (insertVariable var env)
+  | otherwise = Left (MultipleDefinitions (A.AST pos var))
+  where var = Typed t n
 
 variables :: Env -> [Typed Name]
 variables (Env vs) = fmap (\(n, t) -> Typed t n) (Map.toList vs)
@@ -66,7 +67,7 @@ analyzeMain env (AST.Main modifies pre returns locals toplevel post) = do
   pre' <- mapM (analyzeProperty env) pre
   toplevel' <- analyzeTopLevels env'' toplevel
   post' <- mapM (analyzeProperty env'') post
-  return (env'', B.main modifies pre' toplevel' post')
+  return (env'', B.main (A.astValue <$> modifies) pre' toplevel' post')
   where
     returnVars = case returns of
       Just (AST.Returns r) -> NE.toList r
@@ -82,7 +83,7 @@ guardType analyze t (A.AST pos a) = do
   let t' = typeOf b
   if t == t'
   then Right b
-  else Left (TypeMismatch pos t t' b)
+  else Left (TypeMismatch (A.AST pos (Typed t' b)) t)
 
 infix 6 <:$>
 (<:$>) :: (TypeOf b, BoogiePretty b)
@@ -125,14 +126,15 @@ analyzeTopLevels env = mapMaybeM analyzeTopLevel
       return (lv, e')
 
     analyzeLValue :: AST.LVal -> Result B.LValue
-    analyzeLValue (AST.Ref n is) = do
-      var <- lookupVariable n env
-      let t = typeOf var
+    analyzeLValue (AST.Ref ast is) = do
+      var <- lookupVariable ast env
+      let n = A.astValue var
+      let t = typeOf n
       let ais = arrayIndexes t
       xs <- if length is > length ais
-            then Left (ArrayDimensionMismatch t)
+            then Left (ArrayDimensionMismatch (Typed t <$> var))
             else Right (zip is ais)
-      B.lvalue var <$> mapM (uncurry $ guardAll analyzeExpr) xs
+      B.lvalue n <$> mapM (uncurry $ guardAll analyzeExpr) xs
 
     analyzeExpr :: AST.Expr' -> Result B.Expression
     analyzeExpr (AST.IntConst  i) = return (B.integerLiteral i)
@@ -173,9 +175,9 @@ analyzeFormula ctx@(env, qv) f = analyzeTerm <:$> f .: Boolean
     analyzeTerm :: F.AST.Term' -> Result F.Term
     analyzeTerm (F.AST.IntConst  i) = return (F.integerConstant i)
     analyzeTerm (F.AST.BoolConst b) = return (F.booleanConstant b)
-    analyzeTerm (F.AST.Ref n is) = do
-      var <- analyzeVar n
-      foldM analyzeSelect var is
+    analyzeTerm (F.AST.Ref ast is) = do
+      var <- analyzeVar ast
+      A.astValue <$> foldM analyzeSelect var is
     analyzeTerm (F.AST.Unary op t) = do
       let d = unaryOpDomain op
       t' <- analyzeTerm <:$> t .: d
@@ -199,21 +201,23 @@ analyzeFormula ctx@(env, qv) f = analyzeTerm <:$> f .: Boolean
       f' <- analyzeFormula ctx' f
       return (F.quantify q vars' f')
 
-    analyzeVar :: Name -> Result F.Term
-    analyzeVar n = do
-      v <- lookupVariable n env
-      return $ if v `Set.member` qv
-               then F.variable (F.var <$> v)
-               else F.constant v
+    analyzeVar :: A.AST Name -> Result (A.AST F.Term)
+    analyzeVar ast = do
+      var <- lookupVariable ast env
+      return $ fmap (\v -> if v `Set.member` qv
+                           then F.variable (F.var <$> v)
+                           else F.constant v)
+                    var
 
-    analyzeSelect :: F.Term -> NonEmpty F.AST.Term -> Result F.Term
-    analyzeSelect term as = case typeOf term of
-      Array ts _ -> F.select term <$> analyzeTerm `guardAll` as .: ts
-      t -> Left (NonArraySelect t term)
+    analyzeSelect :: A.AST F.Term -> NonEmpty F.AST.Term -> Result (A.AST F.Term)
+    analyzeSelect ast@(A.AST pos term) as = case typeOf term of
+      Array ts _ -> A.AST pos <$> (F.select term <$> analyzeTerm `guardAll` as .: ts)
+      t -> Left (NonArraySelect (Typed t <$> ast))
 
     analyzeVarList :: F.AST.VarList -> Result (Context, F.VarList)
     -- TODO: check that the variables are disjoint
-    analyzeVarList vars = Right (ctx', fmap (fmap F.var) vars')
+    analyzeVarList vars = Right (ctx', fmap (fmap F.var) vars'')
       where
-        vars' = join (fmap sequence vars)
-        ctx' = foldr extendContext ctx vars'
+        vars' = fmap (fmap $ fmap A.astValue) vars
+        vars'' = join (fmap sequence vars')
+        ctx' = foldr extendContext ctx vars''

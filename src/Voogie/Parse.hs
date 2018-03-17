@@ -34,7 +34,7 @@ language = emptyDef
 
 lexer = Token.makeTokenParser language
 
-identifier = Token.identifier lexer
+identifier = ast (Token.identifier lexer)
 reserved   = Token.reserved   lexer
 reservedOp = Token.reservedOp lexer
 parens     = Token.parens     lexer
