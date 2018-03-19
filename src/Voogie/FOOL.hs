@@ -6,6 +6,7 @@ module Voogie.FOOL (
 ) where
 
 import Data.List.NonEmpty (NonEmpty)
+import Data.Semigroup
 
 import Voogie.FOOL.Tuple (Tuple)
 import Voogie.Theory
@@ -67,16 +68,19 @@ instance TypeOf Term where
 newtype Conjunction = Conjunction { getConjunction :: Formula }
   deriving (Eq, Show)
 
-instance Monoid Conjunction where
-  mempty = Conjunction (BooleanConstant True)
-  Conjunction f `mappend` Conjunction g = Conjunction (binaryAnd f g)
+instance Semigroup Conjunction where
+  Conjunction f <> Conjunction g = Conjunction (binaryAnd f g)
     where
       binaryAnd :: Formula -> Formula -> Formula
       binaryAnd f (BooleanConstant True) = f
       binaryAnd (BooleanConstant True) g = g
-      -- This case is only needed to satisfy the associativity law of Monoid
+      -- This case is only needed to satisfy the associativity law of Semigroup
       binaryAnd (Binary And f g) h = Binary And f (Binary And g h)
       binaryAnd f g = Binary And f g
+
+instance Monoid Conjunction where
+  mempty = Conjunction (BooleanConstant True)
+  mappend = (<>)
 
 data Theory = Theory
   { types :: [Name]
@@ -85,8 +89,11 @@ data Theory = Theory
   }
   deriving (Show, Eq)
 
+instance Semigroup Theory where
+  a <> b = Theory (types a <> types b)
+                  (symbols a <> symbols b)
+                  (axioms a <> axioms b)
+
 instance Monoid Theory where
   mempty = Theory mempty mempty mempty
-  a `mappend` b = Theory (types a `mappend` types b)
-                         (symbols a `mappend` symbols b)
-                         (axioms a `mappend` axioms b)
+  mappend = (<>)
