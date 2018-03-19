@@ -1,3 +1,5 @@
+{-# LANGUAGE CPP #-}
+
 module Voogie.FOOL (
   Var(..), VarList, Identifier,
   Definition(..), Binding(..), Term(..),
@@ -6,7 +8,9 @@ module Voogie.FOOL (
 ) where
 
 import Data.List.NonEmpty (NonEmpty)
+#if __GLASGOW_HASKELL__ < 840
 import Data.Semigroup
+#endif
 
 import Voogie.FOOL.Tuple (Tuple)
 import Voogie.Theory

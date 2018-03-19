@@ -1,8 +1,12 @@
+{-# LANGUAGE CPP #-}
+
 module Voogie.TPTP (
   TPTP(..), appendTheory
 ) where
 
+#if __GLASGOW_HASKELL__ < 840
 import Data.Semigroup ((<>))
+#endif
 
 import Voogie.Theory
 import Voogie.FOOL
