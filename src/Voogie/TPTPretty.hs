@@ -65,7 +65,8 @@ prettyType s = case s of
   Integer -> "$int"
   Array i t -> foldr (funapp2 "$array") (prettyType t) (fmap prettyType i)
   TupleType ts -> tuple (fmap prettyType ts)
-    where ts' = VNE.intercalate " * " (fmap prettyType ts)
+  Functional ts t -> unwords [parens ts', ">", prettyType t]
+    where ts' = VNE.intercalate "*" (fmap prettyType ts)
   Custom n -> n
 
 prettyVar :: Var -> String
