@@ -45,21 +45,29 @@ See the [examples](https://github.com/aztek/voogie/tree/master/examples) dir for
 $ voogie examples/simple.bpl
 ```
 ```
-thf(a, type, (a:$array($int, $int))).
-thf(x, type, (x:$int)).
-thf(y, type, (y:$int)).
-thf(voogie_conjecture, conjecture,
-    $let(x := 0,
-    $let(y := 0,
-    $let([y, x] := $ite($greater($select(a, 0), 0),
-                        $let(x := $sum(x, 1),
+tff(a, type, a : $array($int, $int)).
+tff(x, type, x : $int).
+tff(y, type, y : $int).
+tff(voogie_conjecture, conjecture,
+    $let(x : $int,
+         x := 0,
+    $let(y : $int,
+         y := 0,
+    $let([y : $int, x : $int],
+         [y, x] := $ite($greater($select(a, 0), 0),
+                        $let(x : $int,
+                             x := $sum(x, 1),
                              [y, x]),
-                        $let(y := $sum(y, 1),
+                        $let(y : $int,
+                             y := $sum(y, 1),
                              [y, x])),
-    $let([y, x] := $ite($greater($select(a, 1), 0),
-                        $let(x := $sum(x, 1),
+    $let([y : $int, x : $int],
+         [y, x] := $ite($greater($select(a, 1), 0),
+                        $let(x : $int,
+                             x := $sum(x, 1),
                              [y, x]),
-                        $let(y := $sum(y, 1),
+                        $let(y : $int,
+                             y := $sum(y, 1),
                              [y, x])),
          ($sum(x, y) = 2)))))).
 ```
