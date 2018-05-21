@@ -89,4 +89,4 @@ $ voogie examples/simple.bpl | vampire -newcnf on -p off
 % ------------------------------
 % ------------------------------
 ```
-Voogie was developed by [Evgenii Kotelnikov](www.cse.chalmers.se/~evgenyk/).
+Voogie was developed by [Evgenii Kotelnikov](http://www.cse.chalmers.se/~evgenyk/).
