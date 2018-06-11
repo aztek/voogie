@@ -81,8 +81,4 @@ atomicType =  constant "int"  Integer
 arrayType = Array <$> brackets (commaSep1 typ) <*> typ
 
 typed :: Parser a -> Parser (Typed a)
-typed p = do
-  v <- p
-  reservedOp ":"
-  t <- typ
-  return (Typed t v)
+typed a = flip Typed <$> a <* reservedOp ":" <*> typ

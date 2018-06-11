@@ -1,6 +1,6 @@
 module Voogie.Boogie.Parse (parseAST) where
 
-import Control.Monad (guard, void)
+import Control.Monad (guard)
 import Data.Maybe
 import qualified Data.List.NonEmpty as NE
 
@@ -58,7 +58,7 @@ assignStmt = atomicStmt $ do
 ifStmt = reserved "if" >> If <$> parens expr <*> stmts <*> elseStmts
 elseStmts = fromMaybe [] <$> optionMaybe (reserved "else" >> stmts)
 
-atomicStmt p = do { s <- p; void semi; return s }
+atomicStmt p = p <* semi
 
 keyword k p = atomicStmt (reserved k >> p)
 

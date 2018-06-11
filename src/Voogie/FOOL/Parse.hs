@@ -26,17 +26,16 @@ operators = [
   ]
 
 arg =  parens term
-   <|> quantified
+   <|> ast quantified
    <|> ast (constant "true"  (BoolConst True))
    <|> ast (constant "false" (BoolConst False))
    <|> ast (IntConst <$> integer)
    <|> ast (Ref <$> identifier <*> many (brackets $ commaSep1 term))
 
-quantified = do
-  q <- quantifier
-  vars <- commaSep1 (typed $ commaSep1 identifier)
-  reserved "::"
-  ast (Quantified q vars <$> term)
+quantified =  Quantified
+          <$> quantifier
+          <*> commaSep1 (typed $ commaSep1 identifier) <* reserved "::"
+          <*> term
 
 quantifier =  constant "forall" Forall
           <|> constant "exists" Exists

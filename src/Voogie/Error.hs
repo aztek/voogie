@@ -71,10 +71,8 @@ renderErrorLine errorLine (begin, end) = do
     (token, postToken) = splitAt tokenLength restLine
 
 renderTyped :: BoogiePretty a => Typed a -> IO ()
-renderTyped (Typed t a) = do
-  white (pretty a)
-  regular " of the type "
-  white (pretty t)
+renderTyped (Typed t a) =
+  white (pretty a) *> regular " of the type " *> white (pretty t)
 
 renderPosition :: SourcePos -> IO ()
 renderPosition pos = bold . white $ intercalate ":" [source, line, column] ++ ":"
@@ -99,7 +97,4 @@ regular :: String -> IO ()
 regular = hPutStr stderr
 
 sgr :: SGR -> IO () -> IO ()
-sgr s io = do
-  hSetSGR stderr [s]
-  io
-  hSetSGR stderr [Reset]
+sgr s io = hSetSGR stderr [s] *> io *> hSetSGR stderr [Reset]
