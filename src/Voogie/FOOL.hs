@@ -8,7 +8,7 @@ module Voogie.FOOL (
 ) where
 
 import Data.List.NonEmpty (NonEmpty)
-#if __GLASGOW_HASKELL__ < 840
+#if __GLASGOW_HASKELL__ < 804
 import Data.Semigroup
 #endif
 
