@@ -52,13 +52,9 @@ executable voogie
     Voogie.Theory
     Voogie.TPTP
     Voogie.TPTPretty
+  default-extensions: DeriveFunctor, DeriveFoldable, DeriveTraversable,
+                      FlexibleInstances
   ghc-options: -Wall -fno-warn-missing-signatures -Werror -threaded
-  if impl(ghc < 8)
-    ghc-options: -fno-warn-name-shadowing -fno-warn-orphans
-    build-depends: semigroups >= 0.18
-  if impl(ghc >= 8)
-    ghc-options: -Wno-name-shadowing -Wno-orphans
-  default-extensions: DeriveFunctor, FlexibleInstances, Safe
   build-depends:
     base >= 4 && < 5,
     containers >= 0.5 && < 0.6,
@@ -67,3 +63,9 @@ executable voogie
     optparse-applicative >= 0.14,
     ansi-terminal >= 0.4.0 && < 0.9
   default-language: Haskell2010
+  if impl(ghc < 8)
+    ghc-options: -fno-warn-name-shadowing -fno-warn-orphans
+    build-depends: semigroups >= 0.18
+  if impl(ghc >= 8)
+    ghc-options: -Wno-name-shadowing -Wno-orphans
+    default-extensions: Safe

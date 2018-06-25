@@ -1,5 +1,3 @@
-{-# LANGUAGE DeriveFunctor #-}
-
 module Voogie.FOOL.Rewrite where
 
 import Voogie.Theory

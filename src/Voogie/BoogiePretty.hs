@@ -1,5 +1,3 @@
-{-# LANGUAGE FlexibleInstances #-}
-
 module Voogie.BoogiePretty where
 
 import qualified Voogie.NonEmpty as VNE

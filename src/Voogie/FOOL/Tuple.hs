@@ -1,5 +1,3 @@
-{-# LANGUAGE DeriveFunctor, DeriveFoldable, DeriveTraversable #-}
-
 module Voogie.FOOL.Tuple where
 
 import qualified Data.List as L

@@ -1,5 +1,3 @@
-{-# LANGUAGE DeriveFunctor, DeriveFoldable, DeriveTraversable #-}
-
 module Voogie.Theory where
 
 import qualified Data.List.NonEmpty as NE

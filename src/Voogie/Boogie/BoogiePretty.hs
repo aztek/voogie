@@ -1,5 +1,3 @@
-{-# LANGUAGE FlexibleInstances #-}
-
 module Voogie.Boogie.BoogiePretty (pretty) where
 
 import Data.List (intercalate)
