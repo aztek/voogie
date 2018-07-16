@@ -64,7 +64,7 @@ translate opts (B.Boogie decls (B.Main _ pre stmts post))
     translateAssume (B.Assume f) = F.binary Imply f
 
     translateExpr :: B.Expression -> F.Term
-    translateExpr e = case e of
+    translateExpr = \case
       B.IntegerLiteral i -> F.integerConstant i
       B.BooleanLiteral b -> F.booleanConstant b
       B.Unary op e -> F.unary op (translateExpr e)

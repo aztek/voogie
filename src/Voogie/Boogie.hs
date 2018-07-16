@@ -29,7 +29,7 @@ data Expression
   deriving (Show, Eq)
 
 instance TypeOf Expression where
-  typeOf e = case e of
+  typeOf = \case
     IntegerLiteral _ -> Integer
     BooleanLiteral _ -> Boolean
     Ref lv -> typeOf lv

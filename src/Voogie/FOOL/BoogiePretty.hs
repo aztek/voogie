@@ -9,7 +9,7 @@ instance BoogiePretty Var where
   pretty (Var v) = v
 
 instance BoogiePretty Term where
-  pretty t = case t of
+  pretty = \case
     IntegerConstant i -> pretty i
     BooleanConstant b -> pretty b
     Variable v -> pretty v

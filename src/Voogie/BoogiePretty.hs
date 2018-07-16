@@ -41,7 +41,7 @@ instance BoogiePretty UnaryOp where
   pretty Negative = "-"
 
 instance BoogiePretty BinaryOp where
-  pretty op = case op of
+  pretty = \case
     And      -> "&&"
     Or       -> "||"
     Imply    -> "=>"

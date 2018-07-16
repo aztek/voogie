@@ -38,7 +38,7 @@ funapp3 :: String -> String -> String -> String -> String
 funapp3 f a b c = funapp f (VNE.three a b c)
 
 prettyBinaryOp :: BinaryOp -> (Bool, String)
-prettyBinaryOp op = case op of
+prettyBinaryOp = \case
   And      -> (True,  "&")
   Or       -> (True,  "|")
   Imply    -> (True,  "=>")
@@ -54,13 +54,13 @@ prettyBinaryOp op = case op of
   Divide   -> (False, "$quotient_e")
 
 prettyUnaryOp :: UnaryOp -> (Bool, String)
-prettyUnaryOp op = case op of
+prettyUnaryOp = \case
   Negate   -> (True, "~")
   Positive -> (False, "$uplus")
   Negative -> (False, "$uminus")
 
 prettyType :: Type -> String
-prettyType s = case s of
+prettyType = \case
   Boolean -> "$o"
   Integer -> "$int"
   Array i t -> foldr (funapp2 "$array") (prettyType t) (fmap prettyType i)
@@ -122,7 +122,7 @@ indentedTerm :: (Int, Int) -> Term -> String
 indentedTerm (i, o) t = newline $ indent i ++ offsetTerm o t
 
 offsetTerm :: Int -> Term -> String
-offsetTerm o t = case t of
+offsetTerm o = \case
   IntegerConstant n -> show n
   BooleanConstant b -> if b then "$true" else "$false"
 

@@ -53,7 +53,7 @@ data Term
 type Formula = Term
 
 instance TypeOf Term where
-  typeOf t = case t of
+  typeOf = \case
     IntegerConstant _ -> Integer
     BooleanConstant _ -> Boolean
     Variable v -> typeOf v

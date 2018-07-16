@@ -27,7 +27,7 @@ data Error where
   ArrayDimensionMismatch :: BoogiePretty a => AST (Typed a) -> Error
 
 renderError :: String -> Error -> IO ()
-renderError contents error = case error of
+renderError contents = \case
   ParsingError err -> renderError' (errorPos err, errorPos err)
     [regular "failed to parse",
      regular $ showErrorMessages "or" "unknown parse error" "expecting"

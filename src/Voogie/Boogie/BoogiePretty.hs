@@ -14,7 +14,7 @@ instance BoogiePretty LValue where
   pretty (LValue v is) = pretty v ++ concatMap (brackets . commaSep) is
 
 instance BoogiePretty Expression where
-  pretty e = case e of
+  pretty = \case
     IntegerLiteral i -> pretty i
     BooleanLiteral b -> pretty b
     Unary  op e -> pretty op ++ parens (pretty e)
@@ -45,7 +45,7 @@ indentedIte n c a b = indent n ++ unwords (thenBranch ++ elseBranch) ++ "\n"
     elseBranch = if null b then [] else ["else", braces n b]
 
 instance BoogiePretty Statement where
-  indented n s = case s of
+  indented n = \case
     Assign pairs -> atomic n [commaSep lvs, ":=", commaSep es]
       where (lvs, es) = NE.unzip pairs
     If c False a b -> indentedIte n c (NE.toList a) b
