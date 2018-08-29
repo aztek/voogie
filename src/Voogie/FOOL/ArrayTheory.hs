@@ -50,7 +50,7 @@ theory t@(tau, sigma) =
     --   ((∀ i: τ) (select(a, i) = select(b, i)) => a = b)
     extensionality = forall (VNE.two a' b')
                             (forall (VNE.one i')
-                                    (select a i === select a i) ==> a === b)
+                                    (select a i === select b i) ==> a === b)
 
     a' = Typed (arrayType t) (var "a")
     b' = Typed (arrayType t) (var "b")
