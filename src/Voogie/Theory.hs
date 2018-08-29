@@ -1,3 +1,5 @@
+{-# LANGUAGE PatternGuards #-}
+
 module Voogie.Theory where
 
 import qualified Data.List.NonEmpty as NE
@@ -22,9 +24,9 @@ arrayElement (Array _ r) = r
 arrayElement t = error (show t ++ " is not an array")
 
 arrayArgument :: Type -> Type
-arrayArgument (Array (_ :| is) r) = case NE.nonEmpty is of
-  Nothing  -> r
-  Just is' -> Array is' r
+arrayArgument (Array (_ :| is) r)
+  | Just is' <- NE.nonEmpty is = Array is' r
+  | otherwise = r
 arrayArgument t = error (show t ++ " is not an array")
 
 arrayIndexes :: Type -> [NonEmpty Type]
