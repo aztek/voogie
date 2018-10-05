@@ -14,7 +14,7 @@ import Text.Parsec
 import Text.Parsec.Error
 
 import System.IO
-import System.Console.ANSI
+import Text.PrettyPrint.ANSI.Leijen hiding (pretty)
 
 type Result = Either Error
 
@@ -27,41 +27,40 @@ data Error where
   ArrayDimensionMismatch :: BoogiePretty a => AST (Typed a) -> Error
 
 renderError :: String -> Error -> IO ()
-renderError contents = \case
+renderError contents = hPutDoc stderr . \case
   ParsingError err -> renderError' (errorPos err, errorPos err)
-    [regular "failed to parse",
-     regular $ showErrorMessages "or" "unknown parse error" "expecting"
-                                 "unexpected" "end of input" (errorMessages err)]
+    [text "failed to parse",
+     text $ showErrorMessages "or" "unknown parse error" "expecting"
+                              "unexpected" "end of input" (errorMessages err)]
   UndefinedVariable (AST pos v) -> renderError' pos
-    [regular "variable not in scope:", white v]
+    [text "variable not in scope:", white (text v)]
   MultipleDefinitions (AST pos v) -> renderError' pos
-    [regular "variable redefined:", renderTyped v]
+    [text "variable redefined:", renderTyped v]
   TypeMismatch (AST pos a) t' -> renderError' pos
-    [regular "expected an expression of the type", white $ pretty t',
-     regular "but got", renderTyped a]
+    [text "expected an expression of the type", white . text . pretty $ t',
+     text "but got", renderTyped a]
   NonArraySelect (AST pos a) -> renderError' pos
-    [regular "expected an expression of an array type,",
-     regular "but got", renderTyped a]
+    [text "expected an expression of an array type,",
+     text "but got", renderTyped a]
   ArrayDimensionMismatch (AST pos a) -> renderError' pos
-    [regular "too many array indexes for", renderTyped a]
+    [text "too many array indexes for", renderTyped a]
   where
-    renderError' :: (SourcePos, SourcePos) -> [IO ()] -> IO ()
-    renderError' pos@(begin, _) msgs = do
-      renderPosition begin
-      bold . red $ " error: "
-      mapM_ (>> regular " ") msgs
-      regular "\n\n"
-      renderErrorLine (lines contents !! (sourceLine begin - 1)) pos
+    renderError' :: (SourcePos, SourcePos) -> [Doc] -> Doc
+    renderError' pos@(begin, _) msgs =
+         hsep (p:e:msgs) <> hardline <> hardline
+      <> renderErrorLine (lines contents !! (sourceLine begin - 1)) pos
+      where
+        p = bold . white $ text (prettyPosition begin) <> colon
+        e = bold . red $ text "error" <> colon
 
-renderErrorLine :: String -> (SourcePos, SourcePos) -> IO ()
-renderErrorLine errorLine (begin, end) = do
-  regular preToken
-  bold . red $ token
-  regular postToken
-  regular "\n"
-  bold . red $ replicate tokenBegin ' ' ++ replicate tokenLength '^' ++
-               if sourceLine end /= sourceLine begin then "..." else ""
-  regular "\n"
+renderErrorLine :: String -> (SourcePos, SourcePos) -> Doc
+renderErrorLine errorLine (begin, end) =
+    text preToken
+ <> (bold . red . text $ token)
+ <> text postToken
+ <> hardline
+ <> (bold . red . text $ underlining)
+ <> hardline
   where
     tokenBegin = sourceColumn begin - 1
     tokenEnd = if sourceLine end /= sourceLine begin
@@ -69,32 +68,19 @@ renderErrorLine errorLine (begin, end) = do
     tokenLength = tokenEnd - tokenBegin
     (preToken, restLine) = splitAt tokenBegin errorLine
     (token, postToken) = splitAt tokenLength restLine
+    underlining = replicate tokenBegin ' ' ++ replicate tokenLength '^' ++
+                  if sourceLine end /= sourceLine begin then "..." else ""
 
-renderTyped :: BoogiePretty a => Typed a -> IO ()
-renderTyped (Typed t a) =
-  white (pretty a) *> regular " of the type " *> white (pretty t)
+renderTyped :: BoogiePretty a => Typed a -> Doc
+renderTyped (Typed t a) = hsep [
+    white . text . pretty $ a,
+    text "of the type",
+    white . text . pretty $ t
+  ]
 
-renderPosition :: SourcePos -> IO ()
-renderPosition pos = bold . white $ intercalate ":" [source, line, column] ++ ":"
+prettyPosition :: SourcePos -> String
+prettyPosition pos = intercalate ":" [source, line, column]
   where
     source = sourceName pos
     line = show (sourceLine pos)
     column = show (sourceColumn pos)
-
-white :: String -> IO ()
-white = colored White
-
-red :: String -> IO ()
-red = colored Red
-
-colored :: Color -> String -> IO ()
-colored color = sgr (SetColor Foreground Vivid color) . regular
-
-bold :: IO () -> IO ()
-bold = sgr (SetConsoleIntensity BoldIntensity)
-
-regular :: String -> IO ()
-regular = hPutStr stderr
-
-sgr :: SGR -> IO () -> IO ()
-sgr s io = hSetSGR stderr [s] *> io *> hSetSGR stderr [Reset]
