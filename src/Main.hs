@@ -8,17 +8,17 @@ import System.Exit
 import Voogie.Error
 import Voogie.CmdArgs
 import Voogie.Boogie.Parse
-import Voogie.Boogie.BoogiePretty (pretty)
 import Voogie.Front
 import Voogie.Back
 import Voogie.TPTPretty
 
+import Text.PrettyPrint.ANSI.Leijen
+
 collectOptions :: CmdArgs -> TranslationOptions
 collectOptions cmdArgs = TranslationOptions (not $ noArrayTheory cmdArgs)
 
-renderOutput' :: String -> (a -> String) -> Result a -> IO ()
-renderOutput' contents _ (Left error) = renderError contents error >> exitFailure
-renderOutput' _ render (Right a) = putStrLn (render a) >> exitSuccess
+renderWithExit :: (Error -> IO ()) -> (a -> IO ()) -> Result a -> IO ()
+renderWithExit f g = either ((>> exitFailure) . f) ((>> exitSuccess) . g)
 
 main :: IO ()
 main = do
@@ -31,11 +31,16 @@ main = do
   let runAnalyzer = analyze
   let runTranslator = return . translate options
 
-  let renderOutput = renderOutput' contents
+  let renderOutput = renderWithExit (renderError contents)
+
+  let printAST = const (print "")
+  let printBoogie = putDoc . pretty
+  let printTPTP = putStrLn . prettyTPTP
 
   case action cmdArgs of
-    Parse -> renderOutput show runParser
-    Check -> renderOutput pretty
+    Parse -> renderOutput printAST
+           $ runParser
+    Check -> renderOutput printBoogie
            $ runParser >>= runAnalyzer
-    Translate -> renderOutput prettyTPTP
+    Translate -> renderOutput printTPTP
                $ runParser >>= runAnalyzer >>= runTranslator

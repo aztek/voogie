@@ -1,27 +1,31 @@
 module Voogie.FOOL.BoogiePretty (pretty) where
 
-import qualified Voogie.NonEmpty as VNE
-
 import Voogie.BoogiePretty
 import Voogie.FOOL
 
-instance BoogiePretty Var where
-  pretty (Var v) = v
+import Text.PrettyPrint.ANSI.Leijen hiding ((<$>))
 
-instance BoogiePretty Term where
+instance Pretty Var where
+  pretty (Var v) = text v
+
+instance Pretty Term where
   pretty = \case
-    IntegerConstant i -> pretty i
-    BooleanConstant b -> pretty b
+    IntegerConstant i -> number i
+    BooleanConstant b -> boolean b
     Variable v -> pretty v
     Constant f -> pretty f
-    Application f as -> pretty f ++ parens args
-      where args = VNE.intercalate ", " (fmap pretty as)
-    Binary op a b -> unwords [pretty a, pretty op, pretty b]
-    Unary op t -> pretty op ++ pretty t
-    Quantify q vs t -> parens $ unwords [pretty q, vars, "::", pretty t]
-      where vars = VNE.intercalate ", " (fmap prettyTyped vs)
-    Equals s a b -> unwords [pretty a, pretty s, pretty b]
-    If c a b -> unwords [pretty c, "?", pretty a, ":", pretty b]
-    Select a i -> pretty a ++ brackets (pretty i)
-    Store a i v -> unwords [pretty a ++ brackets (pretty i), ":=", pretty v]
-    t -> error $ "no pretty syntax for " ++ show t
+    Application f as -> pretty f <> parens (commaSep (pretty <$> as))
+    Binary op a b -> parens $ pretty a <+> pretty op <+> pretty b
+    Unary op t -> pretty op <> pretty t
+    Quantify q vs t -> parens $ pretty q <+> commaSep (prettyTyped <$> vs)
+                            <+> punctuation "::" <+> pretty t
+    Equals s a b -> parens $ pretty a <+> pretty s <+> pretty b
+    If c a b -> pretty c <+> punctuation "?" <+> pretty a
+                         <+> punctuation ":" <+> pretty b
+    Select a i -> pretty a <> brackets (pretty i)
+    Store a i v -> pretty a <> brackets (pretty i) <+> operator ":=" <+> pretty v
+    t@Let{} -> error $ "Cannot represent let-expression " ++ show t ++
+                       " in the Boogie syntax."
+    t@TupleLiteral{} -> error $ "Cannot represent tuple literal " ++ show t ++
+                                " in the Boogie syntax."
+

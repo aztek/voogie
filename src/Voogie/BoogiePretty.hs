@@ -1,50 +1,49 @@
 module Voogie.BoogiePretty where
 
-import qualified Voogie.NonEmpty as VNE
-import qualified Voogie.FOOL.Tuple as Tuple
+import Data.List.NonEmpty (NonEmpty(..))
 
 import Voogie.Theory
 
-class BoogiePretty a where
-  indented :: Integer -> a -> String
-  indented _ = pretty
+import Text.PrettyPrint.ANSI.Leijen hiding ((<$>))
 
-  pretty :: a -> String
-  pretty = indented 0
+keyword = text
+operator = text
+builtin = text
+number = integer
+punctuation = text
 
-instance BoogiePretty Name where
-  pretty n = n
+instance Pretty Type where
+  pretty Integer = builtin "int"
+  pretty Boolean = builtin "bool"
+  pretty (Array i t) = brackets (commaSep (pretty <$> i)) <+> pretty t
+  pretty (TupleType ts) = error $ "Cannot represent tuple " ++ show ts ++
+                                  " in the Boogie syntax."
+  pretty (Functional ts t) = ts' <+> operator "->" <+> pretty t
+    where ts' = sepBy (space <> operator "*" <> space) (pretty <$> ts)
+  pretty (Custom n) = pretty n
 
-instance BoogiePretty Type where
-  pretty Integer = "int"
-  pretty Boolean = "bool"
-  pretty (Array i t) = unwords [ brackets $ VNE.intercalate ", " (fmap pretty i)
-                               , pretty t ]
-  pretty (TupleType ts) = parens $ Tuple.intercalate ", " (fmap pretty ts)
-  pretty (Functional ts t) = unwords [ts', "->", pretty t]
-    where ts' = VNE.intercalate " * " (fmap pretty ts)
-  pretty (Custom n) = n
-
-instance BoogiePretty a => BoogiePretty (Typed a) where
+instance Pretty a => Pretty (Typed a) where
   pretty (Typed _ a) = pretty a
 
-prettyTyped :: BoogiePretty a => Typed a -> String
-prettyTyped (Typed t a) = unwords [pretty a ++ ":", pretty t]
+prettyTyped :: Pretty a => Typed a -> Doc
+prettyTyped (Typed t a) = pretty a <> punctuation ":" <+> pretty t
 
-instance BoogiePretty Quantifier where
-  pretty Forall = "forall"
-  pretty Exists = "exists"
+instance Pretty Quantifier where
+  pretty = keyword . \case
+    Forall -> "forall"
+    Exists -> "exists"
 
-instance BoogiePretty UnaryOp where
-  pretty Negate   = "!"
-  pretty Positive = "+"
-  pretty Negative = "-"
+instance Pretty UnaryOp where
+  pretty = operator . \case
+    Negate   -> "!"
+    Positive -> "+"
+    Negative -> "-"
 
-instance BoogiePretty BinaryOp where
-  pretty = \case
+instance Pretty BinaryOp where
+  pretty = operator . \case
     And      -> "&&"
     Or       -> "||"
-    Imply    -> "=>"
+    Imply    -> "==>"
     Iff      -> "=="
     Xor      -> "!="
     Greater  -> ">"
@@ -56,19 +55,18 @@ instance BoogiePretty BinaryOp where
     Multiply -> "*"
     Divide   -> "/"
 
-instance BoogiePretty Integer where
-  pretty = show
+boolean :: Bool -> Doc
+boolean = builtin . \case
+  True  -> "true"
+  False -> "false"
 
-instance BoogiePretty Bool where
-  pretty True  = "true"
-  pretty False = "false"
+instance Pretty Sign where
+  pretty = operator . \case
+    Pos -> "=="
+    Neg -> "!="
 
-instance BoogiePretty Sign where
-  pretty Pos = "=="
-  pretty Neg = "!="
+sepBy :: Doc -> NonEmpty Doc -> Doc
+sepBy s (d :| ds) = d <> mconcat (fmap (s <>) ds)
 
-parens :: String -> String
-parens s = "(" ++ s ++ ")"
-
-brackets :: String -> String
-brackets s = "[" ++ s ++ "]"
+commaSep :: NonEmpty Doc -> Doc
+commaSep = sepBy (comma <> space)

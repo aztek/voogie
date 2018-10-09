@@ -8,13 +8,13 @@ import Data.List
 
 import Voogie.Theory
 import Voogie.AST
-import Voogie.BoogiePretty
+import Voogie.BoogiePretty()
 
 import Text.Parsec
 import Text.Parsec.Error
 
 import System.IO
-import Text.PrettyPrint.ANSI.Leijen hiding (pretty)
+import Text.PrettyPrint.ANSI.Leijen
 
 type Result = Either Error
 
@@ -22,9 +22,9 @@ data Error where
   ParsingError :: ParseError -> Error
   UndefinedVariable :: AST Name -> Error
   MultipleDefinitions :: AST (Typed Name) -> Error
-  TypeMismatch :: BoogiePretty a => AST (Typed a) -> Type -> Error
-  NonArraySelect :: BoogiePretty a => AST (Typed a) -> Error
-  ArrayDimensionMismatch :: BoogiePretty a => AST (Typed a) -> Error
+  TypeMismatch :: Pretty a => AST (Typed a) -> Type -> Error
+  NonArraySelect :: Pretty a => AST (Typed a) -> Error
+  ArrayDimensionMismatch :: Pretty a => AST (Typed a) -> Error
 
 renderError :: String -> Error -> IO ()
 renderError contents = hPutDoc stderr . \case
@@ -37,7 +37,7 @@ renderError contents = hPutDoc stderr . \case
   MultipleDefinitions (AST pos v) -> renderError' pos
     [text "variable redefined:", renderTyped v]
   TypeMismatch (AST pos a) t' -> renderError' pos
-    [text "expected an expression of the type", white . text . pretty $ t',
+    [text "expected an expression of the type", white (pretty t'),
      text "but got", renderTyped a]
   NonArraySelect (AST pos a) -> renderError' pos
     [text "expected an expression of an array type,",
@@ -71,11 +71,9 @@ renderErrorLine errorLine (begin, end) =
     underlining = replicate tokenBegin ' ' ++ replicate tokenLength '^' ++
                   if sourceLine end /= sourceLine begin then "..." else ""
 
-renderTyped :: BoogiePretty a => Typed a -> Doc
+renderTyped :: Pretty a => Typed a -> Doc
 renderTyped (Typed t a) = hsep [
-    white . text . pretty $ a,
-    text "of the type",
-    white . text . pretty $ t
+    white (pretty a), text "of the type", white (pretty t)
   ]
 
 prettyPosition :: SourcePos -> String

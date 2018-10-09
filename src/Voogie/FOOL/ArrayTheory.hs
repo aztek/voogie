@@ -11,24 +11,29 @@ import Voogie.Theory
 import Voogie.FOOL
 import Voogie.FOOL.Smart
 
-import Voogie.BoogiePretty
+import Text.PrettyPrint.ANSI.Leijen
 
 type Instantiation = (Type, Type)
 
+instantiationName :: Instantiation -> Name
+instantiationName (tau, sigma) = print tau ++ print sigma
+  where
+    print t = displayS (renderCompact $ pretty t) "_"
+
 arrayTypeName :: Instantiation -> Name
-arrayTypeName (tau, sigma) = "array_" ++ pretty tau ++ "_" ++ pretty sigma
+arrayTypeName i = "array" ++ instantiationName i
 
 arrayType :: Instantiation -> Type
 arrayType = Custom . arrayTypeName
 
 -- select : array(τ, σ) × τ → σ
 selectSymbol :: Instantiation -> Identifier
-selectSymbol i@(tau, sigma) = Typed t ("select_" ++ pretty tau ++ "_" ++ pretty sigma)
+selectSymbol i@(tau, sigma) = Typed t ("select" ++ instantiationName i)
   where t = Functional (VNE.two (arrayType i) tau) sigma
 
 -- store : array(τ, σ) × τ × σ → array(τ, σ)
 storeSymbol :: Instantiation -> Identifier
-storeSymbol i@(tau, sigma) = Typed t ("store_" ++ pretty tau ++ "_" ++ pretty sigma)
+storeSymbol i@(tau, sigma) = Typed t ("store" ++ instantiationName i)
   where t = Functional (VNE.three (arrayType i) tau sigma) (arrayType i)
 
 theory :: Instantiation -> Theory

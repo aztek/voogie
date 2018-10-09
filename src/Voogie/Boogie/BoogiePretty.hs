@@ -1,83 +1,79 @@
 module Voogie.Boogie.BoogiePretty (pretty) where
 
-import Data.List (intercalate)
 import qualified Data.List.NonEmpty as NE
-import qualified Voogie.NonEmpty as VNE
-import Data.List.NonEmpty (NonEmpty)
 
 import Voogie.BoogiePretty
 import Voogie.Boogie
 
 import Voogie.FOOL.BoogiePretty()
 
-instance BoogiePretty LValue where
-  pretty (LValue v is) = pretty v ++ concatMap (brackets . commaSep) is
+import Text.PrettyPrint.ANSI.Leijen hiding ((<$>))
 
-instance BoogiePretty Expression where
+instance Pretty LValue where
+  pretty (LValue v is) = pretty v
+                      <> hsep (brackets . commaSep . fmap pretty <$> is)
+
+instance Pretty Expression where
   pretty = \case
-    IntegerLiteral i -> pretty i
-    BooleanLiteral b -> pretty b
-    Unary  op e -> pretty op ++ parens (pretty e)
-    Binary op a b -> unwords [pretty a, pretty op, pretty b]
-    IfElse a b c -> unwords [pretty a, "?", pretty b, ":", pretty c]
-    FunApp f as -> pretty f ++ parens (intercalate ", " $ map pretty as)
-    Equals s a b -> unwords [pretty a, pretty s, pretty b]
+    IntegerLiteral i -> number i
+    BooleanLiteral b -> boolean b
+    Unary  op e -> pretty op <> parens (pretty e)
+    Binary op a b -> pretty a <+> pretty op <+> pretty b
+    IfElse a b c -> pretty a <+> punctuation "?" <+> pretty b
+                             <+> punctuation ":" <+> pretty c
+    FunApp f as -> pretty f <> tupled (fmap pretty as)
+    Equals s a b -> pretty a <+> pretty s <+> pretty b
     Ref lv -> pretty lv
 
-indent :: Integer -> String
-indent n = replicate (fromIntegral n * 2) ' '
+atomic :: [Doc] -> Doc
+atomic ds = hsep ds <> punctuation ";"
 
-atomic :: Integer -> [String] -> String
-atomic n ss = indent n ++ unwords ss ++ ";\n"
+marked :: String -> Doc -> Doc
+marked k d = atomic [keyword k, d]
 
-braces :: BoogiePretty s => Integer -> s -> String
-braces n s | null s'   = "{}"
-           | otherwise = "{\n" ++ s' ++ indent n ++ "}"
-  where s' = indented (n + 1) s
+nested :: [Doc] -> Doc
+nested d = nest 2 (line <> vsep d) <> line
 
-commaSep :: BoogiePretty a => NonEmpty a -> String
-commaSep = VNE.intercalate ", " . fmap pretty
+block :: Pretty a => [a] -> Doc
+block = braces . nested . fmap pretty
 
-indentedIte :: Integer -> Expression -> [Statement] -> [Statement] -> String
-indentedIte n c a b = indent n ++ unwords (thenBranch ++ elseBranch) ++ "\n"
+prettyIte :: Expression -> [Statement] -> [Statement] -> Doc
+prettyIte c a b = hsep (thenBranch ++ elseBranch)
   where
-    thenBranch = ["if", parens (pretty c), braces n a]
-    elseBranch = if null b then [] else ["else", braces n b]
+    thenBranch = [keyword "if", parens (pretty c), block a]
+    elseBranch = if null b then [] else [keyword "else", block b]
 
-instance BoogiePretty Statement where
-  indented n = \case
-    Assign pairs -> atomic n [commaSep lvs, ":=", commaSep es]
-      where (lvs, es) = NE.unzip pairs
-    If c False a b -> indentedIte n c (NE.toList a) b
-    If c True  a b -> indentedIte n c b (NE.toList a)
+instance Pretty Statement where
+  pretty = \case
+    Assign pairs -> atomic [prettyLVs, operator ":=", prettyRVs]
+      where
+        (lvs, rvs) = NE.unzip pairs
+        prettyLVs = commaSep (pretty <$> lvs)
+        prettyRVs = commaSep (pretty <$> rvs)
+    If c False a b -> prettyIte c (NE.toList a) b
+    If c True  a b -> prettyIte c b (NE.toList a)
 
-instance BoogiePretty Assume where
-  indented n (Assume f) = atomic n ["assume", pretty f]
+instance Pretty Assume where
+  pretty (Assume f) = marked "assume" (pretty f)
 
-instance BoogiePretty TopLevel where
-  indented n (Left stmt) = indented n stmt
-  indented n (Right ass) = indented n ass
+instance Pretty TopLevel where
+  pretty (Left stmt) = pretty stmt
+  pretty (Right ass) = pretty ass
 
-instance BoogiePretty [Statement] where
-  indented n = concatMap (indented n)
-
-instance BoogiePretty [TopLevel] where
-  indented n = concatMap (indented n)
-
-instance BoogiePretty Main where
+instance Pretty Main where
   pretty (Main modifies requires contents ensures) =
-       "procedure main()\n"
-    ++ if null modifies then "" else prettyModifies
-    ++ concatMap prettyPre requires
-    ++ concatMap prettyPost ensures
-    ++ braces 0 contents
+       keyword "procedure" <+> text "main" <> parens empty
+    <> nested (prettyModifies : prettyPre ++ prettyPost)
+    <> block contents
     where
-      prettyModifies = atomic 1 ["modifies", intercalate ", " $ map pretty modifies]
-      prettyPre f = atomic 1 ["requires", pretty f]
-      prettyPost f = atomic 1 ["ensures", pretty f]
+      prettyModifies = case NE.nonEmpty modifies of
+        Just m -> marked "modifies" (commaSep (pretty <$> m))
+        Nothing -> empty
+      prettyPre = marked "requires" . pretty <$> requires
+      prettyPost = marked "ensures" . pretty <$> ensures
 
-instance BoogiePretty Boogie where
-  pretty (Boogie vars main) = prettyVars ++ pretty main
+instance Pretty Boogie where
+  pretty (Boogie vars main) = prettyVars <> line <> pretty main
     where
-      prettyVars = concatMap prettyVarDecl vars
-      prettyVarDecl t = atomic 0 ["var", prettyTyped t]
+      prettyVars = vsep (prettyVarDecl <$> vars)
+      prettyVarDecl t = marked "var" (prettyTyped t)
