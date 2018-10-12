@@ -1,27 +1,27 @@
-module Voogie.Boogie.BoogiePretty (pretty) where
+module Voogie.Boogie.BoogiePretty() where
 
 import qualified Data.List.NonEmpty as NE
 
-import Voogie.BoogiePretty
 import Voogie.Boogie
-
+import Voogie.BoogiePretty
 import Voogie.FOOL.BoogiePretty()
 
 import Text.PrettyPrint.ANSI.Leijen hiding ((<$>))
 
 instance Pretty LValue where
-  pretty (LValue v is) = pretty v
-                      <> hsep (brackets . commaSep . fmap pretty <$> is)
+  pretty (LValue v is) = pretty v <> hsep (tuple . fmap pretty <$> is)
 
 instance Pretty Expression where
   pretty = \case
     IntegerLiteral i -> number i
     BooleanLiteral b -> boolean b
-    Unary  op e -> pretty op <> parens (pretty e)
+    Unary op e -> funapp1 (pretty op) (pretty e)
     Binary op a b -> pretty a <+> pretty op <+> pretty b
     IfElse a b c -> pretty a <+> punctuation "?" <+> pretty b
                              <+> punctuation ":" <+> pretty c
-    FunApp f as -> pretty f <> tupled (fmap pretty as)
+    FunApp f as -> case NE.nonEmpty as of
+      Just as' -> funapp (pretty f) (pretty <$> as')
+      Nothing  -> funapp1 (pretty f) empty
     Equals s a b -> pretty a <+> pretty s <+> pretty b
     Ref lv -> pretty lv
 
@@ -62,7 +62,7 @@ instance Pretty TopLevel where
 
 instance Pretty Main where
   pretty (Main modifies requires contents ensures) =
-       keyword "procedure" <+> text "main" <> parens empty
+       keyword "procedure" <+> funapp1 (text "main") empty
     <> nested (prettyModifies : prettyPre ++ prettyPost)
     <> block contents
     where

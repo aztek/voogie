@@ -41,6 +41,7 @@ executable voogie
     Voogie.FOOL.AST
     Voogie.FOOL.Tuple
     Voogie.FOOL.TypeSafe
+    Voogie.FOOL.TPTPretty
     Voogie.FOOL.Parse
     Voogie.FOOL.BoogiePretty
     Voogie.FOOL.Rewrite
@@ -48,6 +49,7 @@ executable voogie
     Voogie.Front
     Voogie.NonEmpty
     Voogie.Parse
+    Voogie.Pretty
     Voogie.BoogiePretty
     Voogie.Theory
     Voogie.TPTP

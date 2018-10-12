@@ -14,7 +14,7 @@ instance Pretty Term where
     BooleanConstant b -> boolean b
     Variable v -> pretty v
     Constant f -> pretty f
-    Application f as -> pretty f <> parens (commaSep (pretty <$> as))
+    Application f as -> funapp (pretty f) (pretty <$> as)
     Binary op a b -> parens $ pretty a <+> pretty op <+> pretty b
     Unary op t -> pretty op <> pretty t
     Quantify q vs t -> parens $ pretty q <+> commaSep (prettyTyped <$> vs)
@@ -28,4 +28,3 @@ instance Pretty Term where
                        " in the Boogie syntax."
     t@TupleLiteral{} -> error $ "Cannot represent tuple literal " ++ show t ++
                                 " in the Boogie syntax."
-

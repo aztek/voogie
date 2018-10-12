@@ -10,7 +10,7 @@ import Voogie.CmdArgs
 import Voogie.Boogie.Parse
 import Voogie.Front
 import Voogie.Back
-import Voogie.TPTPretty
+import Voogie.TPTPretty()
 
 import Text.PrettyPrint.ANSI.Leijen
 
@@ -35,7 +35,7 @@ main = do
 
   let printAST = const (print "")
   let printBoogie = putDoc . pretty
-  let printTPTP = putStrLn . prettyTPTP
+  let printTPTP = putDoc . pretty
 
   case action cmdArgs of
     Parse -> renderOutput printAST

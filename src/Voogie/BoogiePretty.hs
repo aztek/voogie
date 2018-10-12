@@ -1,16 +1,12 @@
-module Voogie.BoogiePretty where
-
-import Data.List.NonEmpty (NonEmpty(..))
+module Voogie.BoogiePretty(
+  module Voogie.Pretty,
+  prettyTyped, boolean
+) where
 
 import Voogie.Theory
+import Voogie.Pretty
 
 import Text.PrettyPrint.ANSI.Leijen hiding ((<$>))
-
-keyword = text
-operator = text
-builtin = text
-number = integer
-punctuation = text
 
 instance Pretty Type where
   pretty Integer = builtin "int"
@@ -64,9 +60,3 @@ instance Pretty Sign where
   pretty = operator . \case
     Pos -> "=="
     Neg -> "!="
-
-sepBy :: Doc -> NonEmpty Doc -> Doc
-sepBy s (d :| ds) = d <> mconcat (fmap (s <>) ds)
-
-commaSep :: NonEmpty Doc -> Doc
-commaSep = sepBy (comma <> space)
