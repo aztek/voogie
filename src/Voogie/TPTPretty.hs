@@ -13,7 +13,7 @@ tff :: String -> String -> Doc -> Doc
 tff n it s = funapp3 (keyword "tff") (text n) (keyword it) s <> punctuation "."
 
 prettyTypeDeclaration :: Name -> Doc
-prettyTypeDeclaration n = tff n "type" (text n <+> colon <> keyword "$tType")
+prettyTypeDeclaration n = tff n "type" (text n <> colon <+> keyword "$tType")
 
 prettySymbolDeclaration :: Typed Name -> Doc
 prettySymbolDeclaration n@(Typed _ s) = tff s "type" (pretty n)

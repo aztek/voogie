@@ -2,7 +2,9 @@ module Main(main) where
 
 import Options.Applicative (execParser)
 
-import System.IO
+import System.IO (stdout, stderr)
+import System.Posix.Terminal (queryTerminal)
+import System.Posix.IO (stdOutput, stdError)
 
 import Data.Maybe
 import System.Exit
@@ -29,8 +31,17 @@ main = do
 
   let printOutput :: Pretty a => Result a -> IO ()
       printOutput = \case
-        Left error   -> hPutDoc stderr (pretty $ ErrorReport contents error) >> exitFailure
-        Right result -> hPutDoc stdout (pretty result) >> exitSuccess
+        Left error -> do
+          istty <- queryTerminal stdError
+          let pretty' = if istty then pretty else plain . pretty
+          hPutDoc stderr (pretty' $ ErrorReport contents error)
+          exitFailure
+
+        Right result -> do
+          istty <- queryTerminal stdOutput
+          let pretty' = if istty then pretty else plain . pretty
+          hPutDoc stdout (pretty' result)
+          exitSuccess
 
   let runParser = parseAST source contents
   let runAnalyzer = analyze
