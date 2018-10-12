@@ -18,9 +18,6 @@ instance Pretty Type where
     where ts' = sepBy (space <> operator "*" <> space) (pretty <$> ts)
   pretty (Custom n) = pretty n
 
-instance Pretty a => Pretty (Typed a) where
-  pretty (Typed _ a) = pretty a
-
 prettyTyped :: Pretty a => Typed a -> Doc
 prettyTyped (Typed t a) = pretty a <> punctuation ":" <+> pretty t
 

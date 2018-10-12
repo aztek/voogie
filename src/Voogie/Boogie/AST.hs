@@ -6,6 +6,8 @@ import Voogie.AST
 import Voogie.Theory
 import qualified Voogie.FOOL.AST as F
 
+import Text.PrettyPrint.ANSI.Leijen hiding ((<$>))
+
 type Identifier = AST String
 
 data LVal = Ref Identifier [NonEmpty Expr]
@@ -46,3 +48,6 @@ data Main = Main [Identifier] [F.Formula] (Maybe Returns)
 
 data Boogie = Boogie [Decl] Main
   deriving (Show, Eq)
+
+instance Pretty Boogie where
+  pretty = const empty

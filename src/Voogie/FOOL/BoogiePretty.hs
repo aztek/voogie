@@ -1,9 +1,13 @@
 module Voogie.FOOL.BoogiePretty (pretty) where
 
-import Voogie.BoogiePretty
+import Voogie.Theory
 import Voogie.FOOL
+import Voogie.BoogiePretty
 
 import Text.PrettyPrint.ANSI.Leijen hiding ((<$>))
+
+instance Pretty a => Pretty (Typed a) where
+  pretty (Typed _ a) = pretty a
 
 instance Pretty Var where
   pretty (Var v) = text v

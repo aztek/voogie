@@ -1,10 +1,8 @@
 {-# LANGUAGE GADTs #-}
 
 module Voogie.Error (
-  Result, Error(..), renderError
+  Result, Error(..), ErrorReport(..)
 ) where
-
-import Data.List
 
 import Voogie.Theory
 import Voogie.AST
@@ -13,8 +11,7 @@ import Voogie.BoogiePretty()
 import Text.Parsec
 import Text.Parsec.Error
 
-import System.IO
-import Text.PrettyPrint.ANSI.Leijen
+import Text.PrettyPrint.ANSI.Leijen hiding ((<$>))
 
 type Result = Either Error
 
@@ -26,35 +23,60 @@ data Error where
   NonArraySelect :: Pretty a => AST (Typed a) -> Error
   ArrayDimensionMismatch :: Pretty a => AST (Typed a) -> Error
 
-renderError :: String -> Error -> IO ()
-renderError contents = hPutDoc stderr . \case
-  ParsingError err -> renderError' (errorPos err, errorPos err)
-    [text "failed to parse",
-     text $ showErrorMessages "or" "unknown parse error" "expecting"
-                              "unexpected" "end of input" (errorMessages err)]
-  UndefinedVariable (AST pos v) -> renderError' pos
-    [text "variable not in scope:", white (text v)]
-  MultipleDefinitions (AST pos v) -> renderError' pos
-    [text "variable redefined:", renderTyped v]
-  TypeMismatch (AST pos a) t' -> renderError' pos
-    [text "expected an expression of the type", white (pretty t'),
-     text "but got", renderTyped a]
-  NonArraySelect (AST pos a) -> renderError' pos
-    [text "expected an expression of an array type,",
-     text "but got", renderTyped a]
-  ArrayDimensionMismatch (AST pos a) -> renderError' pos
-    [text "too many array indexes for", renderTyped a]
-  where
-    renderError' :: (SourcePos, SourcePos) -> [Doc] -> Doc
-    renderError' pos@(begin, _) msgs =
-         hsep (p:e:msgs) <> hardline <> hardline
-      <> renderErrorLine (lines contents !! (sourceLine begin - 1)) pos
-      where
-        p = bold . white $ text (prettyPosition begin) <> colon
-        e = bold . red $ text "error" <> colon
+instance Pretty Error where
+  pretty = \case
+    ParsingError err ->
+         text "failed to parse"
+     <+> text (showErrorMessages "or" "unknown parse error" "expecting"
+                                 "unexpected" "end of input"
+                               $ errorMessages err)
 
-renderErrorLine :: String -> (SourcePos, SourcePos) -> Doc
-renderErrorLine errorLine (begin, end) =
+    UndefinedVariable (AST _ v) ->
+      text "variable not in scope:" <+> bold (pretty v)
+
+    MultipleDefinitions (AST _ v) ->
+      text "variable redefined:" <+> renderTyped v
+
+    TypeMismatch (AST _ a) t ->
+          text "expected an expression of the type" <+> bold (pretty t)
+      <+> text "but got" <+> renderTyped a
+
+    NonArraySelect (AST _ a) ->
+          text "expected an expression of an array type,"
+      <+> text "but got" <+> renderTyped a
+
+    ArrayDimensionMismatch (AST _ a) ->
+      text "too many array indexes for" <+> renderTyped a
+
+renderTyped :: Pretty a => Typed a -> Doc
+renderTyped (Typed t a) =
+  bold (pretty a) <+> text "of the type" <+> bold (pretty t)
+
+type ErrorRange = (SourcePos, SourcePos)
+
+errorRange :: Error -> ErrorRange
+errorRange = \case
+  ParsingError err -> (errorPos err, errorPos err)
+  UndefinedVariable (AST range _) -> range
+  MultipleDefinitions (AST range _) -> range
+  TypeMismatch (AST range _) _ -> range
+  NonArraySelect (AST range _) -> range
+  ArrayDimensionMismatch (AST range _) -> range
+
+data ErrorReport = ErrorReport String Error
+
+instance Pretty ErrorReport where
+  pretty (ErrorReport contents error) =
+       bold (pos <+> red (text "error" <> colon)) <+> pretty error
+    <> hardline <> hardline
+    <> prettyErrorLine errorLine range
+    where
+      range@(begin, _) = errorRange error
+      errorLine = lines contents !! (sourceLine begin - 1)
+      pos = bold (pretty begin <> colon)
+
+prettyErrorLine :: String -> ErrorRange -> Doc
+prettyErrorLine errorLine (begin, end) =
     text preToken
  <> (bold . red . text $ token)
  <> text postToken
@@ -71,14 +93,9 @@ renderErrorLine errorLine (begin, end) =
     underlining = replicate tokenBegin ' ' ++ replicate tokenLength '^' ++
                   if sourceLine end /= sourceLine begin then "..." else ""
 
-renderTyped :: Pretty a => Typed a -> Doc
-renderTyped (Typed t a) = hsep [
-    white (pretty a), text "of the type", white (pretty t)
-  ]
-
-prettyPosition :: SourcePos -> String
-prettyPosition pos = intercalate ":" [source, line, column]
-  where
-    source = sourceName pos
-    line = show (sourceLine pos)
-    column = show (sourceColumn pos)
+instance Pretty SourcePos where
+  pretty pos = text $ source ++ ":" ++ line ++ ":" ++ column
+    where
+      source = sourceName pos
+      line = show (sourceLine pos)
+      column = show (sourceColumn pos)
