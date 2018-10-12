@@ -68,8 +68,9 @@ data ErrorReport = ErrorReport String Error
 instance Pretty ErrorReport where
   pretty (ErrorReport contents error) =
        bold (pos <+> red (text "error" <> colon)) <+> pretty error
-    <> hardline <> hardline
+    <> hardline
     <> prettyErrorLine errorLine range
+    <> hardline
     where
       range@(begin, _) = errorRange error
       errorLine = lines contents !! (sourceLine begin - 1)
@@ -77,13 +78,16 @@ instance Pretty ErrorReport where
 
 prettyErrorLine :: String -> ErrorRange -> Doc
 prettyErrorLine errorLine (begin, end) =
-    text preToken
- <> (bold . red . text $ token)
- <> text postToken
- <> hardline
- <> (bold . red . text $ underlining)
- <> hardline
+    vsep $ zipWith (<>) lineMargin [
+      empty,
+      text preToken <> (bold . red . text $ token) <> text postToken,
+      (bold . red . text $ underlining)
+    ]
   where
+    lineNumber = show (sourceLine begin)
+    linePadding = replicate (length lineNumber) ' '
+    lineMargin = map (bold . blue . text . (++ " | "))
+                     [linePadding, lineNumber, linePadding]
     tokenBegin = sourceColumn begin - 1
     tokenEnd = if sourceLine end /= sourceLine begin
                then length errorLine else sourceColumn end - 1
