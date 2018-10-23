@@ -89,7 +89,7 @@ prettyErrorLine errorLine (begin, end) =
     lineMargin = map (bold . blue . text . (++ " | "))
                      [linePadding, lineNumber, linePadding]
     tokenBegin = sourceColumn begin - 1
-    tokenEnd = if sourceLine end /= sourceLine begin
+    tokenEnd = if sourceLine end /= sourceLine begin || begin == end
                then length errorLine else sourceColumn end - 1
     tokenLength = tokenEnd - tokenBegin
     (preToken, restLine) = splitAt tokenBegin errorLine
