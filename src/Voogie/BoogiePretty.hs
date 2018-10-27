@@ -1,5 +1,6 @@
 module Voogie.BoogiePretty(
   module Voogie.Pretty,
+  isAssociative, comparePrecedence, comparePrecedenceEquality,
   prettyTyped, boolean
 ) where
 
@@ -37,7 +38,7 @@ instance Pretty BinaryOp where
     And      -> "&&"
     Or       -> "||"
     Imply    -> "==>"
-    Iff      -> "=="
+    Iff      -> "<==>"
     Xor      -> "!="
     Greater  -> ">"
     Less     -> "<"
@@ -46,7 +47,45 @@ instance Pretty BinaryOp where
     Add      -> "+"
     Subtract -> "-"
     Multiply -> "*"
-    Divide   -> "/"
+    Divide   -> "div"
+
+isAssociative :: BinaryOp -> Bool
+isAssociative = \case
+  And      -> True
+  Or       -> True
+  Imply    -> False
+  Iff      -> False
+  Xor      -> False
+  Greater  -> False
+  Less     -> False
+  Geq      -> False
+  Leq      -> False
+  Add      -> True
+  Subtract -> False
+  Multiply -> True
+  Divide   -> False
+
+precedence :: BinaryOp -> Int
+precedence = \case
+  Multiply -> 10
+  Divide   -> 10
+  Add      -> 9
+  Subtract -> 9
+  Greater  -> 8
+  Less     -> 8
+  Geq      -> 8
+  Leq      -> 8
+  And      -> 6
+  Or       -> 6
+  Iff      -> 5
+  Xor      -> 5
+  Imply    -> 4
+
+comparePrecedence :: BinaryOp -> BinaryOp -> Ordering
+comparePrecedence op1 op2 = compare (precedence op1) (precedence op2)
+
+comparePrecedenceEquality :: BinaryOp -> Ordering
+comparePrecedenceEquality op = compare 7 (precedence op)
 
 boolean :: Bool -> Doc
 boolean = builtin . \case

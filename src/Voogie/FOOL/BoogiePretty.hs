@@ -12,6 +12,12 @@ instance Pretty a => Pretty (Typed a) where
 instance Pretty Var where
   pretty (Var v) = text v
 
+pretty' :: Term -> Doc
+pretty' t@Binary{} = parens (pretty t)
+pretty' t@Equals{} = parens (pretty t)
+pretty' t@If{} = parens (pretty t)
+pretty' t = pretty t
+
 instance Pretty Term where
   pretty = \case
     IntegerConstant i -> number i
@@ -19,11 +25,25 @@ instance Pretty Term where
     Variable v -> pretty v
     Constant f -> pretty f
     Application f as -> funapp (pretty f) (pretty <$> as)
-    Binary op a b -> parens $ pretty a <+> pretty op <+> pretty b
-    Unary op t -> pretty op <> pretty t
+    Binary op a b -> pretty'' a <+> pretty op <+> pretty'' b
+      where
+        pretty'' t@(Binary op' _ _) = case op `comparePrecedence` op' of
+          LT -> pretty t
+          EQ | op == op' && isAssociative op -> pretty t
+          _ -> parens (pretty t)
+        pretty'' t@Equals{} = case comparePrecedenceEquality op of
+          GT -> pretty t
+          _ -> parens (pretty t)
+        pretty'' t = pretty' t
+    Unary op t -> pretty op <> pretty' t
     Quantify q vs t -> parens $ pretty q <+> commaSep (prettyTyped <$> vs)
                             <+> punctuation "::" <+> pretty t
-    Equals s a b -> parens $ pretty a <+> pretty s <+> pretty b
+    Equals s a b -> pretty'' a <+> pretty s <+> pretty'' b
+      where
+        pretty'' t@(Binary op _ _) = case comparePrecedenceEquality op of
+          LT -> pretty t
+          _ -> parens (pretty t)
+        pretty'' t = pretty' t
     If c a b -> pretty c <+> punctuation "?" <+> pretty a
                          <+> punctuation ":" <+> pretty b
     Select a i -> pretty a <> brackets (pretty i)

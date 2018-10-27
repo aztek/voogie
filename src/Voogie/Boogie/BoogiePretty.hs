@@ -11,18 +11,35 @@ import Text.PrettyPrint.ANSI.Leijen hiding ((<$>))
 instance Pretty LValue where
   pretty (LValue v is) = pretty v <> hsep (tuple . fmap pretty <$> is)
 
+pretty' :: Expression -> Doc
+pretty' e@Binary{} = parens (pretty e)
+pretty' e@Equals{} = parens (pretty e)
+pretty' e@IfElse{} = parens (pretty e)
+pretty' e = pretty e
+
 instance Pretty Expression where
   pretty = \case
     IntegerLiteral i -> number i
     BooleanLiteral b -> boolean b
-    Unary op e -> funapp1 (pretty op) (pretty e)
-    Binary op a b -> pretty a <+> pretty op <+> pretty b
+    Unary op e -> pretty op <> pretty' e
+    Binary op a b -> pretty'' a <+> pretty op <+> pretty'' b
+      where
+        pretty'' e@(Binary op' _ _) = case op `comparePrecedence` op' of
+          LT -> pretty e
+          EQ | op == op' && isAssociative op -> pretty e
+          _ -> parens (pretty e)
+        pretty'' e = pretty' e
     IfElse a b c -> pretty a <+> punctuation "?" <+> pretty b
                              <+> punctuation ":" <+> pretty c
     FunApp f as -> case NE.nonEmpty as of
       Just as' -> funapp (pretty f) (pretty <$> as')
       Nothing  -> funapp1 (pretty f) empty
-    Equals s a b -> pretty a <+> pretty s <+> pretty b
+    Equals s a b -> pretty'' a <+> pretty s <+> pretty'' b
+      where
+        pretty'' e@(Binary op _ _) = case comparePrecedenceEquality op of
+          LT -> pretty e
+          _ -> parens (pretty e)
+        pretty'' e = pretty' e
     Ref lv -> pretty lv
 
 atomic :: [Doc] -> Doc
@@ -65,6 +82,7 @@ instance Pretty Main where
        keyword "procedure" <+> funapp1 (text "main") empty
     <> nested (prettyModifies : prettyPre ++ prettyPost)
     <> block contents
+    <> line
     where
       prettyModifies = case NE.nonEmpty modifies of
         Just m -> marked "modifies" (commaSep (pretty <$> m))

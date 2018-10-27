@@ -80,8 +80,8 @@ prettyErrorLine :: String -> ErrorRange -> Doc
 prettyErrorLine errorLine (begin, end) =
     vsep $ zipWith (<>) lineMargin [
       empty,
-      text preToken <> (bold . red . text $ token) <> text postToken,
-      (bold . red . text $ underlining)
+      text preToken <> errorText token <> text postToken,
+      errorText underlining
     ]
   where
     lineNumber = show (sourceLine begin)
@@ -96,6 +96,7 @@ prettyErrorLine errorLine (begin, end) =
     (token, postToken) = splitAt tokenLength restLine
     underlining = replicate tokenBegin ' ' ++ replicate tokenLength '^' ++
                   if sourceLine end /= sourceLine begin then "..." else ""
+    errorText = bold . red . text
 
 instance Pretty SourcePos where
   pretty pos = text $ source ++ ":" ++ line ++ ":" ++ column
