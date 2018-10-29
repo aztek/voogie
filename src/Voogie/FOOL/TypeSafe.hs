@@ -1,5 +1,3 @@
-{-# LANGUAGE PatternGuards #-}
-
 module Voogie.FOOL.TypeSafe (
   module Voogie.FOOL.TypeSafe,
   Var, Identifier, Definition(..), Binding(..), Term, Formula

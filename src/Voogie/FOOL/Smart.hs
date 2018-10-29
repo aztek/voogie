@@ -1,5 +1,3 @@
-{-# LANGUAGE PatternGuards #-}
-
 module Voogie.FOOL.Smart (
   module Voogie.FOOL.Smart,
   Var, VarList, Identifier, Definition(..), Binding(..), Term(..), Formula

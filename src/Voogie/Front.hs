@@ -1,5 +1,3 @@
-{-# LANGUAGE PatternGuards #-}
-
 module Voogie.Front (analyze) where
 
 import Control.Monad (foldM)

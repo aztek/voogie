@@ -1,5 +1,3 @@
-{-# LANGUAGE PatternGuards #-}
-
 module Voogie.Theory where
 
 import qualified Data.List.NonEmpty as NE

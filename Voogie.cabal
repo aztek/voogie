@@ -57,7 +57,7 @@ executable voogie
     Voogie.TPTPretty
   default-extensions:
     DeriveFunctor, DeriveFoldable, DeriveTraversable,
-    FlexibleInstances, LambdaCase
+    FlexibleInstances, LambdaCase, PatternGuards
   ghc-options: -Wall -fno-warn-missing-signatures -Werror -threaded
   build-depends:
     base >= 4 && < 5,

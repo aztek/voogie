@@ -1,5 +1,3 @@
-{-# LANGUAGE PatternGuards #-}
-
 module Voogie.Boogie.Smart (
   module Voogie.Boogie.Smart,
   TopLevel, Statement, Assignment, Assume, Expression, LValue, Main, Boogie
