@@ -3,6 +3,7 @@ module Voogie.Boogie.BoogiePretty() where
 import qualified Data.List.NonEmpty as NE
 
 import Voogie.Boogie
+import Voogie.BoogieSyntax
 import Voogie.BoogiePretty
 import Voogie.FOOL.BoogiePretty()
 
@@ -57,12 +58,12 @@ block = braces . nested . fmap pretty
 prettyIte :: Expression -> [Statement] -> [Statement] -> Doc
 prettyIte c a b = hsep (thenBranch ++ elseBranch)
   where
-    thenBranch = [keyword "if", parens (pretty c), block a]
-    elseBranch = if null b then [] else [keyword "else", block b]
+    thenBranch = [keyword kwdIf, parens (pretty c), block a]
+    elseBranch = if null b then [] else [keyword kwdElse, block b]
 
 instance Pretty Statement where
   pretty = \case
-    Assign pairs -> atomic [prettyLVs, operator ":=", prettyRVs]
+    Assign pairs -> atomic [prettyLVs, operator opAssign, prettyRVs]
       where
         (lvs, rvs) = NE.unzip pairs
         prettyLVs = commaSep (pretty <$> lvs)
@@ -71,7 +72,7 @@ instance Pretty Statement where
     If c True  a b -> prettyIte c b (NE.toList a)
 
 instance Pretty Assume where
-  pretty (Assume f) = marked "assume" (pretty f)
+  pretty (Assume f) = marked kwdAssume (pretty f)
 
 instance Pretty TopLevel where
   pretty (Left stmt) = pretty stmt
@@ -79,19 +80,19 @@ instance Pretty TopLevel where
 
 instance Pretty Main where
   pretty (Main modifies requires contents ensures) =
-       keyword "procedure" <+> funapp1 (text "main") empty
+       keyword kwdProcedure <+> funapp1 (text kwdMain) empty
     <> nested (prettyModifies : prettyPre ++ prettyPost)
     <> block contents
     <> line
     where
       prettyModifies = case NE.nonEmpty modifies of
-        Just m -> marked "modifies" (commaSep (pretty <$> m))
+        Just m -> marked kwdModifies (commaSep (pretty <$> m))
         Nothing -> empty
-      prettyPre = marked "requires" . pretty <$> requires
-      prettyPost = marked "ensures" . pretty <$> ensures
+      prettyPre = marked kwdRequires . pretty <$> requires
+      prettyPost = marked kwdEnsures . pretty <$> ensures
 
 instance Pretty Boogie where
   pretty (Boogie vars main) = prettyVars <> line <> pretty main
     where
       prettyVars = vsep (prettyVarDecl <$> vars)
-      prettyVarDecl t = marked "var" (prettyTyped t)
+      prettyVarDecl t = marked kwdVar (prettyTyped t)

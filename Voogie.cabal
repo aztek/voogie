@@ -30,6 +30,7 @@ executable voogie
     Voogie.AST
     Voogie.Back
     Voogie.Boogie
+    Voogie.BoogieSyntax
     Voogie.Boogie.AST
     Voogie.Boogie.Parse
     Voogie.Boogie.BoogiePretty

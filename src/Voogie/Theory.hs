@@ -59,19 +59,19 @@ instance TypeOf (Typed a) where
 data Quantifier
   = Forall
   | Exists
-  deriving (Show, Eq, Ord, Bounded)
+  deriving (Show, Eq, Ord, Bounded, Enum)
 
 data UnaryOp
   = Negate
   | Positive
   | Negative
-  deriving (Show, Eq, Ord, Bounded)
+  deriving (Show, Eq, Ord, Bounded, Enum)
 
 data BinaryOp
   = And | Or | Imply | Iff | Xor
   | Greater | Less | Geq | Leq
   | Add | Subtract | Multiply | Divide
-  deriving (Show, Eq, Ord, Bounded)
+  deriving (Show, Eq, Ord, Bounded, Enum)
 
 unaryOpTypes :: UnaryOp -> (Type, Type)
 unaryOpTypes = \case
@@ -113,4 +113,4 @@ binaryOpRange = snd . binaryOpTypes
 data Sign
   = Pos
   | Neg
-  deriving (Show, Eq, Ord, Bounded)
+  deriving (Show, Eq, Ord, Bounded, Enum)

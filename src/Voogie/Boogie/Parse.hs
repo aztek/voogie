@@ -1,6 +1,6 @@
 module Voogie.Boogie.Parse (parseAST) where
 
-import Control.Monad (guard)
+import Control.Monad (guard, sequence_)
 import Data.Maybe
 import qualified Data.List.NonEmpty as NE
 
@@ -10,6 +10,7 @@ import Text.Parsec.Expr
 
 import Voogie.Error
 import Voogie.Theory
+import Voogie.BoogieSyntax
 import Voogie.Boogie.AST
 
 import Voogie.Parse
@@ -18,23 +19,27 @@ import qualified Voogie.FOOL.Parse as F
 expr :: Parser Expr
 expr = buildExpressionParser operators term
 
-unary  = fmap (\(n, op) -> prefix n (Unary op))
-binary = fmap (\(n, op) -> infix' n (Binary op))
-equals = fmap (\(n, op) -> infix' n (Equals op))
+unary  = prefix <$> unaryOpName <*> Unary
+binary = infix' <$> binaryOpName <*> Binary
+equals = infix' <$> signName <*> Equals
 
-operators = [
-  unary [("-", Negative), ("+", Positive)],
-  assocLeft $ binary [("*", Multiply), ("div", Divide)],
-  assocLeft $ binary [("+", Add), ("-", Subtract)],
-  assocNone $ binary [(">", Greater), ("<", Less), (">=", Geq), ("<=", Leq)],
-  assocLeft $ equals [("==", Pos), ("!=", Neg)],
-  unary [("!", Negate)],
-  assocLeft $ binary [("&&", And), ("||", Or)]
-  ]
+operators = unaryOperators ++ binaryOperators
+  where
+    unaryOperators = [
+        unary <$> [Negative, Positive],
+        unary <$> [Negate]
+      ]
+
+    binaryOperators = [
+        assocLeft $ binary <$> [Multiply, Divide],
+        assocLeft $ binary <$> [Add, Subtract],
+        assocNone $ binary <$> [Greater, Less, Geq, Leq],
+        assocNone $ equals <$> [Pos, Neg],
+        assocLeft $ binary <$> [And, Or]
+      ]
 
 term =  parens expr
-    <|> ast (constant "true"  (BoolConst True))
-    <|> ast (constant "false" (BoolConst False))
+    <|> ast (BoolConst <$> boolean)
     <|> ast (IntConst <$> integer)
     <|> ast (LVal <$> lval)
 
@@ -50,24 +55,24 @@ stmt = ast (assignStmt <|> ifStmt)
 
 assignStmt = atomicStmt $ do
   lvals <- commaSep1 lval
-  reserved ":="
+  reserved opAssign
   rvals <- commaSep1 expr
   guard (length lvals == length rvals)
   return $ Assign (NE.zip lvals rvals)
 
-ifStmt = reserved "if" >> If <$> parens expr <*> stmts <*> elseStmts
-elseStmts = fromMaybe [] <$> optionMaybe (reserved "else" >> stmts)
+ifStmt = reserved kwdIf >> If <$> parens expr <*> stmts <*> elseStmts
+elseStmts = fromMaybe [] <$> optionMaybe (reserved kwdElse >> stmts)
 
 atomicStmt p = p <* semi
 
 keyword k p = atomicStmt (reserved k >> p)
 
 decl :: Parser Decl
-decl = keyword "var" $ Declare <$> typed (commaSep1 identifier)
+decl = keyword kwdVar $ Declare <$> typed (commaSep1 identifier)
 
 main :: Parser Main
 main = do
-  mapM_ reserved ["procedure", "main", "(", ")"]
+  sequence_ [reserved kwdProcedure, reserved kwdMain, parens $ return ()]
   returns <- optionMaybe returns
   ms <- optionMaybe modifies
   pre  <- many (try precondition)
@@ -78,13 +83,13 @@ main = do
     return (ds, ss)
   return (Main (maybe [] NE.toList ms) pre returns ds ss post)
 
-returns = reserved "returns" >> parens (Returns <$> commaSep1 (typed identifier))
-modifies = keyword "modifies" (commaSep1 identifier)
+returns = reserved kwdReturns >> parens (Returns <$> commaSep1 (typed identifier))
+modifies = keyword kwdModifies (commaSep1 identifier)
 
-precondition  = keyword "requires" F.formula
-postcondition = keyword "ensures"  F.formula
+precondition  = keyword kwdRequires F.formula
+postcondition = keyword kwdEnsures  F.formula
 
-assume = keyword "assume" (Assume <$> F.formula)
+assume = keyword kwdAssume (Assume <$> F.formula)
 
 topLevel = Left <$> stmt <|> Right <$> assume
 

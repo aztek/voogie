@@ -2,6 +2,7 @@ module Voogie.FOOL.BoogiePretty (pretty) where
 
 import Voogie.Theory
 import Voogie.FOOL
+import Voogie.BoogieSyntax
 import Voogie.BoogiePretty
 
 import Text.PrettyPrint.ANSI.Leijen hiding ((<$>))
@@ -47,7 +48,7 @@ instance Pretty Term where
     If c a b -> pretty c <+> punctuation "?" <+> pretty a
                          <+> punctuation ":" <+> pretty b
     Select a i -> pretty a <> brackets (pretty i)
-    Store a i v -> pretty a <> brackets (pretty i) <+> operator ":=" <+> pretty v
+    Store a i v -> pretty a <> brackets (pretty i) <+> operator opAssign <+> pretty v
     t@Let{} -> error $ "Cannot represent let-expression " ++ show t ++
                        " in the Boogie syntax."
     t@TupleLiteral{} -> error $ "Cannot represent tuple literal " ++ show t ++

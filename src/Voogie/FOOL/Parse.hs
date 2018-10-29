@@ -8,27 +8,34 @@ import Voogie.Theory
 import Voogie.Parse
 import Voogie.FOOL.AST
 
+import Voogie.BoogieSyntax
+
 term :: Parser Term
 term = buildExpressionParser operators arg
 
-unary  = fmap (\(n, op) -> prefix n (Unary op))
-binary = fmap (\(n, op) -> infix' n (Binary op))
-equals = fmap (\(n, op) -> infix' n (Equals op))
+unary  = prefix <$> unaryOpName <*> Unary
+binary = infix' <$> binaryOpName <*> Binary
+equals = infix' <$> signName <*> Equals
 
-operators = [
-  unary [("-", Negative), ("+", Positive)],
-  assocLeft $ binary [("*", Multiply), ("div", Divide)],
-  assocLeft $ binary [("+", Add), ("-", Subtract)],
-  assocNone $ binary [ (">", Greater), ("<", Less), (">=", Geq), ("<=", Leq)],
-  assocLeft $ equals [("==", Pos), ("!=", Neg)],
-  unary [("!", Negate)],
-  assocLeft $ binary [("&&", And), ("||", Or), ("==>", Imply)]
-  ]
+operators = unaryOperators ++ binaryOperators
+  where
+    unaryOperators = [
+        unary <$> [Negative, Positive],
+        unary <$> [Negate]
+      ]
+
+    binaryOperators = [
+        assocLeft $ binary <$> [Multiply, Divide],
+        assocLeft $ binary <$> [Add, Subtract],
+        assocNone $ binary <$> [Greater, Less, Geq, Leq],
+        assocNone $ equals <$> [Pos, Neg],
+        assocLeft $ binary <$> [And, Or],
+        assocNone $ binary <$> [Imply]
+      ]
 
 arg =  parens term
    <|> ast quantified
-   <|> ast (constant "true"  (BoolConst True))
-   <|> ast (constant "false" (BoolConst False))
+   <|> ast (BoolConst <$> boolean)
    <|> ast (IntConst <$> integer)
    <|> ast (Ref <$> identifier <*> many (brackets $ commaSep1 term))
 
@@ -36,9 +43,6 @@ quantified =  Quantified
           <$> quantifier
           <*> commaSep1 (typed $ commaSep1 identifier) <* reserved "::"
           <*> term
-
-quantifier =  constant "forall" Forall
-          <|> constant "exists" Exists
 
 formula :: Parser Formula
 formula = term

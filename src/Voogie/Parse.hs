@@ -11,6 +11,7 @@ import qualified Text.Parsec.Token as Token
 
 import Voogie.AST
 import Voogie.Theory
+import Voogie.BoogieSyntax
 
 language = emptyDef
   { Token.commentStart    = "/*"
@@ -82,3 +83,11 @@ arrayType = Array <$> brackets (commaSep1 typ) <*> typ
 
 typed :: Parser a -> Parser (Typed a)
 typed a = flip Typed <$> a <* reservedOp ":" <*> typ
+
+boolean :: Parser Bool
+boolean = constant (booleanName True)  True
+      <|> constant (booleanName False) False
+
+quantifier :: Parser Quantifier
+quantifier =  constant (quantifierName Forall) Forall
+          <|> constant (quantifierName Exists) Exists
