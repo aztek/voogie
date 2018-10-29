@@ -48,6 +48,6 @@ main = do
   let runTranslator = return . translate options
 
   case action cmdArgs of
-    Parse     -> printOutput $ runParser
+    Parse     -> printOutput   runParser
     Check     -> printOutput $ runParser >>= runAnalyzer
     Translate -> printOutput $ runParser >>= runAnalyzer >>= runTranslator

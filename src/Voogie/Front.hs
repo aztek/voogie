@@ -2,7 +2,7 @@
 
 module Voogie.Front (analyze) where
 
-import Control.Monad (foldM, join)
+import Control.Monad (foldM)
 import Control.Monad.Extra (mapMaybeM)
 import Data.Maybe
 import Data.Foldable
@@ -219,5 +219,5 @@ analyzeFormula ctx@(env, qv) f = analyzeTerm <:$> f .: Boolean
     analyzeVarList vars = Right (ctx', fmap (fmap F.var) vars'')
       where
         vars' = fmap (fmap $ fmap A.astValue) vars
-        vars'' = join (fmap sequence vars')
+        vars'' = sequence =<< vars'
         ctx' = foldr extendContext ctx vars''
