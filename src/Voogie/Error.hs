@@ -8,7 +8,7 @@ import Voogie.Theory
 import Voogie.AST
 import Voogie.BoogiePretty()
 
-import Text.Parsec
+import Text.Parsec (SourcePos, sourceName, sourceLine, sourceColumn)
 import Text.Parsec.Error
 
 import Text.PrettyPrint.ANSI.Leijen hiding ((<$>))
@@ -16,6 +16,7 @@ import Text.PrettyPrint.ANSI.Leijen hiding ((<$>))
 type Result = Either Error
 
 data Error where
+  InputOutputError :: IOError -> Error
   ParsingError :: ParseError -> Error
   UndefinedVariable :: AST Name -> Error
   MultipleDefinitions :: AST (Typed Name) -> Error
@@ -25,6 +26,9 @@ data Error where
 
 instance Pretty Error where
   pretty = \case
+    InputOutputError ioError ->
+      text (show ioError)
+
     ParsingError err ->
          text "failed to parse"
      <+> text (showErrorMessages "or" "unknown parse error" "expecting"
@@ -54,27 +58,32 @@ renderTyped (Typed t a) =
 
 type ErrorRange = (SourcePos, SourcePos)
 
-errorRange :: Error -> ErrorRange
+errorRange :: Error -> Maybe ErrorRange
 errorRange = \case
-  ParsingError err -> (errorPos err, errorPos err)
-  UndefinedVariable (AST range _) -> range
-  MultipleDefinitions (AST range _) -> range
-  TypeMismatch (AST range _) _ -> range
-  NonArraySelect (AST range _) -> range
-  ArrayDimensionMismatch (AST range _) -> range
+  InputOutputError _ -> Nothing
+  ParsingError err -> Just (errorPos err, errorPos err)
+  UndefinedVariable (AST range _) -> Just range
+  MultipleDefinitions (AST range _) -> Just range
+  TypeMismatch (AST range _) _ -> Just range
+  NonArraySelect (AST range _) -> Just range
+  ArrayDimensionMismatch (AST range _) -> Just range
 
-data ErrorReport = ErrorReport String Error
+errorText = bold . red . text
+
+data ErrorReport = ErrorReport (Maybe String) Error
 
 instance Pretty ErrorReport where
   pretty (ErrorReport contents error) =
-       bold (pos <+> red (text "error" <> colon)) <+> pretty error
-    <> hardline
-    <> prettyErrorLine errorLine range
-    <> hardline
+    bold pos <> errorText "error:" <+> pretty error <> hardline <> errorLine
     where
-      range@(begin, _) = errorRange error
-      errorLine = lines contents !! (sourceLine begin - 1)
-      pos = bold (pretty begin <> colon)
+      pos = case errorRange error of
+        Just (begin, _) -> pretty begin <> colon <> space
+        _ -> empty
+
+      errorLine = case (contents, errorRange error) of
+        (Just c, Just range@(begin, _)) -> prettyErrorLine line range <> hardline
+          where line = lines c !! (sourceLine begin - 1)
+        _ -> empty
 
 prettyErrorLine :: String -> ErrorRange -> Doc
 prettyErrorLine errorLine (begin, end) =
@@ -96,7 +105,6 @@ prettyErrorLine errorLine (begin, end) =
     (token, postToken) = splitAt tokenLength restLine
     underlining = replicate tokenBegin ' ' ++ replicate tokenLength '^' ++
                   if sourceLine end /= sourceLine begin then "..." else ""
-    errorText = bold . red . text
 
 instance Pretty SourcePos where
   pretty pos = text $ source ++ ":" ++ line ++ ":" ++ column
