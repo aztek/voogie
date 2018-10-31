@@ -1,6 +1,6 @@
 module Voogie.Boogie.Parse (parseAST) where
 
-import Control.Monad (guard, sequence_)
+import Control.Monad --(guard, sequence_)
 import Data.Maybe
 import qualified Data.List.NonEmpty as NE
 
