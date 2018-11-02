@@ -18,7 +18,7 @@ type Instantiation = (Type, Type)
 instantiationName :: Instantiation -> Name
 instantiationName (tau, sigma) = print tau ++ print sigma
   where
-    print t = displayS (renderCompact $ pretty t) "_"
+    print t = showChar '_' . displayS (renderCompact $ pretty t) $ ""
 
 arrayTypeName :: Instantiation -> Name
 arrayTypeName i = "array" ++ instantiationName i
