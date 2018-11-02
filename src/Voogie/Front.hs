@@ -202,10 +202,10 @@ analyzeFormula ctx@(env, qv) f = analyzeTerm <:$> f .: Boolean
     analyzeVar :: A.AST Name -> Result (A.AST F.Term)
     analyzeVar ast = do
       var <- lookupVariable ast env
-      return $ fmap (\v -> if v `Set.member` qv
-                           then F.variable (F.var <$> v)
-                           else F.constant v)
-                    var
+      let analyzeVar' v = if v `Set.member` qv
+                          then F.variable (F.var <$> v)
+                          else F.constant v
+      return (analyzeVar' <$> var)
 
     analyzeSelect :: A.AST F.Term -> NonEmpty F.AST.Term -> Result (A.AST F.Term)
     analyzeSelect ast@(A.AST pos term) as = case typeOf term of

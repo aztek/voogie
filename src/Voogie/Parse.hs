@@ -51,17 +51,19 @@ commaSep1 p = NE.fromList <$> Token.commaSep1 lexer p
 
 constant name fun = reserved name >> return fun
 
+AST (a, _) _ <+> AST (_, b) _ = (a, b)
+
 infix' name fun = Infix $ do
   reservedOp name
-  return $ \a b -> AST (fst $ position a, snd $ position b) (fun a b)
+  return $ \a b -> AST (a <+> b) (fun a b)
 
 prefix name fun = Prefix $ do
-  AST (b, _) _ <- ast (reservedOp name)
-  return $ \a -> AST (b, snd $ position a) (fun a)
+  op <- ast (reservedOp name)
+  return $ \x -> AST (op <+> x) (fun x)
 
 postfix name fun = Postfix $ do
-  AST (_, e) _ <- ast (reservedOp name)
-  return $ \a -> AST (fst $ position a, e) (fun a)
+  op <- ast (reservedOp name)
+  return $ \x -> AST (x <+> op) (fun x)
 
 assocLeft = map ($ AssocLeft)
 assocNone = map ($ AssocNone)

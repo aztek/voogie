@@ -8,7 +8,7 @@ import Voogie.Theory
 import Voogie.AST
 import Voogie.BoogiePretty()
 
-import Text.Parsec (SourcePos, sourceName, sourceLine, sourceColumn)
+import Text.Parsec.Pos
 import Text.Parsec.Error
 
 import Text.PrettyPrint.ANSI.Leijen hiding ((<$>))
