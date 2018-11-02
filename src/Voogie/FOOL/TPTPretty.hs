@@ -54,6 +54,13 @@ instance Pretty Quantifier where
 instance Pretty Sign where
   pretty = operator . signName
 
+pretty' :: Term -> Doc
+pretty' t@(Binary op _ _) | isInfix op = parens (pretty t)
+pretty' t@(Unary op _) | isPrefix op = parens (pretty t)
+pretty' t@Equals{} = parens (pretty t)
+pretty' t@Quantify{} = parens (pretty t)
+pretty' t = pretty t
+
 instance Pretty Term where
   pretty = \case
     IntegerConstant n -> number n
@@ -63,16 +70,23 @@ instance Pretty Term where
     Constant f -> prettyIdentifier f
     Application f as -> funapp (prettyIdentifier f) (pretty <$> as)
 
-    Unary op a | isPrefix op -> pretty op <> pretty a
-               | otherwise   -> funapp1 (pretty op) (pretty a)
+    Unary op a | isPrefix op -> pretty op <> pretty' a
+               | otherwise   -> funapp1 (pretty op) (pretty' a)
 
-    Binary op a b | isInfix op -> parens (pretty a <+> pretty op <+> pretty b)
-                  | otherwise  -> funapp2 (pretty op) (pretty a) (pretty b)
+    Binary op a b | isInfix op -> pretty'' a <+> pretty op <+> pretty'' b
+                  | otherwise  -> funapp2 (pretty op) (pretty' a) (pretty' b)
+      where
+        pretty'' t@(Binary op' _ _) | op == op' && isAssociative op = pretty t
+        pretty'' t = pretty' t
 
-    Quantify q vs t -> parens $ pretty q <> tuple (pretty <$> vs)
-                             <> punctuation ":" <+> parens (pretty t)
+    Quantify q vs t -> pretty q <> tuple (pretty <$> vs)
+                                <> punctuation ":" <+> pretty'' t
+      where
+        pretty'' t@(Binary op _ _) | not (isInfix op) = pretty t
+        pretty'' t@(Unary op _) | not (isPrefix op) = pretty t
+        pretty'' t = pretty' t
 
-    Equals s a b -> parens (pretty a <+> pretty s <+> pretty b)
+    Equals s a b -> pretty' a <+> pretty s <+> pretty' b
 
     Let b@(Binding d _) t -> builtin kwdLet <> parens args
       where

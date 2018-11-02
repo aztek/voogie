@@ -2,6 +2,7 @@ module Voogie.Boogie.BoogiePretty() where
 
 import qualified Data.List.NonEmpty as NE
 
+import Voogie.Theory
 import Voogie.Boogie
 import Voogie.BoogieSyntax
 import Voogie.BoogiePretty

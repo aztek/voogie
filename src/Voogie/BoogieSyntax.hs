@@ -24,22 +24,6 @@ binaryOpName = \case
   Multiply -> "*"
   Divide   -> "div"
 
-isAssociative :: BinaryOp -> Bool
-isAssociative = \case
-  And      -> True
-  Or       -> True
-  Imply    -> False
-  Iff      -> False
-  Xor      -> False
-  Greater  -> False
-  Less     -> False
-  Geq      -> False
-  Leq      -> False
-  Add      -> True
-  Subtract -> False
-  Multiply -> True
-  Divide   -> False
-
 precedence :: BinaryOp -> Int
 precedence = \case
   Multiply -> 10

@@ -71,6 +71,22 @@ data BinaryOp
   | Add | Subtract | Multiply | Divide
   deriving (Show, Eq, Ord, Bounded, Enum)
 
+isAssociative :: BinaryOp -> Bool
+isAssociative = \case
+  And      -> True
+  Or       -> True
+  Imply    -> False
+  Iff      -> False
+  Xor      -> False
+  Greater  -> False
+  Less     -> False
+  Geq      -> False
+  Leq      -> False
+  Add      -> True
+  Subtract -> False
+  Multiply -> True
+  Divide   -> False
+
 unaryOpTypes :: UnaryOp -> (Type, Type)
 unaryOpTypes = \case
   Negate   -> (Boolean, Boolean)
