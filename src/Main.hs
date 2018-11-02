@@ -18,6 +18,7 @@ import Voogie.AST()
 import Voogie.Boogie.Parse
 import Voogie.Front
 import Voogie.Back
+import Voogie.TPTP
 import Voogie.TPTPretty()
 
 import Text.PrettyPrint.ANSI.Leijen
@@ -60,7 +61,7 @@ runVoogie cmdArgs contents = case action cmdArgs of
 
     runParser = parseAST source contents
     runAnalyzer = analyze
-    runTranslator = return . translate options
+    runTranslator = return . toTPTP . translate options
 
     options = collectOptions cmdArgs
     source = fromMaybe "<stdin>" (fileName cmdArgs)

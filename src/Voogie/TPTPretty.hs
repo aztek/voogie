@@ -1,39 +1,30 @@
 module Voogie.TPTPretty() where
 
-import Voogie.Theory
-import Voogie.FOOL
 import Voogie.TPTP
+import Voogie.TPTPSyntax
 
 import Voogie.Pretty
 import Voogie.FOOL.TPTPretty()
 
 import Text.PrettyPrint.ANSI.Leijen hiding ((<$>))
 
-tff :: String -> String -> Doc -> Doc
-tff n it s = funapp3 (keyword kwdTtf) (text n) (keyword it) s <> punctuation "."
+instance Pretty InputType where
+  pretty = keyword . \case
+    TypeInputType -> kwdType
+    AxiomInputType -> kwdAxiom
+    ConjectureInputType -> kwdConjecture
 
-prettyTypeDeclaration :: Name -> Doc
-prettyTypeDeclaration n = tff n kwdType (text n <> colon <+> keyword kwdTypeDecl)
-
-prettySymbolDeclaration :: Typed Name -> Doc
-prettySymbolDeclaration n@(Typed _ s) = tff s kwdType (pretty n)
-
-prettyAxiom :: (Integer, Formula) -> Doc
-prettyAxiom (nr, f) = tff ("voogie_precondition_" ++ show nr)
-                          kwdAxiom (line <> pretty f) <> line
-
-prettyConjecture :: Formula -> Doc
-prettyConjecture f = tff "voogie_conjecture" kwdConjecture (line <> pretty f)
+instance Pretty Unit where
+  pretty unit = funapp3 (keyword kwdTtf) (text name) (pretty it)
+                        contents <> punctuation "."
+    where
+      name = unitName unit
+      it = unitInputType unit
+      contents = case unit of
+        TypeDeclaration _ n -> text n <> colon <+> keyword kwdTypeDecl
+        SymbolDeclaration _ i -> pretty i
+        Axiom _ f -> line <> pretty f
+        Conjecture _ f -> line <> pretty f
 
 instance Pretty TPTP where
-  pretty (TPTP types symbols axioms conjecture) =
-       vsep (prettyTypes ++ prettySymbols)
-    <> line
-    <> line
-    <> vsep prettyAxioms
-    <> line
-    <> prettyConjecture conjecture
-    where
-      prettyTypes   = prettyTypeDeclaration <$> types
-      prettySymbols = prettySymbolDeclaration <$> symbols
-      prettyAxioms  = prettyAxiom <$> zip [1..] axioms
+  pretty (TPTP units) = vsep (pretty <$> units) <> line

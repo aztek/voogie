@@ -15,8 +15,6 @@ import Voogie.Boogie.BoogiePretty()
 import qualified Voogie.FOOL.ArrayTheory as AT
 import Voogie.FOOL.Rewrite
 
-import Voogie.TPTP
-
 data TranslationOptions = TranslationOptions
   { useArrayTheory :: Bool
   }
@@ -27,12 +25,12 @@ updates = NE.nub . updates'
     updates' (B.If _ _ a b) = sconcat $ fmap updates' (foldl (flip NE.cons) a b)
     updates' (B.Assign ass) = fmap (B.lvariable . fst) ass
 
-translate :: TranslationOptions -> B.Boogie -> TPTP
+translate :: TranslationOptions -> B.Boogie -> F.Problem
 translate opts (B.Boogie decls (B.Main _ pre stmts post))
-  | not (useArrayTheory opts) = eliminateArrayTheory tptp
-  | otherwise = tptp
+  | not (useArrayTheory opts) = eliminateArrayTheory problem
+  | otherwise = problem
   where
-    tptp = TPTP [] decls pre (foldr nextState conjecture stmts)
+    problem = F.Problem [] decls pre (foldr nextState conjecture stmts)
     conjecture = F.conjunction post
     nextState = either translateStmt translateAssume
 
@@ -82,16 +80,16 @@ translate opts (B.Boogie decls (B.Main _ pre stmts post))
         n' = F.constant (F.name <$> n)
         is' = fmap translateExpr . sconcat <$> NE.nonEmpty is
 
-eliminateArrayTheory :: TPTP -> TPTP
-eliminateArrayTheory (TPTP types symbols axioms conjecture) =
-  appendTheory tptp' (mconcat theories)
+eliminateArrayTheory :: F.Problem -> F.Problem
+eliminateArrayTheory (F.Problem types symbols axioms conjecture) =
+  F.appendTheory problem' (mconcat theories)
   where
     theories = map AT.theory (L.nub instantiations)
 
-    Accumulate (tptp', instantiations) =
-      TPTP types <$> traverse (rewriteSymbol typeRewriter) symbols
-                 <*> traverse rewrite axioms
-                 <*> rewrite conjecture
+    Accumulate (problem', instantiations) =
+      F.Problem types <$> traverse (rewriteSymbol typeRewriter) symbols
+                      <*> traverse rewrite axioms
+                      <*> rewrite conjecture
 
     rewrite = rewriteTerm termRewriter typeRewriter
 

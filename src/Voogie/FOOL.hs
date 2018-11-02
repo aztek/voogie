@@ -4,7 +4,7 @@ module Voogie.FOOL (
   Var(..), VarList, Identifier,
   Definition(..), Binding(..), Term(..),
   Formula, Conjunction(..),
-  Theory(..)
+  Theory(..), Problem(..), appendTheory
 ) where
 
 import Data.List.NonEmpty (NonEmpty)
@@ -86,18 +86,25 @@ instance Monoid Conjunction where
   mempty = Conjunction (BooleanConstant True)
   mappend = (<>)
 
-data Theory = Theory
-  { types :: [Name]
-  , symbols :: [Identifier]
-  , axioms :: [Formula]
-  }
+data Theory = Theory [Name] [Identifier] [Formula]
   deriving (Show, Eq)
 
 instance Semigroup Theory where
-  a <> b = Theory (types a <> types b)
-                  (symbols a <> symbols b)
-                  (axioms a <> axioms b)
+  Theory ts ss as <> Theory ts' ss' as' =
+    Theory (ts <> ts') (ss <> ss') (as <> as')
 
 instance Monoid Theory where
   mempty = Theory mempty mempty mempty
   mappend = (<>)
+
+data Problem = Problem
+  { types :: [Name]
+  , symbols :: [Identifier]
+  , axioms :: [Formula]
+  , conjecture :: Formula
+  }
+  deriving (Show, Eq)
+
+appendTheory :: Problem -> Theory -> Problem
+appendTheory (Problem ts ss as c) th = Problem ts' ss' as' c
+  where Theory ts' ss' as' = th <> Theory ts ss as
