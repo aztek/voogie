@@ -6,58 +6,23 @@ import qualified Voogie.FOOL.Tuple as Tuple
 import Voogie.FOOL
 import Voogie.Theory
 import Voogie.Pretty
+import Voogie.TPTPSyntax
 
 import Text.PrettyPrint.ANSI.Leijen hiding ((<$>))
 
 instance Pretty BinaryOp where
-  pretty = \case
-    And      -> operator "&"
-    Or       -> operator "|"
-    Imply    -> operator "=>"
-    Iff      -> operator "<=>"
-    Xor      -> operator "<~>"
-    Greater  -> builtin "$greater"
-    Less     -> builtin "$less"
-    Geq      -> builtin "$greatereq"
-    Leq      -> builtin "$lesseq"
-    Add      -> builtin "$sum"
-    Subtract -> builtin "$difference"
-    Multiply -> builtin "$product"
-    Divide   -> builtin "$quotient_e"
-
-isInfix :: BinaryOp -> Bool
-isInfix = \case
-  And      -> True
-  Or       -> True
-  Imply    -> True
-  Iff      -> True
-  Xor      -> True
-  Greater  -> False
-  Less     -> False
-  Geq      -> False
-  Leq      -> False
-  Add      -> False
-  Subtract -> False
-  Multiply -> False
-  Divide   -> False
+  pretty op = if isInfix op then operator op' else builtin op'
+    where op' = binaryOpName op
 
 instance Pretty UnaryOp where
-  pretty = \case
-    Negate   -> operator "~"
-    Positive -> builtin "$uplus"
-    Negative -> builtin "$uminus"
-
-isPrefix :: UnaryOp -> Bool
-isPrefix = \case
-  Negate   -> True
-  Positive -> False
-  Negative -> False
+  pretty op = if isPrefix op then operator op' else builtin op'
+    where op' = unaryOpName op
 
 instance Pretty Type where
   pretty = \case
-    Boolean -> builtin "$o"
-    Integer -> builtin "$int"
-    Array i t -> foldr (funapp2 $ builtin "$array") (pretty t) (pretty <$> i)
+    Boolean -> builtin boolName
+    Integer -> builtin intName
+    Array i t -> foldr (funapp2 $ builtin arrayName) (pretty t) (pretty <$> i)
     TupleType ts -> tuple (Tuple.toNonEmpty (pretty <$> ts))
     Functional ts t -> ts' <+> operator ">" <+> pretty t
       where ts' = sepBy (space <> operator "*" <> space) (pretty <$> ts)
@@ -81,23 +46,18 @@ instance Pretty Definition where
     TupleD es -> tuple (Tuple.toNonEmpty (prettyIdentifier <$> es))
 
 instance Pretty Binding where
-  pretty (Binding d t) = pretty d <+> operator ":=" <+> pretty t
+  pretty (Binding d t) = pretty d <+> operator opAssign <+> pretty t
 
 instance Pretty Quantifier where
-  pretty = operator . \case
-    Forall -> "!"
-    Exists -> "?"
+  pretty = operator . quantifierName
 
 instance Pretty Sign where
-  pretty = operator . \case
-    Pos -> "="
-    Neg -> "!="
+  pretty = operator . signName
 
 instance Pretty Term where
   pretty = \case
     IntegerConstant n -> number n
-    BooleanConstant True -> builtin "$true"
-    BooleanConstant False -> builtin "$false"
+    BooleanConstant b -> builtin (booleanName b)
 
     Variable (Typed _ v) -> pretty v
     Constant f -> prettyIdentifier f
@@ -114,7 +74,7 @@ instance Pretty Term where
 
     Equals s a b -> parens (pretty a <+> pretty s <+> pretty b)
 
-    Let b@(Binding d _) t -> builtin "$let" <> parens args
+    Let b@(Binding d _) t -> builtin kwdLet <> parens args
       where
         args = case t of
           Let{} -> align definition <> line <> pretty t
@@ -125,12 +85,12 @@ instance Pretty Term where
           Function c _ -> pretty c
           TupleD es -> tuple (Tuple.toNonEmpty (pretty <$> es))
 
-    If c a b -> funapp3 (builtin "$ite")
+    If c a b -> funapp3 (builtin kwdIf)
                         (pretty c)
                         (line <> pretty a)
                         (line <> pretty b)
 
-    Select a i   -> funapp2 (builtin "$select") (pretty a) (pretty i)
-    Store  a i e -> funapp3 (builtin "$store")  (pretty a) (pretty i) (pretty e)
+    Select a i   -> funapp2 (builtin kwdSelect) (pretty a) (pretty i)
+    Store  a i e -> funapp3 (builtin kwdStore)  (pretty a) (pretty i) (pretty e)
 
     TupleLiteral ts -> tuple (Tuple.toNonEmpty (pretty <$> ts))

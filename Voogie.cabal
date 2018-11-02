@@ -55,6 +55,7 @@ executable voogie
     Voogie.Theory
     Voogie.TPTP
     Voogie.TPTPretty
+    Voogie.TPTPSyntax
   default-extensions:
     DeriveFunctor, DeriveFoldable, DeriveTraversable,
     FlexibleInstances, LambdaCase, PatternGuards

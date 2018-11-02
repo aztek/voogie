@@ -10,20 +10,20 @@ import Voogie.FOOL.TPTPretty()
 import Text.PrettyPrint.ANSI.Leijen hiding ((<$>))
 
 tff :: String -> String -> Doc -> Doc
-tff n it s = funapp3 (keyword "tff") (text n) (keyword it) s <> punctuation "."
+tff n it s = funapp3 (keyword kwdTtf) (text n) (keyword it) s <> punctuation "."
 
 prettyTypeDeclaration :: Name -> Doc
-prettyTypeDeclaration n = tff n "type" (text n <> colon <+> keyword "$tType")
+prettyTypeDeclaration n = tff n kwdType (text n <> colon <+> keyword kwdTypeDecl)
 
 prettySymbolDeclaration :: Typed Name -> Doc
-prettySymbolDeclaration n@(Typed _ s) = tff s "type" (pretty n)
+prettySymbolDeclaration n@(Typed _ s) = tff s kwdType (pretty n)
 
 prettyAxiom :: (Integer, Formula) -> Doc
 prettyAxiom (nr, f) = tff ("voogie_precondition_" ++ show nr)
-                          "axiom" (line <> pretty f) <> line
+                          kwdAxiom (line <> pretty f) <> line
 
 prettyConjecture :: Formula -> Doc
-prettyConjecture f = tff "voogie_conjecture" "conjecture" (line <> pretty f)
+prettyConjecture f = tff "voogie_conjecture" kwdConjecture (line <> pretty f)
 
 instance Pretty TPTP where
   pretty (TPTP types symbols axioms conjecture) =
