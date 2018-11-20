@@ -6,7 +6,7 @@
 
 Voogie reads simple Boogie programs and generates their verification conditions as formulas in the [FOOL logic](https://link.springer.com/chapter/10.1007/978-3-319-20615-8_5). These formulas are written in the [TPTP language](http://www.cs.miami.edu/~tptp/) and can be checked by automated first-order theorem provers. Currently, only the Vampire theorem prover fully supports FOOL.
 
-> E. Kotelnikov, L. Kovacs, and A. Voronkov. [*A FOOLish Encoding of the Next State Relations of Imperative Programs.*](https://easychair.org/publications/preprint/rpvg) To appear in Proceedings of the 9th International Joint Conference on Automated Reasoning, 2018.
+> E. Kotelnikov, L. Kovacs, and A. Voronkov. [*A FOOLish Encoding of the Next State Relations of Imperative Programs.*](https://easychair.org/publications/preprint/rpvg) In Proceedings of the 9th International Joint Conference on Automated Reasoning, pages 405–421, 2018.
 
 Voogie is not a full-blown program verifier. Its goal is to explore which extensions of first-order logic are adequate for naturally representing fragments of imperative programs.
 
