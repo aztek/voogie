@@ -2,6 +2,7 @@ module Voogie.Parse where
 
 import qualified Data.List.NonEmpty as NE
 import Data.List.NonEmpty (NonEmpty)
+import Data.Foldable
 
 import Text.Parsec.Prim
 import Text.Parsec.String
@@ -17,21 +18,17 @@ language = emptyDef
   { Token.commentStart    = "/*"
   , Token.commentEnd      = "*/"
   , Token.commentLine     = "//"
-  , Token.reservedNames   = [ "var"
-                            , "if", "else"
-                            , "true", "false"
-                            , "int", "bool"
-                            , "procedure", "modifies", "returns"
-                            , "assert", "assume", "requires", "ensures"
-                            ]
-  , Token.reservedOpNames = [ "+",  "-",  "*", "div"
-                            , "+=", "-=", "*=", ":=", "++", "--"
-                            , "==", "!=", "<", ">", "<=", ">="
-                            , "&&", "||", "!", "==>"
-                            , ":", "?", "::"
-                            , "[]"
-                            ]
+  , Token.reservedNames   = keywords
+                         ++ names quantifierName
+                         ++ names booleanName
+  , Token.reservedOpNames = operatorNames
+                         ++ names unaryOpName
+                         ++ names binaryOpName
+                         ++ names signName
+                         ++ ["?", "::", "[]"]
   }
+  where
+    names p = p <$> [minBound..]
 
 lexer = Token.makeTokenParser language
 
@@ -48,8 +45,6 @@ commaSep   = Token.commaSep   lexer
 
 commaSep1 :: Parser a -> Parser (NonEmpty a)
 commaSep1 p = NE.fromList <$> Token.commaSep1 lexer p
-
-constant name fun = reserved name >> return fun
 
 AST (a, _) _ <+> AST (_, b) _ = (a, b)
 
@@ -75,21 +70,21 @@ ast p = do
   end <- getPosition
   return $ AST (begin, end) a
 
+constant name fun = reserved name >> return fun
+
 typ :: Parser Type
-typ = atomicType <|> arrayType
-
-atomicType =  constant "int"  Integer
-          <|> constant "bool" Boolean
-
-arrayType = Array <$> brackets (commaSep1 typ) <*> typ
+typ = constant typeInteger Integer
+  <|> constant typeBoolean Boolean
+  <|> Array <$> brackets (commaSep1 typ) <*> typ
 
 typed :: Parser a -> Parser (Typed a)
-typed a = flip Typed <$> a <* reservedOp ":" <*> typ
+typed a = flip Typed <$> a <* reservedOp opTyped <*> typ
+
+constants :: (Enum a, Bounded a) => (a -> String) -> Parser a
+constants p = asum $ fmap (constant =<< p) [minBound..]
 
 boolean :: Parser Bool
-boolean = constant (booleanName True)  True
-      <|> constant (booleanName False) False
+boolean = constants booleanName
 
 quantifier :: Parser Quantifier
-quantifier =  constant (quantifierName Forall) Forall
-          <|> constant (quantifierName Exists) Exists
+quantifier = constants quantifierName

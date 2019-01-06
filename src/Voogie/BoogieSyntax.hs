@@ -61,11 +61,11 @@ booleanName = \case
   True  -> "true"
   False -> "false"
 
+kwdAssert = "assert"
 kwdAssume = "assume"
 kwdVar = "var"
 kwdIf = "if"
 kwdElse = "else"
-opAssign = ":="
 
 kwdProcedure = "procedure"
 kwdMain = "main"
@@ -73,3 +73,28 @@ kwdRequires = "requires"
 kwdEnsures = "ensures"
 kwdReturns = "returns"
 kwdModifies = "modifies"
+
+keywords = [
+    kwdAssert
+  , kwdAssume
+  , kwdVar
+  , kwdIf
+  , kwdElse
+  , kwdProcedure
+  , kwdMain
+  , kwdRequires
+  , kwdEnsures
+  , kwdReturns
+  , kwdModifies
+  ]
+
+opAssign = ":="
+opTyped = ":"
+
+operatorNames = [
+    opAssign
+  , opTyped
+  ]
+
+typeInteger = "int"
+typeBoolean = "bool"
