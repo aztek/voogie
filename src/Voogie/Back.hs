@@ -22,8 +22,8 @@ data TranslationOptions = TranslationOptions
 updates :: B.Statement -> NonEmpty B.Var
 updates = NE.nub . updates'
   where
-    updates' (B.If _ _ a b) = sconcat $ fmap updates' (foldl (flip NE.cons) a b)
-    updates' (B.Assign ass) = fmap (B.lvariable . fst) ass
+    updates' (B.If _ _ a b) = sconcat (updates' <$> foldr NE.cons a b)
+    updates' (B.Assign ass) = B.lvariable . fst <$> ass
 
 translate :: TranslationOptions -> B.Boogie -> F.Problem
 translate opts (B.Boogie decls (B.Main _ pre stmts post))
@@ -40,7 +40,7 @@ translate opts (B.Boogie decls (B.Main _ pre stmts post))
         vars = updates s
 
         definition :: B.Statement -> F.Term
-        definition (B.Assign ass) = F.tupleLiteral (fmap translateAssign ass)
+        definition (B.Assign ass) = F.tupleLiteral (translateAssign <$> ass)
         definition (B.If c flipBranches a b)
           | flipBranches = F.if_ c' b' a'
           | otherwise    = F.if_ c' a' b'
@@ -48,7 +48,7 @@ translate opts (B.Boogie decls (B.Main _ pre stmts post))
             c' = translateExpr c
             a' = foldr translateStmt tuple a
             b' = foldr translateStmt tuple b
-            tuple = F.tupleLiteral (fmap F.constant vars)
+            tuple = F.tupleLiteral (F.constant <$> vars)
 
     translateAssign :: B.Assignment -> F.Term
     translateAssign (lval, e)
