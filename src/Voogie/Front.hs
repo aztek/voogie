@@ -1,9 +1,8 @@
 module Voogie.Front (analyze) where
 
-import Control.Monad (foldM)
-import Control.Monad.Extra (mapMaybeM)
+import Control.Monad
+import Control.Monad.Extra
 import Data.Maybe
-import Data.Foldable
 
 import qualified Data.List.NonEmpty as NE
 import Data.List.NonEmpty (NonEmpty)
@@ -30,7 +29,7 @@ import qualified Voogie.FOOL.Smart as F
 import qualified Voogie.FOOL.AST as F.AST
 import Voogie.FOOL.BoogiePretty()
 
-import Text.PrettyPrint.ANSI.Leijen hiding ((<$>))
+import Text.PrettyPrint.ANSI.Leijen (Pretty)
 
 newtype Env = Env (Map Name Type)
 
@@ -45,25 +44,23 @@ lookupVariable ast (Env vs)
 insertVariable :: Typed Name -> Env -> Env
 insertVariable (Typed t n) (Env vs) = Env (Map.insert n t vs)
 
-extendEnv :: Typed (A.AST Name) -> Env -> Result Env
-extendEnv (Typed t ast@(A.AST pos n)) env
+extendEnv :: Env -> Typed (A.AST Name) -> Result Env
+extendEnv env (Typed t ast@(A.AST pos n))
   | Left _ <- lookupVariable ast env = Right (insertVariable var env)
   | otherwise = Left (MultipleDefinitions (A.AST pos var))
   where var = Typed t n
 
-variables :: Env -> [Typed Name]
-variables (Env vs) = fmap (\(n, t) -> Typed t n) (Map.toList vs)
-
 analyze :: AST.Boogie -> Result Boogie
 analyze (AST.Boogie globals main) = do
-  env <- foldrM analyzeDecl emptyEnv globals
-  (env', main') <- analyzeMain env main
-  return (B.boogie (variables env') main')
+  env <- foldM analyzeDecl emptyEnv globals
+  (Env vs, main') <- analyzeMain env main
+  let vs' = fmap (\(n, t) -> Typed t n) (Map.toList vs)
+  return (B.boogie vs' main')
 
 analyzeMain :: Env -> AST.Main -> Result (Env, B.Main)
 analyzeMain env (AST.Main modifies pre returns locals toplevel post) = do
-  env'  <- foldrM analyzeDecl env locals
-  env'' <- foldrM extendEnv env' $ case returns of
+  env'  <- foldM analyzeDecl env locals
+  env'' <- foldM extendEnv env' $ case returns of
     Just (AST.Returns r) -> NE.toList r
     Nothing -> []
   pre' <- mapM (analyzeProperty env) pre
@@ -71,8 +68,8 @@ analyzeMain env (AST.Main modifies pre returns locals toplevel post) = do
   post' <- mapM (analyzeProperty env'') post
   return (env'', B.main (A.astValue <$> modifies) pre' toplevel' post')
 
-analyzeDecl :: AST.Decl -> Env -> Result Env
-analyzeDecl (AST.Declare ns) env = foldrM extendEnv env (sequence ns)
+analyzeDecl :: Env -> AST.Decl -> Result Env
+analyzeDecl env (AST.Declare ns) = foldM extendEnv env (sequence ns)
 
 guardType :: (TypeOf b, Pretty b)
           => (a -> Result b) -> Type -> A.AST a -> Result b
