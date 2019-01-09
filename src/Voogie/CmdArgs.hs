@@ -1,10 +1,14 @@
+{-# LANGUAGE CPP #-}
+
 module Voogie.CmdArgs (
   Action(..), CmdArgs(..), cmdArgsParserInfo
 ) where
 
 import Options.Applicative
 
+#if __GLASGOW_HASKELL__ < 804
 import Data.Semigroup ((<>))
+#endif
 
 import Paths_Voogie (version)
 import Data.Version (showVersion)

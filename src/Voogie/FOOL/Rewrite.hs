@@ -1,14 +1,20 @@
+{-# LANGUAGE CPP #-}
+
 module Voogie.FOOL.Rewrite where
 
 import Voogie.Theory
 import Voogie.FOOL
+
+#if __GLASGOW_HASKELL__ < 804
+import Data.Semigroup ((<>))
+#endif
 
 newtype Accumulate m t = Accumulate (t, m)
   deriving (Show, Eq, Functor)
 
 instance Monoid m => Applicative (Accumulate m) where
   pure t = Accumulate (t, mempty)
-  Accumulate (f, m1) <*> Accumulate (a, m2) = Accumulate (f a, m1 `mappend` m2)
+  Accumulate (f, m1) <*> Accumulate (a, m2) = Accumulate (f a, m1 <> m2)
 
 type Rewriter a t = t -> Maybe (Accumulate a t)
 
