@@ -4,6 +4,7 @@ import qualified Data.List as L
 
 import qualified Data.List.NonEmpty as NE
 import Data.List.NonEmpty (NonEmpty((:|)))
+import qualified Voogie.NonEmpty as VNE
 import Data.Semigroup (sconcat)
 
 import Voogie.Theory
@@ -69,7 +70,7 @@ translate opts (B.Boogie decls (B.Main _ pre stmts post))
       B.Binary op a b -> F.binary op (translateExpr a) (translateExpr b)
       B.IfElse c a b -> F.if_ (translateExpr c) (translateExpr a) (translateExpr b)
       B.Equals s a b -> F.equals s (translateExpr a) (translateExpr b)
-      B.FunApp f args -> F.application f (map translateExpr args)
+      B.FunApp f args -> F.application f (fmap translateExpr args)
       B.Ref lval -> maybe n (F.select n) is
         where
           (n, is) = translateLValue lval
@@ -96,10 +97,10 @@ eliminateArrayTheory (F.Problem types symbols axioms conjecture) =
     termRewriter :: Rewriter [AT.Instantiation] F.Term
     termRewriter (F.Select a i) = select <$> accumulateInstantiations (typeOf a)
       where
-        select t = F.application . AT.selectSymbol <$> t <*> traverse rewrite [a, i]
+        select t = F.application . AT.selectSymbol <$> t <*> traverse rewrite (VNE.two a i)
     termRewriter (F.Store a i v) = store <$> accumulateInstantiations (typeOf a)
       where
-        store t = F.application . AT.storeSymbol <$> t <*> traverse rewrite [a, i, v]
+        store t = F.application . AT.storeSymbol <$> t <*> traverse rewrite (VNE.three a i v)
     termRewriter _ = Nothing
 
     typeRewriter :: Rewriter [AT.Instantiation] Type

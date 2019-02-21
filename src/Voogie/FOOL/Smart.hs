@@ -32,10 +32,8 @@ constant = Constant . fmap name
 
 variable = Variable
 
-application :: Identifier -> [Term] -> Term
-application i ts
-  | Just ts' <- NE.nonEmpty ts = typeSafeApplication (name <$> i) ts'
-  | otherwise = constant i
+application :: Identifier -> NonEmpty Term -> Term
+application = typeSafeApplication <$> fmap name
 
 binary = Binary
 

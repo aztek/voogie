@@ -33,9 +33,7 @@ instance Pretty Expression where
         pretty'' e = pretty' e
     IfElse a b c -> pretty a <+> punctuation "?" <+> pretty b
                              <+> punctuation ":" <+> pretty c
-    FunApp f as -> case NE.nonEmpty as of
-      Just as' -> funapp (pretty f) (pretty <$> as')
-      Nothing  -> funapp1 (pretty f) empty
+    FunApp f as -> funapp (pretty f) (pretty <$> as)
     Equals s a b -> pretty'' a <+> pretty s <+> pretty'' b
       where
         pretty'' e@(Binary op _ _) = case comparePrecedenceEquality op of

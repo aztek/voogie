@@ -69,5 +69,5 @@ theory t@(tau, sigma) =
     i = variable i'
     j = variable j'
 
-    select a i = application (selectSymbol t) [a, i]
-    store a i v = application (storeSymbol t) [a, i, v]
+    select a i = application (selectSymbol t) (VNE.two a i)
+    store a i v = application (storeSymbol t) (VNE.three a i v)

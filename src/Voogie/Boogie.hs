@@ -24,7 +24,7 @@ data Expression
   | Unary  UnaryOp    Expression
   | Binary BinaryOp   Expression Expression
   | IfElse Expression Expression Expression
-  | FunApp Function [Expression]
+  | FunApp Function (NonEmpty Expression)
   | Equals Sign Expression Expression
   deriving (Show, Eq)
 
