@@ -11,7 +11,7 @@ import Voogie.FOOL.BoogiePretty()
 import Text.PrettyPrint.ANSI.Leijen hiding ((<$>))
 
 instance Pretty LValue where
-  pretty (LValue v is) = pretty v <> hsep (tuple . fmap pretty <$> is)
+  pretty (LValue v is) = pretty v <> hcat (tuple . fmap pretty <$> is)
 
 pretty' :: Expression -> Doc
 pretty' e@Binary{} = parens (pretty e)
@@ -51,6 +51,7 @@ marked :: String -> Doc -> Doc
 marked k d = atomic [keyword k, d]
 
 nested :: [Doc] -> Doc
+nested [] = empty
 nested d = nest 2 (line <> vsep d) <> line
 
 block :: Pretty a => [a] -> Doc
