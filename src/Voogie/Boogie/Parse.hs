@@ -31,7 +31,8 @@ operators = unaryOperators ++ binaryOperators
         assocLeft $ binary <$> [Add, Subtract],
         assocNone $ binary <$> [Greater, Less, Geq, Leq],
         assocNone $ equals <$> [Pos, Neg],
-        assocLeft $ binary <$> [And, Or]
+        assocLeft $ binary <$> [And, Or],
+        assocNone $ binary <$> [Imply]
       ]
 
 term =  parens expr
