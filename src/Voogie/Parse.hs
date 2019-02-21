@@ -25,7 +25,7 @@ language = emptyDef
                          ++ names unaryOpName
                          ++ names binaryOpName
                          ++ names signName
-                         ++ ["?", "::", "[]"]
+                         ++ ["::", "[]"]
   }
   where
     names p = p <$> [minBound..]

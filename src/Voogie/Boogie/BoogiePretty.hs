@@ -31,8 +31,9 @@ instance Pretty Expression where
           EQ | op == op' && isAssociative op -> pretty e
           _ -> parens (pretty e)
         pretty'' e = pretty' e
-    IfElse a b c -> pretty a <+> punctuation "?" <+> pretty b
-                             <+> punctuation ":" <+> pretty c
+    IfElse c a b -> keyword kwdIf   <+> pretty c <+>
+                    keyword kwdThen <+> pretty a <+>
+                    keyword kwdElse <+> pretty b
     FunApp f as -> funapp (pretty f) (pretty <$> as)
     Equals s a b -> pretty'' a <+> pretty s <+> pretty'' b
       where

@@ -45,8 +45,9 @@ instance Pretty Term where
           LT -> pretty t
           _ -> parens (pretty t)
         pretty'' t = pretty' t
-    If c a b -> pretty c <+> punctuation "?" <+> pretty a
-                         <+> punctuation ":" <+> pretty b
+    If c a b -> keyword kwdIf   <+> pretty c <+>
+                keyword kwdThen <+> pretty a <+>
+                keyword kwdElse <+> pretty b
     Select a i -> pretty a <> brackets (pretty i)
     Store a i v -> pretty a <> brackets (pretty i) <+> operator opAssign <+> pretty v
     t@Let{} -> error $ "Cannot represent let-expression " ++ show t ++

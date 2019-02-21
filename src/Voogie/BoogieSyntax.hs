@@ -64,6 +64,7 @@ kwdAssert = "assert"
 kwdAssume = "assume"
 kwdVar = "var"
 kwdIf = "if"
+kwdThen = "then"
 kwdElse = "else"
 
 kwdProcedure = "procedure"
@@ -78,6 +79,7 @@ keywords = [
   , kwdAssume
   , kwdVar
   , kwdIf
+  , kwdThen
   , kwdElse
   , kwdProcedure
   , kwdMain

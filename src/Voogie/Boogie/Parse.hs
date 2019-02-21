@@ -40,6 +40,9 @@ term =  parens expr
     <|> ast (BoolConst <$> boolean)
     <|> ast (IntConst <$> integer)
     <|> ast (LVal <$> lval)
+    <|> ast (Ternary <$> (reserved kwdIf   >> expr)
+                     <*> (reserved kwdThen >> expr)
+                     <*> (reserved kwdElse >> expr))
 
 lval :: Parser LVal
 lval = Ref <$> identifier <*> many (brackets $ commaSep1 expr)

@@ -35,6 +35,9 @@ arg =  parens term
    <|> ast (BoolConst <$> boolean)
    <|> ast (IntConst <$> integer)
    <|> ast (Ref <$> identifier <*> many (brackets $ commaSep1 term))
+   <|> ast (Ternary <$> (reserved kwdIf   >> term)
+                    <*> (reserved kwdThen >> term)
+                    <*> (reserved kwdElse >> term))
 
 quantified =  Quantified
           <$> quantifier
