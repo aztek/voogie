@@ -58,7 +58,6 @@ data Quantifier
 
 data UnaryOp
   = Negate
-  | Positive
   | Negative
   deriving (Show, Eq, Ord, Bounded, Enum)
 
@@ -87,7 +86,6 @@ isAssociative = \case
 unaryOpTypes :: UnaryOp -> (Type, Type)
 unaryOpTypes = \case
   Negate   -> (Boolean, Boolean)
-  Positive -> (Integer, Integer)
   Negative -> (Integer, Integer)
 
 unaryOpDomain, unaryOpRange :: UnaryOp -> Type

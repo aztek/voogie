@@ -62,24 +62,24 @@ translate opts (B.Boogie decls (B.Main _ pre stmts post))
     translateAssume :: B.Assume -> F.Term -> F.Term
     translateAssume (B.Assume f) = F.binary Imply f
 
-    translateExpr :: B.Expression -> F.Term
-    translateExpr = \case
-      B.IntegerLiteral i -> F.integerConstant i
-      B.BooleanLiteral b -> F.booleanConstant b
-      B.Unary op e -> F.unary op (translateExpr e)
-      B.Binary op a b -> F.binary op (translateExpr a) (translateExpr b)
-      B.IfElse c a b -> F.if_ (translateExpr c) (translateExpr a) (translateExpr b)
-      B.Equals s a b -> F.equals s (translateExpr a) (translateExpr b)
-      B.FunApp f args -> F.application f (fmap translateExpr args)
-      B.Ref lval -> maybe n (F.select n) is
-        where
-          (n, is) = translateLValue lval
+translateExpr :: B.Expression -> F.Term
+translateExpr = \case
+  B.IntegerLiteral i -> F.integerConstant i
+  B.BooleanLiteral b -> F.booleanConstant b
+  B.Unary op e -> F.unary op (translateExpr e)
+  B.Binary op a b -> F.binary op (translateExpr a) (translateExpr b)
+  B.IfElse c a b -> F.if_ (translateExpr c) (translateExpr a) (translateExpr b)
+  B.Equals s a b -> F.equals s (translateExpr a) (translateExpr b)
+  B.FunApp f args -> F.application f (fmap translateExpr args)
+  B.Ref lval -> maybe n (F.select n) is
+    where
+      (n, is) = translateLValue lval
 
-    translateLValue :: B.LValue -> (F.Term, Maybe (NonEmpty F.Term))
-    translateLValue (B.LValue n is) = (n', is')
-      where
-        n' = F.constant (F.name <$> n)
-        is' = fmap translateExpr . sconcat <$> NE.nonEmpty is
+translateLValue :: B.LValue -> (F.Term, Maybe (NonEmpty F.Term))
+translateLValue (B.LValue n is) = (n', is')
+  where
+    n' = F.constant (F.name <$> n)
+    is' = fmap translateExpr . sconcat <$> NE.nonEmpty is
 
 eliminateArrayTheory :: F.Problem -> F.Problem
 eliminateArrayTheory (F.Problem types symbols axioms conjecture) =

@@ -5,7 +5,6 @@ import Voogie.Theory
 unaryOpName :: UnaryOp -> String
 unaryOpName = \case
   Negate   -> "!"
-  Positive -> "+"
   Negative -> "-"
 
 binaryOpName :: BinaryOp -> String

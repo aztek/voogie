@@ -25,11 +25,7 @@ equals = infix' <$> signName <*> Equals
 
 operators = unaryOperators ++ binaryOperators
   where
-    unaryOperators = [
-        unary <$> [Negative, Positive],
-        unary <$> [Negate]
-      ]
-
+    unaryOperators = fmap (\op -> unary <$> [op]) [minBound..]
     binaryOperators = [
         assocLeft $ binary <$> [Multiply, Divide],
         assocLeft $ binary <$> [Add, Subtract],

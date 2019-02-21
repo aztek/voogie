@@ -37,13 +37,11 @@ isInfix = \case
 unaryOpName :: UnaryOp -> String
 unaryOpName = \case
   Negate   -> "~"
-  Positive -> "$uplus"
   Negative -> "$uminus"
 
 isPrefix :: UnaryOp -> Bool
 isPrefix = \case
   Negate   -> True
-  Positive -> False
   Negative -> False
 
 quantifierName :: Quantifier -> String
