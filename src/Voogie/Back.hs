@@ -1,10 +1,9 @@
-module Voogie.Back (translate, TranslationOptions(..)) where
+module Voogie.Back where
 
 import qualified Data.List as L
 
 import qualified Data.List.NonEmpty as NE
 import Data.List.NonEmpty (NonEmpty((:|)))
-import qualified Voogie.NonEmpty as VNE
 import Data.Semigroup (sconcat)
 
 import Voogie.Theory
@@ -95,19 +94,21 @@ eliminateArrayTheory (F.Problem types symbols axioms conjecture) =
     rewrite = rewriteTerm termRewriter typeRewriter
 
     termRewriter :: Rewriter [AT.Instantiation] F.Term
-    termRewriter (F.Select a i) = select <$> accumulateInstantiations (typeOf a)
+    termRewriter = \case
+      F.Select a i  -> application AT.selectSymbol a [i]
+      F.Store a i v -> application AT.storeSymbol  a [i, v]
+      _ -> Nothing
+
+    application s f as = app <$> accumulateInstantiations (typeOf f)
       where
-        select t = F.application . AT.selectSymbol <$> t <*> traverse rewrite (VNE.two a i)
-    termRewriter (F.Store a i v) = store <$> accumulateInstantiations (typeOf a)
-      where
-        store t = F.application . AT.storeSymbol <$> t <*> traverse rewrite (VNE.three a i v)
-    termRewriter _ = Nothing
+        app t = F.application . s <$> t <*> traverse rewrite (f :| as)
 
     typeRewriter :: Rewriter [AT.Instantiation] Type
     typeRewriter = fmap (fmap AT.arrayType) . accumulateInstantiations
 
     accumulateInstantiations :: Type -> Maybe (Accumulate [AT.Instantiation] AT.Instantiation)
-    accumulateInstantiations (Array (t :| ts) s) = Just $ Accumulate (i, i:is)
-      where
-        Accumulate (i, is) = traverse (rewriteType typeRewriter) (t, array ts s)
-    accumulateInstantiations _ = Nothing
+    accumulateInstantiations = \case
+      Array (t :| ts) s -> Just $ Accumulate (i, i:is)
+        where
+          Accumulate (i, is) = traverse (rewriteType typeRewriter) (t, array ts s)
+      _ -> Nothing
