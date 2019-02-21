@@ -1,4 +1,4 @@
-module Voogie.Boogie.Parse (parseAST) where
+module Voogie.Boogie.Parse where
 
 import Control.Monad
 import Data.Maybe
@@ -91,7 +91,10 @@ topLevel = Left <$> stmt <|> Right <$> assume
 
 boogie = whiteSpace >> Boogie <$> many (try decl) <*> main
 
-parseAST :: SourceName -> String -> Result Boogie
-parseAST sn s = case parse boogie sn s of
+rewrapParsingError :: Parser a -> SourceName -> String -> Result a
+rewrapParsingError p sn s = case parse p sn s of
   Left e -> Left (ParsingError e)
   Right b -> Right b
+
+parseBoogie :: SourceName -> String -> Result Boogie
+parseBoogie = rewrapParsingError boogie

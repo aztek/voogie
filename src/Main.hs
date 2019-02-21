@@ -15,7 +15,7 @@ import System.Exit
 import Voogie.Error
 import Voogie.CmdArgs
 import Voogie.AST()
-import Voogie.Boogie.Parse
+import Voogie.Boogie.Parse (parseBoogie)
 import Voogie.Front
 import Voogie.Back
 import Voogie.TPTP
@@ -59,7 +59,7 @@ runVoogie cmdArgs contents = case action cmdArgs of
       Left error -> Fail $ ErrorReport (Just contents) error
       Right a -> Success a
 
-    runParser = parseAST source contents
+    runParser = parseBoogie source contents
     runAnalyzer = analyze
     runTranslator = return . toTPTP . translate options
 
