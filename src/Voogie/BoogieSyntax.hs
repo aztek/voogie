@@ -34,8 +34,8 @@ precedence = \case
   Leq      -> 8
   And      -> 6
   Or       -> 6
-  Iff      -> 5
-  Imply    -> 4
+  Imply    -> 5
+  Iff      -> 4
 
 comparePrecedence :: BinaryOp -> BinaryOp -> Ordering
 comparePrecedence op1 op2 = compare (precedence op1) (precedence op2)
