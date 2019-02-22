@@ -111,6 +111,8 @@ test-suite test-quickcheck-generators
   build-depends:
     base >= 4 && < 5,
     QuickCheck
+  if impl(ghc < 8)
+    build-depends: semigroups >= 0.18
   default-language: Haskell2010
 
 test-suite test-quickcheck-back
@@ -143,4 +145,6 @@ test-suite test-quickcheck-back
     base >= 4 && < 5,
     ansi-wl-pprint >= 0.6.6 && < 0.7,
     QuickCheck
+  if impl(ghc < 8)
+    build-depends: semigroups >= 0.18
   default-language: Haskell2010
