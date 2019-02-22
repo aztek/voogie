@@ -64,10 +64,10 @@ runVoogie cmdArgs contents = case action cmdArgs of
     runTranslator = return . toTPTP . translate options
 
     options = collectOptions cmdArgs
-    source = fromMaybe "<stdin>" (fileName cmdArgs)
+    source = fromMaybe "<stdin>" (filePath cmdArgs)
 
 main :: IO ()
 main = do
   cmdArgs <- execParser cmdArgsParserInfo
-  tryContents <- tryIOError $ maybe getContents readFile (fileName cmdArgs)
+  tryContents <- tryIOError $ maybe getContents readFile (filePath cmdArgs)
   printOutput . rewrapIOError tryContents $ runVoogie cmdArgs

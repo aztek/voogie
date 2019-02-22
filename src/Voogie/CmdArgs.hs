@@ -19,18 +19,18 @@ data Action = Parse | Check | Translate
 actions = [("parse", Parse), ("check", Check), ("translate", Translate)]
 
 data CmdArgs = CmdArgs
-  { fileName :: Maybe String
+  { filePath :: Maybe FilePath
   , action :: Action
   , noArrayTheory :: Bool
   }
 
 parser :: Parser CmdArgs
 parser = CmdArgs
-  <$> (fileName <|> stdIn)
+  <$> (filePath <|> stdIn)
   <*> action
   <*> noArrayTheory
   where
-    fileName = Just <$> strArgument (metavar "FILE")
+    filePath = Just <$> strArgument (metavar "FILE")
     stdIn = flag' Nothing
       $ long "stdin"
      <> help "Read from the standart input rather than a file"
