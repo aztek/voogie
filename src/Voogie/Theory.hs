@@ -62,7 +62,7 @@ data UnaryOp
   deriving (Show, Eq, Ord, Bounded, Enum)
 
 data BinaryOp
-  = And | Or | Imply | Iff | Xor
+  = And | Or | Imply | Iff
   | Greater | Less | Geq | Leq
   | Add | Subtract | Multiply | Divide
   deriving (Show, Eq, Ord, Bounded, Enum)
@@ -73,7 +73,6 @@ isAssociative = \case
   Or       -> True
   Imply    -> False
   Iff      -> False
-  Xor      -> False
   Greater  -> False
   Less     -> False
   Geq      -> False
@@ -93,7 +92,7 @@ unaryOpDomain = fst . unaryOpTypes
 unaryOpRange  = snd . unaryOpTypes
 
 logicalConnectives :: [BinaryOp]
-logicalConnectives = [And, Or, Imply, Iff, Xor]
+logicalConnectives = [And, Or, Imply, Iff]
 
 arithmeticPredicates :: [BinaryOp]
 arithmeticPredicates = [Greater, Less, Geq, Leq]

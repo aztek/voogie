@@ -13,7 +13,6 @@ binaryOpName = \case
   Or       -> "||"
   Imply    -> "==>"
   Iff      -> "<==>"
-  Xor      -> "!="
   Greater  -> ">"
   Less     -> "<"
   Geq      -> ">="
@@ -36,7 +35,6 @@ precedence = \case
   And      -> 6
   Or       -> 6
   Iff      -> 5
-  Xor      -> 5
   Imply    -> 4
 
 comparePrecedence :: BinaryOp -> BinaryOp -> Ordering

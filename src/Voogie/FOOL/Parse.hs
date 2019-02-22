@@ -26,7 +26,7 @@ operators = unaryOperators ++ binaryOperators
         assocNone $ binary <$> [Greater, Less, Geq, Leq],
         assocNone $ equals <$> [Pos, Neg],
         assocLeft $ binary <$> [And, Or],
-        assocLeft $ binary <$> [Iff, Xor],
+        assocLeft $ binary <$> [Iff],
         assocNone $ binary <$> [Imply]
       ]
 

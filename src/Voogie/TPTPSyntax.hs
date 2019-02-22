@@ -8,7 +8,6 @@ binaryOpName = \case
   Or       -> "|"
   Imply    -> "=>"
   Iff      -> "<=>"
-  Xor      -> "<~>"
   Greater  -> "$greater"
   Less     -> "$less"
   Geq      -> "$greatereq"
@@ -24,7 +23,6 @@ isInfix = \case
   Or       -> True
   Imply    -> True
   Iff      -> True
-  Xor      -> True
   Greater  -> False
   Less     -> False
   Geq      -> False
