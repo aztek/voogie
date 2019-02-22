@@ -58,11 +58,12 @@ instance Pretty Sign where
   pretty = operator . signName
 
 pretty' :: Term -> Doc
-pretty' t@(Binary op _ _) | isInfix op = parens (pretty t)
-pretty' t@(Unary op _) | isPrefix op = parens (pretty t)
-pretty' t@Equals{} = parens (pretty t)
-pretty' t@Quantify{} = parens (pretty t)
-pretty' t = pretty t
+pretty' t = case t of
+  Binary op _ _ | isInfix op -> parens (pretty t)
+  Unary op _ | isPrefix op -> parens (pretty t)
+  Equals{} -> parens (pretty t)
+  Quantify{} -> parens (pretty t)
+  _ -> pretty t
 
 instance Pretty Term where
   pretty = \case
@@ -79,15 +80,17 @@ instance Pretty Term where
     Binary op a b | isInfix op -> pretty'' a <+> pretty op <+> pretty'' b
                   | otherwise  -> funapp2 (pretty op) (pretty' a) (pretty' b)
       where
-        pretty'' t@(Binary op' _ _) | op == op' && isAssociative op = pretty t
-        pretty'' t = pretty' t
+        pretty'' t = case t of
+          Binary op' _ _ | op == op' && isAssociative op -> pretty t
+          _ -> pretty' t
 
     Quantify q vs t -> pretty q <> tuple (pretty <$> vs)
                                 <> punctuation ":" <+> pretty'' t
       where
-        pretty'' t@(Binary op _ _) | not (isInfix op) = pretty t
-        pretty'' t@(Unary op _) | not (isPrefix op) = pretty t
-        pretty'' t = pretty' t
+        pretty'' t = case t of
+          Binary op _ _ | not (isInfix op) -> pretty t
+          Unary op _ | not (isPrefix op) -> pretty t
+          _ -> pretty' t
 
     Equals s a b -> pretty' a <+> pretty s <+> pretty' b
 

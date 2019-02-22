@@ -14,10 +14,11 @@ instance Pretty Var where
   pretty (Var v) = text v
 
 pretty' :: Term -> Doc
-pretty' t@Binary{} = parens (pretty t)
-pretty' t@Equals{} = parens (pretty t)
-pretty' t@If{} = parens (pretty t)
-pretty' t = pretty t
+pretty' t = case t of
+  Binary{} -> parens (pretty t)
+  Equals{} -> parens (pretty t)
+  If{} -> parens (pretty t)
+  _ -> pretty t
 
 instance Pretty Term where
   pretty = \case
