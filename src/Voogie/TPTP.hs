@@ -42,6 +42,6 @@ toTPTP (Problem types symbols axioms conjecture) =
     tptpAxioms = tptpAxiom <$> zip [(1::Integer)..] axioms
     
     tptpType t = TypeDeclaration t t
-    tptpSymbol n@(Typed _ s) = SymbolDeclaration s n
+    tptpSymbol n = SymbolDeclaration (valueOf n) n
     tptpAxiom (nr, f) = Axiom ("voogie_precondition_" ++ show nr) f
     tptpConjecture = Conjecture "voogie_conjecture"

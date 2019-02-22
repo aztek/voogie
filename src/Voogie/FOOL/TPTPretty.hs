@@ -1,7 +1,8 @@
 module Voogie.FOOL.TPTPretty() where
 
 import Data.Char
-
+import qualified Data.List.NonEmpty as NE
+import Data.List.NonEmpty
 import qualified Voogie.FOOL.Tuple as Tuple
 import Voogie.FOOL
 import Voogie.Theory
@@ -29,15 +30,17 @@ instance Pretty Type where
     Custom n -> text n
 
 instance Pretty Var where
-  pretty (Var []) = error "empty variable name"
-  pretty (Var (c:cs)) = text (toUpper c : cs)
+  pretty (Var n)
+    | Just (c :| cs) <- NE.nonEmpty n = text (toUpper c : cs)
+    | otherwise = error "empty variable name"
 
 instance Pretty a => Pretty (Typed a) where
   pretty (Typed t s) = pretty s <> punctuation ":" <+> pretty t
 
 prettyIdentifier :: Identifier -> Doc
-prettyIdentifier (Typed _ []) = error "empty identifier"
-prettyIdentifier (Typed _ (c:cs)) = text (toLower c : cs)
+prettyIdentifier i
+  | Just (c :| cs) <- NE.nonEmpty (valueOf i) = text (toLower c : cs)
+  | otherwise = error "empty identifier"
 
 instance Pretty Definition where
   pretty = \case
