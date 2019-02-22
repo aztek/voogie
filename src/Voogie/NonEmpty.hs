@@ -5,8 +5,8 @@ import qualified Data.List as L
 import qualified Data.List.NonEmpty as NE
 import Data.List.NonEmpty (NonEmpty((:|)))
 
-intercalate :: String -> NonEmpty String -> String
-intercalate s = L.intercalate s . NE.toList
+intercalate :: [a] -> NonEmpty [a] -> [a]
+intercalate l = L.intercalate l . NE.toList
 
 zipWithM :: Applicative m
          => (a -> b -> m c) -> NonEmpty a -> NonEmpty b -> m (NonEmpty c)

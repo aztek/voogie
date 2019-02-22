@@ -17,5 +17,5 @@ nonUnit :: NonEmpty a -> Either a (Tuple a)
 nonUnit (a NE.:| [])  = Left a
 nonUnit (a NE.:| b:c) = Right (a :| (b NE.:| c))
 
-intercalate :: String -> Tuple String -> String
-intercalate s = L.intercalate s . toList
+intercalate :: [a] -> Tuple [a] -> [a]
+intercalate l = L.intercalate l . toList
