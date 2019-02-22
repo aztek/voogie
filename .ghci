@@ -1,0 +1,8 @@
+:set -isrc -itests
+:set -Wall -fno-warn-missing-signatures -fno-name-shadowing
+:set -XDeriveFunctor
+:set -XDeriveFoldable
+:set -XDeriveTraversable
+:set -XFlexibleInstances
+:set -XLambdaCase
+:set -XPatternGuards
