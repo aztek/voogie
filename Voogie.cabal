@@ -90,3 +90,25 @@ test-suite test-idempotent-parsing-pretty-printing
     base >= 4 && < 5,
     process
   default-language: Haskell2010
+
+test-suite test-quickcheck-generators
+  type: exitcode-stdio-1.0
+  hs-source-dirs: src, tests
+  main-is: Generators.hs
+  ghc-options:
+    -main-is Generators
+  if flag(Werror)
+    ghc-options: -Werror
+  other-modules:
+    Voogie.Boogie
+    Voogie.FOOL
+    Voogie.FOOL.Tuple
+    Voogie.NonEmpty
+    Voogie.Theory
+  default-extensions:
+    DeriveFunctor, DeriveFoldable, DeriveTraversable,
+    FlexibleInstances, LambdaCase, PatternGuards
+  build-depends:
+    base >= 4 && < 5,
+    QuickCheck
+  default-language: Haskell2010
