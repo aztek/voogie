@@ -112,3 +112,35 @@ test-suite test-quickcheck-generators
     base >= 4 && < 5,
     QuickCheck
   default-language: Haskell2010
+
+test-suite test-quickcheck-back
+  type: exitcode-stdio-1.0
+  hs-source-dirs: src, tests
+  main-is: Back.hs
+  ghc-options:
+    -main-is Back
+  other-modules:
+    Generators
+    Voogie.Back
+    Voogie.Boogie
+    Voogie.Boogie.BoogiePretty
+    Voogie.BoogiePretty
+    Voogie.BoogieSyntax
+    Voogie.FOOL
+    Voogie.FOOL.ArrayTheory
+    Voogie.FOOL.BoogiePretty
+    Voogie.FOOL.Rewrite
+    Voogie.FOOL.Smart
+    Voogie.FOOL.Tuple
+    Voogie.FOOL.TypeSafe
+    Voogie.NonEmpty
+    Voogie.Pretty
+    Voogie.Theory
+  default-extensions:
+    DeriveFunctor, DeriveFoldable, DeriveTraversable,
+    FlexibleInstances, LambdaCase, PatternGuards
+  build-depends:
+    base >= 4 && < 5,
+    ansi-wl-pprint >= 0.6.6 && < 0.7,
+    QuickCheck
+  default-language: Haskell2010
