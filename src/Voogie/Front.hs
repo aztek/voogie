@@ -106,10 +106,10 @@ analyzeTopLevels env = mapMaybeM analyzeTopLevel
     analyzeStmts = fmap catMaybes . mapM (analyzeStmt . A.astValue)
 
     analyzeStmt :: AST.Stmt' -> Result (Maybe B.Statement)
-    analyzeStmt (AST.If c a b) = B.if_ <$> analyzeExpr <:$> c .: Boolean
-                                       <*> analyzeStmts a
-                                       <*> analyzeStmts b
-    analyzeStmt (AST.Assign ass) = B.assign <$> mapM analyzeAssignment ass
+    analyzeStmt = \case
+      AST.If c a b -> B.if_ <$> analyzeExpr <:$> c .: Boolean
+                            <*> analyzeStmts a <*> analyzeStmts b
+      AST.Assign ass -> B.assign <$> mapM analyzeAssignment ass
 
     analyzeAssume :: AST.Assume -> Result B.Assume
     analyzeAssume (AST.Assume f) = B.assume <$> analyzeProperty env f
@@ -132,29 +132,30 @@ analyzeTopLevels env = mapMaybeM analyzeTopLevel
       B.lvalue n <$> mapM (uncurry $ guardAll analyzeExpr) xs
 
     analyzeExpr :: AST.Expr' -> Result B.Expression
-    analyzeExpr (AST.IntConst  i) = return (B.integerLiteral i)
-    analyzeExpr (AST.BoolConst b) = return (B.booleanLiteral b)
-    analyzeExpr (AST.LVal lval) = do
-      lval' <- analyzeLValue lval
-      return (B.ref lval')
-    analyzeExpr (AST.Unary op e) = do
-      let d = unaryOpDomain op
-      e' <- analyzeExpr <:$> e .: d
-      return (B.unary op e')
-    analyzeExpr (AST.Binary op a b) = do
-      let (d1, d2) = binaryOpDomain op
-      a' <- analyzeExpr <:$> a .: d1
-      b' <- analyzeExpr <:$> b .: d2
-      return (B.binary op a' b')
-    analyzeExpr (AST.Equals s a b) = do
-      a' <- analyzeExpr (A.astValue a)
-      b' <- analyzeExpr <:$> b .: typeOf a'
-      return (B.equals s a' b')
-    analyzeExpr (AST.Ternary c a b) = do
-      c' <- analyzeExpr <:$> c .: Boolean
-      a' <- analyzeExpr (A.astValue a)
-      b' <- analyzeExpr <:$> b .: typeOf a'
-      return (B.ifElse c' a' b')
+    analyzeExpr = \case
+      AST.IntConst  i -> return (B.integerLiteral i)
+      AST.BoolConst b -> return (B.booleanLiteral b)
+      AST.LVal lval -> do
+        lval' <- analyzeLValue lval
+        return (B.ref lval')
+      AST.Unary op e -> do
+        let d = unaryOpDomain op
+        e' <- analyzeExpr <:$> e .: d
+        return (B.unary op e')
+      AST.Binary op a b -> do
+        let (d1, d2) = binaryOpDomain op
+        a' <- analyzeExpr <:$> a .: d1
+        b' <- analyzeExpr <:$> b .: d2
+        return (B.binary op a' b')
+      AST.Equals s a b -> do
+        a' <- analyzeExpr (A.astValue a)
+        b' <- analyzeExpr <:$> b .: typeOf a'
+        return (B.equals s a' b')
+      AST.Ternary c a b -> do
+        c' <- analyzeExpr <:$> c .: Boolean
+        a' <- analyzeExpr (A.astValue a)
+        b' <- analyzeExpr <:$> b .: typeOf a'
+        return (B.ifElse c' a' b')
 
 analyzeProperty :: Env -> F.AST.Term -> Result F.Formula
 analyzeProperty env = analyzeFormula (env, Set.empty)
@@ -168,33 +169,34 @@ analyzeFormula :: Context -> F.AST.Term -> Result F.Formula
 analyzeFormula ctx@(env, qv) f = analyzeTerm <:$> f .: Boolean
   where
     analyzeTerm :: F.AST.Term' -> Result F.Term
-    analyzeTerm (F.AST.IntConst  i) = return (F.integerConstant i)
-    analyzeTerm (F.AST.BoolConst b) = return (F.booleanConstant b)
-    analyzeTerm (F.AST.Ref ast is) = do
-      var <- analyzeVar ast
-      A.astValue <$> foldM analyzeSelect var is
-    analyzeTerm (F.AST.Unary op t) = do
-      let d = unaryOpDomain op
-      t' <- analyzeTerm <:$> t .: d
-      return (F.unary op t')
-    analyzeTerm (F.AST.Binary op a b) = do
-      let (d1, d2) = binaryOpDomain op
-      a' <- analyzeTerm <:$> a .: d1
-      b' <- analyzeTerm <:$> b .: d2
-      return (F.binary op a' b')
-    analyzeTerm (F.AST.Ternary c a b) = do
-      c' <- analyzeFormula ctx c
-      a' <- analyzeTerm (A.astValue a)
-      b' <- analyzeTerm <:$> b .: typeOf a'
-      return (F.if_ c' a' b')
-    analyzeTerm (F.AST.Equals s a b) = do
-      a' <- analyzeTerm (A.astValue a)
-      b' <- analyzeTerm <:$> b .: typeOf a'
-      return (F.equals s a' b')
-    analyzeTerm (F.AST.Quantified q vars f) = do
-      (ctx', vars') <- analyzeVarList vars
-      f' <- analyzeFormula ctx' f
-      return (F.quantify q vars' f')
+    analyzeTerm = \case
+      F.AST.IntConst  i -> return (F.integerConstant i)
+      F.AST.BoolConst b -> return (F.booleanConstant b)
+      F.AST.Ref ast is -> do
+        var <- analyzeVar ast
+        A.astValue <$> foldM analyzeSelect var is
+      F.AST.Unary op t -> do
+        let d = unaryOpDomain op
+        t' <- analyzeTerm <:$> t .: d
+        return (F.unary op t')
+      F.AST.Binary op a b -> do
+        let (d1, d2) = binaryOpDomain op
+        a' <- analyzeTerm <:$> a .: d1
+        b' <- analyzeTerm <:$> b .: d2
+        return (F.binary op a' b')
+      F.AST.Ternary c a b -> do
+        c' <- analyzeFormula ctx c
+        a' <- analyzeTerm (A.astValue a)
+        b' <- analyzeTerm <:$> b .: typeOf a'
+        return (F.if_ c' a' b')
+      F.AST.Equals s a b -> do
+        a' <- analyzeTerm (A.astValue a)
+        b' <- analyzeTerm <:$> b .: typeOf a'
+        return (F.equals s a' b')
+      F.AST.Quantified q vars f -> do
+        (ctx', vars') <- analyzeVarList vars
+        f' <- analyzeFormula ctx' f
+        return (F.quantify q vars' f')
 
     analyzeVar :: A.AST Name -> Result (A.AST F.Term)
     analyzeVar ast = do
