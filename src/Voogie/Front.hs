@@ -2,6 +2,7 @@ module Voogie.Front (analyze) where
 
 import Control.Monad
 import Control.Monad.Extra
+import Control.Monad.Reader
 import Data.Maybe
 
 import qualified Data.List.NonEmpty as NE
@@ -28,185 +29,202 @@ import Voogie.FOOL.BoogiePretty()
 
 import Text.PrettyPrint.ANSI.Leijen (Pretty)
 
-data Env' a = Env (Map a Type)
+data Env a = Env (Map a Type)
 
-instance Ord a => Semigroup (Env' a) where
+instance Ord a => Semigroup (Env a) where
   Env m1 <> Env m2 = Env (m1 <> m2)
 
-emptyEnv :: (Ord a, Named a) => Env' a
+emptyEnv :: (Ord a, Named a) => Env a
 emptyEnv = Env Map.empty
 
-lookupEnv :: (Ord a, Named a) => A.AST a -> Env' a -> Result (A.AST (Typed a))
+lookupEnv :: (Ord a, Named a) => A.AST a -> Env a -> Result (A.AST (Typed a))
 lookupEnv ast (Env vs)
   | Just t <- Map.lookup (A.astValue ast) vs = Right (Typed t <$> ast)
   | otherwise = Left (UndefinedVariable ast)
 
-insertEnv :: (Ord a, Named a) => Typed a -> Env' a -> Env' a
+insertEnv :: (Ord a, Named a) => Typed a -> Env a -> Env a
 insertEnv (Typed t n) (Env vs) = Env (Map.insert n t vs)
 
-extendEnv :: (Ord a, Named a) => Env' a -> Typed (A.AST a) -> Result (Env' a)
+extendEnv :: (Ord a, Named a) => Env a -> Typed (A.AST a) -> Result (Env a)
 extendEnv env (Typed t ast@(A.AST pos n))
   | Left _ <- lookupEnv ast env = Right (insertEnv var env)
   | otherwise = Left (MultipleDefinitions (A.AST pos var))
   where var = Typed t n
 
-type Env = Env' Name
+type Analyze t = ReaderT (Env Name) Result t
 
 analyze :: AST.Boogie -> Result Boogie
-analyze (AST.Boogie globals main) = do
-  env <- foldM analyzeDecl emptyEnv globals
-  (Env vs, main') <- analyzeMain env main
+analyze boogie = runReaderT (analyzeBoogie boogie) emptyEnv
+
+analyzeBoogie :: AST.Boogie -> Analyze Boogie
+analyzeBoogie (AST.Boogie globals main) = do
+  env <- analyzeDecls globals
+  (Env vs, main') <- local (const env) (analyzeMain main)
   let vs' = fmap (\(n, t) -> Typed t n) (Map.toList vs)
   return (B.boogie vs' main')
 
-analyzeMain :: Env -> AST.Main -> Result (Env, B.Main)
-analyzeMain env (AST.Main modifies pre returns locals toplevel post) = do
-  env'  <- foldM analyzeDecl env locals
-  env'' <- foldM extendEnv env' $ case returns of
+analyzeMain :: AST.Main -> Analyze (Env Name, B.Main)
+analyzeMain (AST.Main modifies pre returns locals toplevel post) = do
+  pre' <- mapM analyzeProperty pre
+
+  env <- analyzeDecls locals
+  env' <- lift . foldM extendEnv env $ case returns of
     Just (AST.Returns r) -> NE.toList r
     Nothing -> []
-  pre' <- mapM (analyzeProperty env) pre
-  toplevel' <- analyzeTopLevels env'' toplevel
-  post' <- mapM (analyzeProperty env'') post
-  return (env'', B.main (A.astValue <$> modifies) pre' toplevel' post')
 
-analyzeDecl :: Env -> AST.Decl -> Result Env
-analyzeDecl env (AST.Declare ns) = foldM extendEnv env (sequence ns)
+  toplevel' <- local (const env') (analyzeTopLevels toplevel)
+  post' <- local (const env') (mapM analyzeProperty post)
+
+  return (env', B.main (A.astValue <$> modifies) pre' toplevel' post')
+
+analyzeDecls :: [AST.Decl] -> Analyze (Env Name)
+analyzeDecls ds = do
+  env <- ask
+  foldM (\e d -> local (const e) (analyzeDecl d)) env ds
+
+analyzeDecl :: AST.Decl -> Analyze (Env Name)
+analyzeDecl (AST.Declare ns) = do
+  env <- ask
+  lift $ foldM extendEnv env (sequence ns)
 
 guardType :: (TypeOf b, Pretty b)
-          => (a -> Result b) -> Type -> A.AST a -> Result b
+          => (a -> Analyze b) -> Type -> A.AST a -> Analyze b
 guardType analyze t (A.AST pos a) = do
   b <- analyze a
   let t' = typeOf b
-  if t == t'
-  then Right b
-  else Left (TypeMismatch (A.AST pos (Typed t' b)) t)
+  lift $ if t == t'
+         then Right b
+         else Left (TypeMismatch (A.AST pos (Typed t' b)) t)
 
 infix 6 <:$>
 (<:$>) :: (TypeOf b, Pretty b)
-       => (a -> Result b) -> A.AST a -> Type -> Result b
+       => (a -> Analyze b) -> A.AST a -> Type -> Analyze b
 f <:$> a = \t -> guardType f t a
 
 infix 6 `guardAll`
 guardAll :: (TypeOf b, Pretty b)
-         => (a -> Result b) -> NonEmpty (A.AST a) -> NonEmpty Type
-         -> Result (NonEmpty b)
+         => (a -> Analyze b) -> NonEmpty (A.AST a) -> NonEmpty Type
+         -> Analyze (NonEmpty b)
 guardAll f as ts = VNE.zipWithM (guardType f) ts as
 
 infix 5 .:
 (.:) :: (a -> b) -> a -> b
 (.:) = ($)
 
-analyzeTopLevels :: Env -> [Either AST.Stmt AST.Assume] -> Result [B.TopLevel]
-analyzeTopLevels env = mapMaybeM (analyzeTopLevel env)
+analyzeTopLevels :: [Either AST.Stmt AST.Assume] -> Analyze [B.TopLevel]
+analyzeTopLevels = mapMaybeM analyzeTopLevel
 
-analyzeTopLevel :: Env -> Either AST.Stmt AST.Assume -> Result (Maybe B.TopLevel)
-analyzeTopLevel env = \case
-  Left stmt -> fmap Left <$> analyzeStmt env (A.astValue stmt)
-  Right assume -> Just . Right <$> analyzeAssume env assume
+analyzeTopLevel :: Either AST.Stmt AST.Assume -> Analyze (Maybe B.TopLevel)
+analyzeTopLevel = \case
+  Left stmt -> fmap Left <$> analyzeStmt (A.astValue stmt)
+  Right assume -> Just . Right <$> analyzeAssume assume
 
-analyzeStmts :: Env -> [AST.Stmt] -> Result [B.Statement]
-analyzeStmts env = fmap catMaybes . mapM (analyzeStmt env . A.astValue)
+analyzeStmts :: [AST.Stmt] -> Analyze [B.Statement]
+analyzeStmts = fmap catMaybes . mapM (analyzeStmt . A.astValue)
 
-analyzeStmt :: Env -> AST.Stmt' -> Result (Maybe B.Statement)
-analyzeStmt env = \case
-  AST.If c a b -> B.if_ <$> analyzeExpr env <:$> c .: Boolean
-                        <*> analyzeStmts env a <*> analyzeStmts env b
-  AST.Assign ass -> B.assign <$> mapM (analyzeAssignment env) ass
+analyzeStmt :: AST.Stmt' -> Analyze (Maybe B.Statement)
+analyzeStmt = \case
+  AST.If c a b -> B.if_ <$> analyzeExpr <:$> c .: Boolean
+                        <*> analyzeStmts a <*> analyzeStmts b
+  AST.Assign ass -> B.assign <$> mapM analyzeAssignment ass
 
-analyzeAssume :: Env -> AST.Assume -> Result B.Assume
-analyzeAssume env (AST.Assume f) = B.assume <$> analyzeProperty env f
+analyzeAssume :: AST.Assume -> Analyze B.Assume
+analyzeAssume (AST.Assume f) = B.assume <$> analyzeProperty f
 
-analyzeAssignment :: Env -> (AST.LVal, AST.Expr) -> Result B.Assignment
-analyzeAssignment env (lval, e) = do
-  lv <- analyzeLValue env lval
-  e' <- analyzeExpr env <:$> e .: typeOf lv
+analyzeAssignment :: (AST.LVal, AST.Expr) -> Analyze B.Assignment
+analyzeAssignment (lval, e) = do
+  lv <- analyzeLValue lval
+  e' <- analyzeExpr <:$> e .: typeOf lv
   return (lv, e')
 
-analyzeLValue :: Env -> AST.LVal -> Result B.LValue
-analyzeLValue env (AST.Ref ast is) = do
-  var <- lookupEnv ast env
+analyzeLValue :: AST.LVal -> Analyze B.LValue
+analyzeLValue (AST.Ref ast is) = do
+  env <- ask
+  var <- lift (lookupEnv ast env)
   let n = A.astValue var
   let t = typeOf n
   let ais = arrayIndexes t
-  xs <- if length is > length ais
-        then Left (ArrayDimensionMismatch (Typed t <$> var))
-        else Right (zip is ais)
-  B.lvalue n <$> mapM (uncurry $ guardAll (analyzeExpr env)) xs
+  is' <- lift $ if length is > length ais
+                then Left (ArrayDimensionMismatch (Typed t <$> var))
+                else Right (zip is ais)
+  es <- mapM (uncurry $ guardAll analyzeExpr) is'
+  return (B.lvalue n es)
 
-analyzeExpr :: Env -> AST.Expr' -> Result B.Expression
-analyzeExpr env = \case
+analyzeExpr :: AST.Expr' -> Analyze B.Expression
+analyzeExpr = \case
   AST.IntConst  i -> return (B.integerLiteral i)
   AST.BoolConst b -> return (B.booleanLiteral b)
   AST.LVal lval -> do
-    lval' <- analyzeLValue env lval
+    lval' <- analyzeLValue lval
     return (B.ref lval')
   AST.Unary op e -> do
     let d = unaryOpDomain op
-    e' <- analyzeExpr env <:$> e .: d
+    e' <- analyzeExpr <:$> e .: d
     return (B.unary op e')
   AST.Binary op a b -> do
     let (d1, d2) = binaryOpDomain op
-    a' <- analyzeExpr env <:$> a .: d1
-    b' <- analyzeExpr env <:$> b .: d2
+    a' <- analyzeExpr <:$> a .: d1
+    b' <- analyzeExpr <:$> b .: d2
     return (B.binary op a' b')
   AST.Equals s a b -> do
-    a' <- analyzeExpr env (A.astValue a)
-    b' <- analyzeExpr env <:$> b .: typeOf a'
+    a' <- analyzeExpr (A.astValue a)
+    b' <- analyzeExpr <:$> b .: typeOf a'
     return (B.equals s a' b')
   AST.Ternary c a b -> do
-    c' <- analyzeExpr env <:$> c .: Boolean
-    a' <- analyzeExpr env (A.astValue a)
-    b' <- analyzeExpr env <:$> b .: typeOf a'
+    c' <- analyzeExpr <:$> c .: Boolean
+    a' <- analyzeExpr (A.astValue a)
+    b' <- analyzeExpr <:$> b .: typeOf a'
     return (B.ifElse c' a' b')
 
-analyzeProperty :: Env -> F.AST.Term -> Result F.Formula
+analyzeProperty :: F.AST.Term -> Analyze F.Formula
 analyzeProperty = analyzeFormula emptyEnv
 
-type QV = Env' F.Var
+type QV = Env F.Var
 
-analyzeFormula :: QV -> Env -> F.AST.Term -> Result F.Formula
-analyzeFormula qv env f = analyzeTerm qv env <:$> f .: Boolean
+analyzeFormula :: QV -> F.AST.Term -> Analyze F.Formula
+analyzeFormula qv f = analyzeTerm qv <:$> f .: Boolean
 
-analyzeTerm :: QV -> Env -> F.AST.Term' -> Result F.Term
-analyzeTerm qv env = \case
+analyzeTerm :: QV -> F.AST.Term' -> Analyze F.Term
+analyzeTerm qv = \case
   F.AST.IntConst  i -> return (F.integerConstant i)
   F.AST.BoolConst b -> return (F.booleanConstant b)
   F.AST.Ref ast is -> do
-    var <- analyzeName qv env ast
-    A.astValue <$> foldM (analyzeSelect qv env) var is
+    var <- analyzeName qv ast
+    A.astValue <$> foldM (analyzeSelect qv) var is
   F.AST.Unary op t -> do
     let d = unaryOpDomain op
-    t' <- analyzeTerm qv env <:$> t .: d
+    t' <- analyzeTerm qv <:$> t .: d
     return (F.unary op t')
   F.AST.Binary op a b -> do
     let (d1, d2) = binaryOpDomain op
-    a' <- analyzeTerm qv env <:$> a .: d1
-    b' <- analyzeTerm qv env <:$> b .: d2
+    a' <- analyzeTerm qv <:$> a .: d1
+    b' <- analyzeTerm qv <:$> b .: d2
     return (F.binary op a' b')
   F.AST.Ternary c a b -> do
-    c' <- analyzeFormula qv env c
-    a' <- analyzeTerm qv env (A.astValue a)
-    b' <- analyzeTerm qv env <:$> b .: typeOf a'
+    c' <- analyzeFormula qv c
+    a' <- analyzeTerm qv (A.astValue a)
+    b' <- analyzeTerm qv <:$> b .: typeOf a'
     return (F.if_ c' a' b')
   F.AST.Equals s a b -> do
-    a' <- analyzeTerm qv env (A.astValue a)
-    b' <- analyzeTerm qv env <:$> b .: typeOf a'
+    a' <- analyzeTerm qv (A.astValue a)
+    b' <- analyzeTerm qv <:$> b .: typeOf a'
     return (F.equals s a' b')
   F.AST.Quantified q vars f -> do
     let flatVars = fmap (fmap F.var <$>) (sequence =<< vars)
-    localQV <- foldM extendEnv emptyEnv flatVars
+    localQV <- lift $ foldM extendEnv emptyEnv flatVars
     let qv' = qv <> localQV
-    f' <- analyzeFormula qv' env f
+    f' <- analyzeFormula qv' f
     let vars' = fmap (fmap A.astValue) flatVars
     return (F.quantify q vars' f')
 
-analyzeName :: QV -> Env -> A.AST Name -> Result (A.AST F.Term)
-analyzeName qv env ast =
-     (fmap F.variable <$> lookupEnv (F.var <$> ast) qv)
-  <> (fmap F.constant <$> lookupEnv ast env)
+analyzeName :: QV -> A.AST Name -> Analyze (A.AST F.Term)
+analyzeName qv ast = do
+  env <- ask
+  let analyzeVar = fmap F.variable <$> lookupEnv (F.var <$> ast) qv
+  let analyzeSym = fmap F.constant <$> lookupEnv ast env
+  lift $ analyzeVar <> analyzeSym
 
-analyzeSelect :: QV -> Env -> A.AST F.Term -> NonEmpty F.AST.Term -> Result (A.AST F.Term)
-analyzeSelect qv env ast@(A.AST pos term) as = case typeOf term of
-  Array ts _ -> A.AST pos <$> (F.select term <$> analyzeTerm qv env `guardAll` as .: ts)
-  t -> Left (NonArraySelect (Typed t <$> ast))
+analyzeSelect :: QV -> A.AST F.Term -> NonEmpty F.AST.Term -> Analyze (A.AST F.Term)
+analyzeSelect qv ast@(A.AST pos term) as = case typeOf term of
+  Array ts _ -> A.AST pos <$> (F.select term <$> analyzeTerm qv `guardAll` as .: ts)
+  t -> lift $ Left (NonArraySelect (Typed t <$> ast))
