@@ -161,54 +161,52 @@ analyzeExpr env = \case
     return (B.ifElse c' a' b')
 
 analyzeProperty :: Env -> F.AST.Term -> Result F.Formula
-analyzeProperty env = analyzeFormula (env, emptyEnv)
+analyzeProperty = analyzeFormula emptyEnv
 
 type QV = Env' F.Var
 
-type Context = (Env, QV)
+analyzeFormula :: QV -> Env -> F.AST.Term -> Result F.Formula
+analyzeFormula qv env f = analyzeTerm qv env <:$> f .: Boolean
 
-analyzeFormula :: Context -> F.AST.Term -> Result F.Formula
-analyzeFormula ctx f = analyzeTerm ctx <:$> f .: Boolean
-
-analyzeTerm :: Context -> F.AST.Term' -> Result F.Term
-analyzeTerm ctx@(env, qv) = \case
+analyzeTerm :: QV -> Env -> F.AST.Term' -> Result F.Term
+analyzeTerm qv env = \case
   F.AST.IntConst  i -> return (F.integerConstant i)
   F.AST.BoolConst b -> return (F.booleanConstant b)
   F.AST.Ref ast is -> do
-    var <- analyzeName ctx ast
-    A.astValue <$> foldM (analyzeSelect ctx) var is
+    var <- analyzeName qv env ast
+    A.astValue <$> foldM (analyzeSelect qv env) var is
   F.AST.Unary op t -> do
     let d = unaryOpDomain op
-    t' <- analyzeTerm ctx <:$> t .: d
+    t' <- analyzeTerm qv env <:$> t .: d
     return (F.unary op t')
   F.AST.Binary op a b -> do
     let (d1, d2) = binaryOpDomain op
-    a' <- analyzeTerm ctx <:$> a .: d1
-    b' <- analyzeTerm ctx <:$> b .: d2
+    a' <- analyzeTerm qv env <:$> a .: d1
+    b' <- analyzeTerm qv env <:$> b .: d2
     return (F.binary op a' b')
   F.AST.Ternary c a b -> do
-    c' <- analyzeFormula ctx c
-    a' <- analyzeTerm ctx (A.astValue a)
-    b' <- analyzeTerm ctx<:$> b .: typeOf a'
+    c' <- analyzeFormula qv env c
+    a' <- analyzeTerm qv env (A.astValue a)
+    b' <- analyzeTerm qv env <:$> b .: typeOf a'
     return (F.if_ c' a' b')
   F.AST.Equals s a b -> do
-    a' <- analyzeTerm ctx (A.astValue a)
-    b' <- analyzeTerm ctx <:$> b .: typeOf a'
+    a' <- analyzeTerm qv env (A.astValue a)
+    b' <- analyzeTerm qv env <:$> b .: typeOf a'
     return (F.equals s a' b')
   F.AST.Quantified q vars f -> do
     let flatVars = fmap (fmap F.var <$>) (sequence =<< vars)
     localQV <- foldM extendEnv emptyEnv flatVars
     let qv' = qv <> localQV
-    f' <- analyzeFormula (env, qv') f
+    f' <- analyzeFormula qv' env f
     let vars' = fmap (fmap A.astValue) flatVars
     return (F.quantify q vars' f')
 
-analyzeName :: Context -> A.AST Name -> Result (A.AST F.Term)
-analyzeName (env, qv) ast =
+analyzeName :: QV -> Env -> A.AST Name -> Result (A.AST F.Term)
+analyzeName qv env ast =
      (fmap F.variable <$> lookupEnv (F.var <$> ast) qv)
   <> (fmap F.constant <$> lookupEnv ast env)
 
-analyzeSelect :: Context -> A.AST F.Term -> NonEmpty F.AST.Term -> Result (A.AST F.Term)
-analyzeSelect ctx ast@(A.AST pos term) as = case typeOf term of
-  Array ts _ -> A.AST pos <$> (F.select term <$> analyzeTerm ctx `guardAll` as .: ts)
+analyzeSelect :: QV -> Env -> A.AST F.Term -> NonEmpty F.AST.Term -> Result (A.AST F.Term)
+analyzeSelect qv env ast@(A.AST pos term) as = case typeOf term of
+  Array ts _ -> A.AST pos <$> (F.select term <$> analyzeTerm qv env `guardAll` as .: ts)
   t -> Left (NonArraySelect (Typed t <$> ast))
