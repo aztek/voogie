@@ -161,10 +161,10 @@ analyzeExpr env = \case
 analyzeProperty :: Env -> F.AST.Term -> Result F.Formula
 analyzeProperty env = analyzeFormula (env, Set.empty)
 
-type Context = (Env, Set (Typed Name))
+type Context = (Env, Set (Typed F.Var))
 
 extendContext :: Typed Name -> Context -> Context
-extendContext v (env, qv) = (insertVariable v env, Set.insert v qv)
+extendContext v (env, qv) = (insertVariable v env, Set.insert (F.var <$> v) qv)
 
 analyzeFormula :: Context -> F.AST.Term -> Result F.Formula
 analyzeFormula ctx f = analyzeTerm ctx <:$> f .: Boolean
@@ -205,7 +205,7 @@ analyzeTerm ctx = \case
 analyzeVar :: Context -> A.AST Name -> Result (A.AST F.Term)
 analyzeVar (env, qv) ast = do
   var <- lookupVariable ast env
-  let analyzeVar' v = if v `Set.member` qv
+  let analyzeVar' v = if (F.var <$> v) `Set.member` qv
                       then F.variable (F.var <$> v)
                       else F.constant v
   return (analyzeVar' <$> var)

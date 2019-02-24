@@ -16,7 +16,7 @@ import Voogie.FOOL.Tuple (Tuple)
 import Voogie.Theory
 
 newtype Var = Var Name
-  deriving (Show, Eq)
+  deriving (Show, Eq, Ord)
 
 type Identifier = Typed Name
 
