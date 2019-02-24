@@ -195,9 +195,12 @@ analyzeTerm ctx = \case
     b' <- analyzeTerm ctx <:$> b .: typeOf a'
     return (F.equals s a' b')
   F.AST.Quantified q vars f -> do
-    (ctx', vars') <- analyzeVarList ctx vars
+    -- TODO: check that the variables are disjoint
+    let vars' = sequence =<< fmap (fmap $ fmap A.astValue) vars
+    let ctx' = foldr extendContext ctx vars'
     f' <- analyzeFormula ctx' f
-    return (F.quantify q vars' f')
+    let vars'' = fmap (fmap F.var) vars'
+    return (F.quantify q vars'' f')
 
 analyzeVar :: Context -> A.AST Name -> Result (A.AST F.Term)
 analyzeVar (env, qv) ast = do
@@ -211,11 +214,3 @@ analyzeSelect :: Context -> A.AST F.Term -> NonEmpty F.AST.Term -> Result (A.AST
 analyzeSelect ctx ast@(A.AST pos term) as = case typeOf term of
   Array ts _ -> A.AST pos <$> (F.select term <$> analyzeTerm ctx `guardAll` as .: ts)
   t -> Left (NonArraySelect (Typed t <$> ast))
-
-analyzeVarList :: Context -> F.AST.VarList -> Result (Context, F.VarList)
--- TODO: check that the variables are disjoint
-analyzeVarList ctx vars = Right (ctx', fmap (fmap F.var) vars'')
-  where
-    vars' = fmap (fmap $ fmap A.astValue) vars
-    vars'' = sequence =<< vars'
-    ctx' = foldr extendContext ctx vars''
