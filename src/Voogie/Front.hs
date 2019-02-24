@@ -11,9 +11,6 @@ import qualified Voogie.NonEmpty as VNE
 import qualified Data.Map as Map
 import Data.Map (Map)
 
-import qualified Data.Set as Set
-import Data.Set (Set)
-
 import Voogie.Error
 import Voogie.Theory
 import Voogie.BoogiePretty()
@@ -32,6 +29,9 @@ import Voogie.FOOL.BoogiePretty()
 import Text.PrettyPrint.ANSI.Leijen (Pretty)
 
 data Env' a = Env (Map a Type)
+
+instance Ord a => Semigroup (Env' a) where
+  Env m1 <> Env m2 = Env (m1 <> m2)
 
 emptyEnv :: (Ord a, Named a) => Env' a
 emptyEnv = Env Map.empty
@@ -161,22 +161,21 @@ analyzeExpr env = \case
     return (B.ifElse c' a' b')
 
 analyzeProperty :: Env -> F.AST.Term -> Result F.Formula
-analyzeProperty env = analyzeFormula (env, Set.empty)
+analyzeProperty env = analyzeFormula (env, emptyEnv)
 
-type Context = (Env, Set (Typed F.Var))
+type QV = Env' F.Var
 
-extendContext :: Typed Name -> Context -> Context
-extendContext v (env, qv) = (insertEnv v env, Set.insert (F.var <$> v) qv)
+type Context = (Env, QV)
 
 analyzeFormula :: Context -> F.AST.Term -> Result F.Formula
 analyzeFormula ctx f = analyzeTerm ctx <:$> f .: Boolean
 
 analyzeTerm :: Context -> F.AST.Term' -> Result F.Term
-analyzeTerm ctx = \case
+analyzeTerm ctx@(env, qv) = \case
   F.AST.IntConst  i -> return (F.integerConstant i)
   F.AST.BoolConst b -> return (F.booleanConstant b)
   F.AST.Ref ast is -> do
-    var <- analyzeVar ctx ast
+    var <- analyzeName ctx ast
     A.astValue <$> foldM (analyzeSelect ctx) var is
   F.AST.Unary op t -> do
     let d = unaryOpDomain op
@@ -197,20 +196,17 @@ analyzeTerm ctx = \case
     b' <- analyzeTerm ctx <:$> b .: typeOf a'
     return (F.equals s a' b')
   F.AST.Quantified q vars f -> do
-    -- TODO: check that the variables are disjoint
-    let vars' = sequence =<< fmap (fmap $ fmap A.astValue) vars
-    let ctx' = foldr extendContext ctx vars'
-    f' <- analyzeFormula ctx' f
-    let vars'' = fmap (fmap F.var) vars'
-    return (F.quantify q vars'' f')
+    let flatVars = fmap (fmap F.var <$>) (sequence =<< vars)
+    localQV <- foldM extendEnv emptyEnv flatVars
+    let qv' = qv <> localQV
+    f' <- analyzeFormula (env, qv') f
+    let vars' = fmap (fmap A.astValue) flatVars
+    return (F.quantify q vars' f')
 
-analyzeVar :: Context -> A.AST Name -> Result (A.AST F.Term)
-analyzeVar (env, qv) ast = do
-  var <- lookupEnv ast env
-  let analyzeVar' v = if (F.var <$> v) `Set.member` qv
-                      then F.variable (F.var <$> v)
-                      else F.constant v
-  return (analyzeVar' <$> var)
+analyzeName :: Context -> A.AST Name -> Result (A.AST F.Term)
+analyzeName (env, qv) ast =
+     (fmap F.variable <$> lookupEnv (F.var <$> ast) qv)
+  <> (fmap F.constant <$> lookupEnv ast env)
 
 analyzeSelect :: Context -> A.AST F.Term -> NonEmpty F.AST.Term -> Result (A.AST F.Term)
 analyzeSelect ctx ast@(A.AST pos term) as = case typeOf term of
