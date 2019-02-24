@@ -96,66 +96,67 @@ infix 5 .:
 (.:) = ($)
 
 analyzeTopLevels :: Env -> [Either AST.Stmt AST.Assume] -> Result [B.TopLevel]
-analyzeTopLevels env = mapMaybeM analyzeTopLevel
-  where
-    analyzeTopLevel :: Either AST.Stmt AST.Assume -> Result (Maybe B.TopLevel)
-    analyzeTopLevel (Left stmt) = fmap Left <$> analyzeStmt (A.astValue stmt)
-    analyzeTopLevel (Right assume) = Just . Right <$> analyzeAssume assume
+analyzeTopLevels env = mapMaybeM (analyzeTopLevel env)
 
-    analyzeStmts :: [AST.Stmt] -> Result [B.Statement]
-    analyzeStmts = fmap catMaybes . mapM (analyzeStmt . A.astValue)
+analyzeTopLevel :: Env -> Either AST.Stmt AST.Assume -> Result (Maybe B.TopLevel)
+analyzeTopLevel env = \case
+  Left stmt -> fmap Left <$> analyzeStmt env (A.astValue stmt)
+  Right assume -> Just . Right <$> analyzeAssume env assume
 
-    analyzeStmt :: AST.Stmt' -> Result (Maybe B.Statement)
-    analyzeStmt = \case
-      AST.If c a b -> B.if_ <$> analyzeExpr <:$> c .: Boolean
-                            <*> analyzeStmts a <*> analyzeStmts b
-      AST.Assign ass -> B.assign <$> mapM analyzeAssignment ass
+analyzeStmts :: Env -> [AST.Stmt] -> Result [B.Statement]
+analyzeStmts env = fmap catMaybes . mapM (analyzeStmt env . A.astValue)
 
-    analyzeAssume :: AST.Assume -> Result B.Assume
-    analyzeAssume (AST.Assume f) = B.assume <$> analyzeProperty env f
+analyzeStmt :: Env -> AST.Stmt' -> Result (Maybe B.Statement)
+analyzeStmt env = \case
+  AST.If c a b -> B.if_ <$> analyzeExpr env <:$> c .: Boolean
+                        <*> analyzeStmts env a <*> analyzeStmts env b
+  AST.Assign ass -> B.assign <$> mapM (analyzeAssignment env) ass
 
-    analyzeAssignment :: (AST.LVal, AST.Expr) -> Result B.Assignment
-    analyzeAssignment (lval, e) = do
-      lv <- analyzeLValue lval
-      e' <- analyzeExpr <:$> e .: typeOf lv
-      return (lv, e')
+analyzeAssume :: Env -> AST.Assume -> Result B.Assume
+analyzeAssume env (AST.Assume f) = B.assume <$> analyzeProperty env f
 
-    analyzeLValue :: AST.LVal -> Result B.LValue
-    analyzeLValue (AST.Ref ast is) = do
-      var <- lookupVariable ast env
-      let n = A.astValue var
-      let t = typeOf n
-      let ais = arrayIndexes t
-      xs <- if length is > length ais
-            then Left (ArrayDimensionMismatch (Typed t <$> var))
-            else Right (zip is ais)
-      B.lvalue n <$> mapM (uncurry $ guardAll analyzeExpr) xs
+analyzeAssignment :: Env -> (AST.LVal, AST.Expr) -> Result B.Assignment
+analyzeAssignment env (lval, e) = do
+  lv <- analyzeLValue env lval
+  e' <- analyzeExpr env <:$> e .: typeOf lv
+  return (lv, e')
 
-    analyzeExpr :: AST.Expr' -> Result B.Expression
-    analyzeExpr = \case
-      AST.IntConst  i -> return (B.integerLiteral i)
-      AST.BoolConst b -> return (B.booleanLiteral b)
-      AST.LVal lval -> do
-        lval' <- analyzeLValue lval
-        return (B.ref lval')
-      AST.Unary op e -> do
-        let d = unaryOpDomain op
-        e' <- analyzeExpr <:$> e .: d
-        return (B.unary op e')
-      AST.Binary op a b -> do
-        let (d1, d2) = binaryOpDomain op
-        a' <- analyzeExpr <:$> a .: d1
-        b' <- analyzeExpr <:$> b .: d2
-        return (B.binary op a' b')
-      AST.Equals s a b -> do
-        a' <- analyzeExpr (A.astValue a)
-        b' <- analyzeExpr <:$> b .: typeOf a'
-        return (B.equals s a' b')
-      AST.Ternary c a b -> do
-        c' <- analyzeExpr <:$> c .: Boolean
-        a' <- analyzeExpr (A.astValue a)
-        b' <- analyzeExpr <:$> b .: typeOf a'
-        return (B.ifElse c' a' b')
+analyzeLValue :: Env -> AST.LVal -> Result B.LValue
+analyzeLValue env (AST.Ref ast is) = do
+  var <- lookupVariable ast env
+  let n = A.astValue var
+  let t = typeOf n
+  let ais = arrayIndexes t
+  xs <- if length is > length ais
+        then Left (ArrayDimensionMismatch (Typed t <$> var))
+        else Right (zip is ais)
+  B.lvalue n <$> mapM (uncurry $ guardAll (analyzeExpr env)) xs
+
+analyzeExpr :: Env -> AST.Expr' -> Result B.Expression
+analyzeExpr env = \case
+  AST.IntConst  i -> return (B.integerLiteral i)
+  AST.BoolConst b -> return (B.booleanLiteral b)
+  AST.LVal lval -> do
+    lval' <- analyzeLValue env lval
+    return (B.ref lval')
+  AST.Unary op e -> do
+    let d = unaryOpDomain op
+    e' <- analyzeExpr env <:$> e .: d
+    return (B.unary op e')
+  AST.Binary op a b -> do
+    let (d1, d2) = binaryOpDomain op
+    a' <- analyzeExpr env <:$> a .: d1
+    b' <- analyzeExpr env <:$> b .: d2
+    return (B.binary op a' b')
+  AST.Equals s a b -> do
+    a' <- analyzeExpr env (A.astValue a)
+    b' <- analyzeExpr env <:$> b .: typeOf a'
+    return (B.equals s a' b')
+  AST.Ternary c a b -> do
+    c' <- analyzeExpr env <:$> c .: Boolean
+    a' <- analyzeExpr env (A.astValue a)
+    b' <- analyzeExpr env <:$> b .: typeOf a'
+    return (B.ifElse c' a' b')
 
 analyzeProperty :: Env -> F.AST.Term -> Result F.Formula
 analyzeProperty env = analyzeFormula (env, Set.empty)
@@ -166,55 +167,55 @@ extendContext :: Typed Name -> Context -> Context
 extendContext v (env, qv) = (insertVariable v env, Set.insert v qv)
 
 analyzeFormula :: Context -> F.AST.Term -> Result F.Formula
-analyzeFormula ctx@(env, qv) f = analyzeTerm <:$> f .: Boolean
+analyzeFormula ctx f = analyzeTerm ctx <:$> f .: Boolean
+
+analyzeTerm :: Context -> F.AST.Term' -> Result F.Term
+analyzeTerm ctx = \case
+  F.AST.IntConst  i -> return (F.integerConstant i)
+  F.AST.BoolConst b -> return (F.booleanConstant b)
+  F.AST.Ref ast is -> do
+    var <- analyzeVar ctx ast
+    A.astValue <$> foldM (analyzeSelect ctx) var is
+  F.AST.Unary op t -> do
+    let d = unaryOpDomain op
+    t' <- analyzeTerm ctx <:$> t .: d
+    return (F.unary op t')
+  F.AST.Binary op a b -> do
+    let (d1, d2) = binaryOpDomain op
+    a' <- analyzeTerm ctx <:$> a .: d1
+    b' <- analyzeTerm ctx <:$> b .: d2
+    return (F.binary op a' b')
+  F.AST.Ternary c a b -> do
+    c' <- analyzeFormula ctx c
+    a' <- analyzeTerm ctx (A.astValue a)
+    b' <- analyzeTerm ctx<:$> b .: typeOf a'
+    return (F.if_ c' a' b')
+  F.AST.Equals s a b -> do
+    a' <- analyzeTerm ctx (A.astValue a)
+    b' <- analyzeTerm ctx <:$> b .: typeOf a'
+    return (F.equals s a' b')
+  F.AST.Quantified q vars f -> do
+    (ctx', vars') <- analyzeVarList ctx vars
+    f' <- analyzeFormula ctx' f
+    return (F.quantify q vars' f')
+
+analyzeVar :: Context -> A.AST Name -> Result (A.AST F.Term)
+analyzeVar (env, qv) ast = do
+  var <- lookupVariable ast env
+  let analyzeVar' v = if v `Set.member` qv
+                      then F.variable (F.var <$> v)
+                      else F.constant v
+  return (analyzeVar' <$> var)
+
+analyzeSelect :: Context -> A.AST F.Term -> NonEmpty F.AST.Term -> Result (A.AST F.Term)
+analyzeSelect ctx ast@(A.AST pos term) as = case typeOf term of
+  Array ts _ -> A.AST pos <$> (F.select term <$> analyzeTerm ctx `guardAll` as .: ts)
+  t -> Left (NonArraySelect (Typed t <$> ast))
+
+analyzeVarList :: Context -> F.AST.VarList -> Result (Context, F.VarList)
+-- TODO: check that the variables are disjoint
+analyzeVarList ctx vars = Right (ctx', fmap (fmap F.var) vars'')
   where
-    analyzeTerm :: F.AST.Term' -> Result F.Term
-    analyzeTerm = \case
-      F.AST.IntConst  i -> return (F.integerConstant i)
-      F.AST.BoolConst b -> return (F.booleanConstant b)
-      F.AST.Ref ast is -> do
-        var <- analyzeVar ast
-        A.astValue <$> foldM analyzeSelect var is
-      F.AST.Unary op t -> do
-        let d = unaryOpDomain op
-        t' <- analyzeTerm <:$> t .: d
-        return (F.unary op t')
-      F.AST.Binary op a b -> do
-        let (d1, d2) = binaryOpDomain op
-        a' <- analyzeTerm <:$> a .: d1
-        b' <- analyzeTerm <:$> b .: d2
-        return (F.binary op a' b')
-      F.AST.Ternary c a b -> do
-        c' <- analyzeFormula ctx c
-        a' <- analyzeTerm (A.astValue a)
-        b' <- analyzeTerm <:$> b .: typeOf a'
-        return (F.if_ c' a' b')
-      F.AST.Equals s a b -> do
-        a' <- analyzeTerm (A.astValue a)
-        b' <- analyzeTerm <:$> b .: typeOf a'
-        return (F.equals s a' b')
-      F.AST.Quantified q vars f -> do
-        (ctx', vars') <- analyzeVarList vars
-        f' <- analyzeFormula ctx' f
-        return (F.quantify q vars' f')
-
-    analyzeVar :: A.AST Name -> Result (A.AST F.Term)
-    analyzeVar ast = do
-      var <- lookupVariable ast env
-      let analyzeVar' v = if v `Set.member` qv
-                          then F.variable (F.var <$> v)
-                          else F.constant v
-      return (analyzeVar' <$> var)
-
-    analyzeSelect :: A.AST F.Term -> NonEmpty F.AST.Term -> Result (A.AST F.Term)
-    analyzeSelect ast@(A.AST pos term) as = case typeOf term of
-      Array ts _ -> A.AST pos <$> (F.select term <$> analyzeTerm `guardAll` as .: ts)
-      t -> Left (NonArraySelect (Typed t <$> ast))
-
-    analyzeVarList :: F.AST.VarList -> Result (Context, F.VarList)
-    -- TODO: check that the variables are disjoint
-    analyzeVarList vars = Right (ctx', fmap (fmap F.var) vars'')
-      where
-        vars' = fmap (fmap $ fmap A.astValue) vars
-        vars'' = sequence =<< vars'
-        ctx' = foldr extendContext ctx vars''
+    vars' = fmap (fmap $ fmap A.astValue) vars
+    vars'' = sequence =<< vars'
+    ctx' = foldr extendContext ctx vars''
