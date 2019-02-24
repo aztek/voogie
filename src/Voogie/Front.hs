@@ -31,24 +31,26 @@ import Voogie.FOOL.BoogiePretty()
 
 import Text.PrettyPrint.ANSI.Leijen (Pretty)
 
-newtype Env = Env (Map Name Type)
+data Env' a = Env (Map a Type)
 
-emptyEnv :: Env
+emptyEnv :: (Ord a, Named a) => Env' a
 emptyEnv = Env Map.empty
 
-lookupEnv :: A.AST Name -> Env -> Result (A.AST (Typed Name))
+lookupEnv :: (Ord a, Named a) => A.AST a -> Env' a -> Result (A.AST (Typed a))
 lookupEnv ast (Env vs)
   | Just t <- Map.lookup (A.astValue ast) vs = Right (Typed t <$> ast)
   | otherwise = Left (UndefinedVariable ast)
 
-insertEnv :: Typed Name -> Env -> Env
+insertEnv :: (Ord a, Named a) => Typed a -> Env' a -> Env' a
 insertEnv (Typed t n) (Env vs) = Env (Map.insert n t vs)
 
-extendEnv :: Env -> Typed (A.AST Name) -> Result Env
+extendEnv :: (Ord a, Named a) => Env' a -> Typed (A.AST a) -> Result (Env' a)
 extendEnv env (Typed t ast@(A.AST pos n))
   | Left _ <- lookupEnv ast env = Right (insertEnv var env)
   | otherwise = Left (MultipleDefinitions (A.AST pos var))
   where var = Typed t n
+
+type Env = Env' Name
 
 analyze :: AST.Boogie -> Result Boogie
 analyze (AST.Boogie globals main) = do
