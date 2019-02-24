@@ -36,17 +36,17 @@ newtype Env = Env (Map Name Type)
 emptyEnv :: Env
 emptyEnv = Env Map.empty
 
-lookupVariable :: A.AST Name -> Env -> Result (A.AST (Typed Name))
-lookupVariable ast (Env vs)
+lookupEnv :: A.AST Name -> Env -> Result (A.AST (Typed Name))
+lookupEnv ast (Env vs)
   | Just t <- Map.lookup (A.astValue ast) vs = Right (Typed t <$> ast)
   | otherwise = Left (UndefinedVariable ast)
 
-insertVariable :: Typed Name -> Env -> Env
-insertVariable (Typed t n) (Env vs) = Env (Map.insert n t vs)
+insertEnv :: Typed Name -> Env -> Env
+insertEnv (Typed t n) (Env vs) = Env (Map.insert n t vs)
 
 extendEnv :: Env -> Typed (A.AST Name) -> Result Env
 extendEnv env (Typed t ast@(A.AST pos n))
-  | Left _ <- lookupVariable ast env = Right (insertVariable var env)
+  | Left _ <- lookupEnv ast env = Right (insertEnv var env)
   | otherwise = Left (MultipleDefinitions (A.AST pos var))
   where var = Typed t n
 
@@ -123,7 +123,7 @@ analyzeAssignment env (lval, e) = do
 
 analyzeLValue :: Env -> AST.LVal -> Result B.LValue
 analyzeLValue env (AST.Ref ast is) = do
-  var <- lookupVariable ast env
+  var <- lookupEnv ast env
   let n = A.astValue var
   let t = typeOf n
   let ais = arrayIndexes t
@@ -164,7 +164,7 @@ analyzeProperty env = analyzeFormula (env, Set.empty)
 type Context = (Env, Set (Typed F.Var))
 
 extendContext :: Typed Name -> Context -> Context
-extendContext v (env, qv) = (insertVariable v env, Set.insert (F.var <$> v) qv)
+extendContext v (env, qv) = (insertEnv v env, Set.insert (F.var <$> v) qv)
 
 analyzeFormula :: Context -> F.AST.Term -> Result F.Formula
 analyzeFormula ctx f = analyzeTerm ctx <:$> f .: Boolean
@@ -204,7 +204,7 @@ analyzeTerm ctx = \case
 
 analyzeVar :: Context -> A.AST Name -> Result (A.AST F.Term)
 analyzeVar (env, qv) ast = do
-  var <- lookupVariable ast env
+  var <- lookupEnv ast env
   let analyzeVar' v = if (F.var <$> v) `Set.member` qv
                       then F.variable (F.var <$> v)
                       else F.constant v
