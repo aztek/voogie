@@ -18,6 +18,9 @@ import Voogie.Theory
 newtype Var = Var Name
   deriving (Show, Eq, Ord)
 
+instance Named Var where
+  nameOf (Var n) = n
+
 type Identifier = Typed Name
 
 data Definition

@@ -18,8 +18,8 @@ type Result = Either Error
 data Error where
   InputOutputError :: IOError -> Error
   ParsingError :: ParseError -> Error
-  UndefinedVariable :: AST Name -> Error
-  MultipleDefinitions :: AST (Typed Name) -> Error
+  UndefinedVariable :: Named a => AST a -> Error
+  MultipleDefinitions :: Named a => AST (Typed a) -> Error
   TypeMismatch :: Pretty a => AST (Typed a) -> Type -> Error
   NonArraySelect :: Pretty a => AST (Typed a) -> Error
   ArrayDimensionMismatch :: Pretty a => AST (Typed a) -> Error
@@ -36,10 +36,10 @@ instance Pretty Error where
                                $ errorMessages err)
 
     UndefinedVariable (AST _ v) ->
-      text "variable not in scope:" <+> bold (pretty v)
+      text "variable not in scope:" <+> bold (pretty $ nameOf v)
 
     MultipleDefinitions (AST _ v) ->
-      text "variable redefined:" <+> renderTyped v
+      text "variable redefined:" <+> renderTyped (nameOf <$> v)
 
     TypeMismatch (AST _ a) t ->
           text "expected an expression of the type" <+> bold (pretty t)

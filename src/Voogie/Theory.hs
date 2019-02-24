@@ -7,6 +7,12 @@ import Voogie.FOOL.Tuple (Tuple)
 
 type Name = String
 
+class Named t where
+  nameOf :: t -> Name
+
+instance Named Name where
+  nameOf = id
+
 data Type
   = Boolean
   | Integer
