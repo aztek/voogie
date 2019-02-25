@@ -47,11 +47,11 @@ lookupEnv ast = do
     Nothing -> Left (UndefinedVariable ast)
 
 extendEnv :: (Ord a, Named a) => Typed (A.AST a) -> AnalyzeE a (Env a)
-extendEnv (Typed t ast) = do
+extendEnv tast = do
   env <- ask
-  lift $ case runReaderT (lookupEnv ast) env of
-    Left _ -> Right (insertEnv (Typed t (A.astValue ast)) env)
-    Right _ -> Left (MultipleDefinitions (Typed t <$> ast))
+  lift $ case runReaderT (lookupEnv $ valueOf tast) env of
+    Right tast' -> Left (MultipleDefinitions tast')
+    Left _ -> Right (insertEnv (A.astValue <$> tast) env)
   where
     insertEnv :: (Ord a, Named a) => Typed a -> Env a -> Env a
     insertEnv (Typed t n) (Env vs) = Env (Map.insert n t vs)
@@ -219,9 +219,8 @@ analyzeTerm qv = \case
     return (F.equals s a' b')
   F.AST.Quantified q vars f -> do
     let flatVars = fmap (fmap F.var <$>) (sequence =<< vars)
-    localQV <- lift $ runReaderT (extendEnvT flatVars) emptyEnv
-    let qv' = qv <> localQV
-    f' <- analyzeFormula qv' f
+    qv' <- lift $ runReaderT (extendEnvT flatVars) emptyEnv
+    f' <- analyzeFormula (qv <> qv') f
     let vars' = fmap (fmap A.astValue) flatVars
     return (F.quantify q vars' f')
 
