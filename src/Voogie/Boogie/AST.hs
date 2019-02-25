@@ -39,11 +39,13 @@ data FunDef = FunDef Type Identifier [Typed Identifier] [Stmt]
 data Assume = Assume F.Formula
   deriving (Show, Eq)
 
+type TopLevel = Either Stmt Assume
+
 data Returns = Returns (NonEmpty (Typed Identifier))
   deriving (Show, Eq)
 
 data Main = Main [Identifier] [F.Formula] (Maybe Returns)
-                 [Decl] [Either Stmt Assume] [F.Formula]
+                 [Decl] [TopLevel] [F.Formula]
   deriving (Show, Eq)
 
 data Boogie = Boogie [Decl] Main

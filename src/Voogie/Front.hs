@@ -62,6 +62,9 @@ extendEnvT ts = do
   env <- ask
   foldM (local . const) env (fmap extendEnv ts)
 
+localM :: Monad m => ReaderT r m r -> ReaderT r m a -> ReaderT r m a
+localM m rma = do { r <- m; local (const r) rma }
+
 type Analyze t = AnalyzeE Name t
 
 analyze :: AST.Boogie -> Result Boogie
@@ -69,8 +72,7 @@ analyze boogie = runReaderT (analyzeBoogie boogie) emptyEnv
 
 analyzeBoogie :: AST.Boogie -> Analyze Boogie
 analyzeBoogie (AST.Boogie globals main) = do
-  env <- analyzeDecls globals
-  (Env vs, main') <- local (const env) (analyzeMain main)
+  (Env vs, main') <- localM (analyzeDecls globals) (analyzeMain main)
   let vs' = fmap (\(n, t) -> Typed t n) (Map.toList vs)
   return (B.boogie vs' main')
 
@@ -78,23 +80,19 @@ analyzeMain :: AST.Main -> Analyze (Env Name, B.Main)
 analyzeMain (AST.Main modifies pre returns locals toplevel post) = do
   pre' <- mapM analyzeProperty pre
 
-  env <- analyzeDecls locals
-  env' <- local (const env) (extendEnvT rs)
+  env <- localM (analyzeDecls locals) (extendEnvT returns')
 
-  toplevel' <- local (const env') (analyzeTopLevels toplevel)
-  post' <- local (const env') (mapM analyzeProperty post)
+  toplevel' <- local (const env) (mapMaybeM analyzeTopLevel toplevel)
+  post' <- local (const env) (mapM analyzeProperty post)
 
-  return (env', B.main (A.astValue <$> modifies) pre' toplevel' post')
+  return (env, B.main modifies' pre' toplevel' post')
   where
-    rs = case returns of
-      Just (AST.Returns r) -> NE.toList r
-      Nothing -> []
+    modifies' = fmap A.astValue modifies
+    returns' = maybe [] (\(AST.Returns r) -> NE.toList r) returns
 
 analyzeDecls :: [AST.Decl] -> Analyze (Env Name)
-analyzeDecls = extendEnvT . concatMap (NE.toList . identifiers)
-  where
-    identifiers :: AST.Decl -> NonEmpty (Typed AST.Identifier)
-    identifiers (AST.Declare ns) = sequence ns
+analyzeDecls = extendEnvT
+             . concatMap (\(AST.Declare ns) -> NE.toList (sequence ns))
 
 infix 6 <:$>
 (<:$>) :: (TypeOf b, Pretty b)
@@ -116,10 +114,7 @@ infix 5 .:
 (.:) :: (a -> b) -> a -> b
 (.:) = ($)
 
-analyzeTopLevels :: [Either AST.Stmt AST.Assume] -> Analyze [B.TopLevel]
-analyzeTopLevels = mapMaybeM analyzeTopLevel
-
-analyzeTopLevel :: Either AST.Stmt AST.Assume -> Analyze (Maybe B.TopLevel)
+analyzeTopLevel :: AST.TopLevel -> Analyze (Maybe B.TopLevel)
 analyzeTopLevel = \case
   Left stmt -> fmap Left <$> analyzeStmt (A.astValue stmt)
   Right assume -> Just . Right <$> analyzeAssume assume
