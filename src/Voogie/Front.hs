@@ -37,22 +37,24 @@ instance Ord a => Semigroup (Env a) where
 emptyEnv :: (Ord a, Named a) => Env a
 emptyEnv = Env Map.empty
 
-lookupEnv :: (Ord a, Named a) => A.AST a -> Env a -> Result (A.AST (Typed a))
-lookupEnv ast (Env vs)
-  | Just t <- Map.lookup (A.astValue ast) vs = Right (Typed t <$> ast)
-  | otherwise = Left (UndefinedVariable ast)
-
-insertEnv :: (Ord a, Named a) => Typed a -> Env a -> Env a
-insertEnv (Typed t n) (Env vs) = Env (Map.insert n t vs)
-
 type AnalyzeE a t = ReaderT (Env a) Result t
+
+lookupEnv :: (Ord a, Named a) => A.AST a -> AnalyzeE a (A.AST (Typed a))
+lookupEnv ast = do
+  Env vs <- ask
+  lift $ case Map.lookup (A.astValue ast) vs of
+    Just t -> Right (Typed t <$> ast)
+    Nothing -> Left (UndefinedVariable ast)
 
 extendEnv :: (Ord a, Named a) => Typed (A.AST a) -> AnalyzeE a (Env a)
 extendEnv (Typed t ast) = do
   env <- ask
-  lift $ case lookupEnv ast env of
+  lift $ case runReaderT (lookupEnv ast) env of
     Left _ -> Right (insertEnv (Typed t (A.astValue ast)) env)
     Right _ -> Left (MultipleDefinitions (Typed t <$> ast))
+  where
+    insertEnv :: (Ord a, Named a) => Typed a -> Env a -> Env a
+    insertEnv (Typed t n) (Env vs) = Env (Map.insert n t vs)
 
 extendEnvT :: (Ord a, Named a, Traversable t)
            => t (Typed (A.AST a)) -> AnalyzeE a (Env a)
@@ -146,8 +148,7 @@ analyzeAssignment (lval, e) = do
 
 analyzeLValue :: AST.LVal -> Analyze B.LValue
 analyzeLValue (AST.Ref ast is) = do
-  env <- ask
-  var <- lift (lookupEnv ast env)
+  var <- lookupEnv ast
   let n = A.astValue var
   let t = typeOf n
   let ais = arrayIndexes t
@@ -227,8 +228,8 @@ analyzeTerm qv = \case
 analyzeName :: QV -> A.AST Name -> Analyze (A.AST F.Term)
 analyzeName qv ast = do
   env <- ask
-  let analyzeVar = fmap F.variable <$> lookupEnv (F.var <$> ast) qv
-  let analyzeSym = fmap F.constant <$> lookupEnv ast env
+  let analyzeVar = fmap F.variable <$> runReaderT (lookupEnv (F.var <$> ast)) qv
+  let analyzeSym = fmap F.constant <$> runReaderT (lookupEnv ast) env
   lift $ analyzeVar <> analyzeSym
 
 analyzeSelect :: QV -> A.AST F.Term -> NonEmpty F.AST.Term -> Analyze (A.AST F.Term)
