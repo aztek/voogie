@@ -45,13 +45,22 @@ lookupEnv ast (Env vs)
 insertEnv :: (Ord a, Named a) => Typed a -> Env a -> Env a
 insertEnv (Typed t n) (Env vs) = Env (Map.insert n t vs)
 
-extendEnv :: (Ord a, Named a) => Env a -> Typed (A.AST a) -> Result (Env a)
-extendEnv env (Typed t ast@(A.AST pos n))
-  | Left _ <- lookupEnv ast env = Right (insertEnv var env)
-  | otherwise = Left (MultipleDefinitions (A.AST pos var))
-  where var = Typed t n
+type AnalyzeE a t = ReaderT (Env a) Result t
 
-type Analyze t = ReaderT (Env Name) Result t
+extendEnv :: (Ord a, Named a) => Typed (A.AST a) -> AnalyzeE a (Env a)
+extendEnv (Typed t ast) = do
+  env <- ask
+  lift $ case lookupEnv ast env of
+    Left _ -> Right (insertEnv (Typed t (A.astValue ast)) env)
+    Right _ -> Left (MultipleDefinitions (Typed t <$> ast))
+
+extendEnvT :: (Ord a, Named a, Traversable t)
+           => t (Typed (A.AST a)) -> AnalyzeE a (Env a)
+extendEnvT ts = do
+  env <- ask
+  foldM (local . const) env (fmap extendEnv ts)
+
+type Analyze t = AnalyzeE Name t
 
 analyze :: AST.Boogie -> Result Boogie
 analyze boogie = runReaderT (analyzeBoogie boogie) emptyEnv
@@ -68,24 +77,22 @@ analyzeMain (AST.Main modifies pre returns locals toplevel post) = do
   pre' <- mapM analyzeProperty pre
 
   env <- analyzeDecls locals
-  env' <- lift . foldM extendEnv env $ case returns of
-    Just (AST.Returns r) -> NE.toList r
-    Nothing -> []
+  env' <- local (const env) (extendEnvT rs)
 
   toplevel' <- local (const env') (analyzeTopLevels toplevel)
   post' <- local (const env') (mapM analyzeProperty post)
 
   return (env', B.main (A.astValue <$> modifies) pre' toplevel' post')
+  where
+    rs = case returns of
+      Just (AST.Returns r) -> NE.toList r
+      Nothing -> []
 
 analyzeDecls :: [AST.Decl] -> Analyze (Env Name)
-analyzeDecls ds = do
-  env <- ask
-  foldM (\e d -> local (const e) (analyzeDecl d)) env ds
-
-analyzeDecl :: AST.Decl -> Analyze (Env Name)
-analyzeDecl (AST.Declare ns) = do
-  env <- ask
-  lift $ foldM extendEnv env (sequence ns)
+analyzeDecls = extendEnvT . concatMap (NE.toList . identifiers)
+  where
+    identifiers :: AST.Decl -> NonEmpty (Typed AST.Identifier)
+    identifiers (AST.Declare ns) = sequence ns
 
 guardType :: (TypeOf b, Pretty b)
           => (a -> Analyze b) -> Type -> A.AST a -> Analyze b
@@ -211,7 +218,7 @@ analyzeTerm qv = \case
     return (F.equals s a' b')
   F.AST.Quantified q vars f -> do
     let flatVars = fmap (fmap F.var <$>) (sequence =<< vars)
-    localQV <- lift $ foldM extendEnv emptyEnv flatVars
+    localQV <- lift $ runReaderT (extendEnvT flatVars) emptyEnv
     let qv' = qv <> localQV
     f' <- analyzeFormula qv' f
     let vars' = fmap (fmap A.astValue) flatVars
