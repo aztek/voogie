@@ -39,31 +39,29 @@ emptyEnv = Env Map.empty
 
 type AnalyzeE a t = ReaderT (Env a) Result t
 
-lookupEnv :: (Ord a, Named a) => A.AST a -> AnalyzeE a (A.AST (Typed a))
-lookupEnv ast = do
-  Env vs <- ask
-  lift $ case Map.lookup (A.astValue ast) vs of
-    Just t -> Right (Typed t <$> ast)
-    Nothing -> Left (UndefinedVariable ast)
-
-extendEnv :: (Ord a, Named a) => Typed (A.AST a) -> AnalyzeE a (Env a)
-extendEnv tast = do
-  env <- ask
-  lift $ case runReaderT (lookupEnv $ valueOf tast) env of
-    Right tast' -> Left (MultipleDefinitions tast')
-    Left _ -> Right (insertEnv (A.astValue <$> tast) env)
-  where
-    insertEnv :: (Ord a, Named a) => Typed a -> Env a -> Env a
-    insertEnv (Typed t n) (Env vs) = Env (Map.insert n t vs)
-
-extendEnvT :: (Ord a, Named a, Traversable t)
-           => t (Typed (A.AST a)) -> AnalyzeE a (Env a)
-extendEnvT ts = do
-  env <- ask
-  foldM (local . const) env (fmap extendEnv ts)
+liftMT :: Monad m => (r -> m a) -> ReaderT r m a
+liftMT f = do { e <- ask; lift (f e) }
 
 localM :: Monad m => ReaderT r m r -> ReaderT r m a -> ReaderT r m a
 localM m rma = do { r <- m; local (const r) rma }
+
+lookupEnv :: (Ord a, Named a) => A.AST a -> AnalyzeE a (A.AST (Typed a))
+lookupEnv = liftMT . lookup
+  where
+    lookup ast (Env vs)
+      | Just t <- Map.lookup (A.astValue ast) vs = Right (Typed t <$> ast)
+      | otherwise = Left (UndefinedVariable ast)
+
+extendEnv :: (Ord a, Named a) => Typed (A.AST a) -> AnalyzeE a (Env a)
+extendEnv = liftMT . extend
+  where
+    extend (Typed t ast) env@(Env vs) = case runReaderT (lookupEnv ast) env of
+      Right tast' -> Left (MultipleDefinitions tast')
+      Left _ -> Right (Env (Map.insert (A.astValue ast) t vs))
+
+extendEnvT :: (Ord a, Named a, Traversable t)
+           => t (Typed (A.AST a)) -> AnalyzeE a (Env a)
+extendEnvT ts = do { env <- ask; foldM (local . const) env (fmap extendEnv ts) }
 
 type Analyze t = AnalyzeE Name t
 
@@ -94,15 +92,19 @@ analyzeDecls :: [AST.Decl] -> Analyze (Env Name)
 analyzeDecls = extendEnvT
              . concatMap (\(AST.Declare ns) -> NE.toList (sequence ns))
 
+typed :: (TypeOf a, Pretty a) => Type -> A.AST a -> Result a
+typed t (A.AST pos a)
+  | t == typeOf a = Right a
+  | otherwise = Left (TypeMismatch (A.AST pos (Typed (typeOf a) a)) t)
+
+typedM :: (Pretty a, TypeOf a, Monad m)
+       => Type -> A.AST (m a) -> m (Result a)
+typedM t = fmap (typed t) . sequence
+
 infix 3 <::>
 (<::>) :: (Pretty a, TypeOf a, MonadTrans t, Monad (t Result))
        => A.AST (t Result a) -> Type -> t Result a
-(<::>) (A.AST pos a) t = do
-  b <- a
-  let t' = typeOf b
-  lift $ if t == t'
-         then Right b
-         else Left (TypeMismatch (A.AST pos (Typed t' b)) t)
+ast <::> t = t `typedM` ast >>= lift
 
 guardType f a t = f <$> a <::> t
 
