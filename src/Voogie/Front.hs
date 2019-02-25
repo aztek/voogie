@@ -96,25 +96,21 @@ analyzeDecls = extendEnvT . concatMap (NE.toList . identifiers)
     identifiers :: AST.Decl -> NonEmpty (Typed AST.Identifier)
     identifiers (AST.Declare ns) = sequence ns
 
-guardType :: (TypeOf b, Pretty b)
-          => (a -> Analyze b) -> Type -> A.AST a -> Analyze b
-guardType analyze t (A.AST pos a) = do
+infix 6 <:$>
+(<:$>) :: (TypeOf b, Pretty b)
+          => (a -> Analyze b) -> A.AST a -> Type -> Analyze b
+(<:$>) analyze (A.AST pos a) t = do
   b <- analyze a
   let t' = typeOf b
   lift $ if t == t'
          then Right b
          else Left (TypeMismatch (A.AST pos (Typed t' b)) t)
 
-infix 6 <:$>
-(<:$>) :: (TypeOf b, Pretty b)
-       => (a -> Analyze b) -> A.AST a -> Type -> Analyze b
-f <:$> a = \t -> guardType f t a
-
 infix 6 `guardAll`
 guardAll :: (TypeOf b, Pretty b)
          => (a -> Analyze b) -> NonEmpty (A.AST a) -> NonEmpty Type
          -> Analyze (NonEmpty b)
-guardAll f as ts = VNE.zipWithM (guardType f) ts as
+guardAll = VNE.zipWithM . (<:$>)
 
 infix 5 .:
 (.:) :: (a -> b) -> a -> b
