@@ -4,6 +4,9 @@ import Control.Monad
 import Control.Monad.Extra
 import Control.Monad.Reader
 import Data.Maybe
+#if __GLASGOW_HASKELL__ < 804
+import Data.Semigroup
+#endif
 
 import qualified Data.List.NonEmpty as NE
 import Data.List.NonEmpty (NonEmpty)
