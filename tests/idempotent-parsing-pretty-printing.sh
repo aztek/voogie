@@ -21,7 +21,7 @@ echo_bold () {
   echo "${1}"
 }
 
-VOOGIE="voogie"
+VOOGIE="./dist-newstyle/build/*/ghc-*/Voogie-*/x/voogie/build/voogie/voogie"
 
 OK=$(echo_success "OK")
 FAIL=$(echo_error "FAIL")
