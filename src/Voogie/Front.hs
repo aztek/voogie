@@ -94,25 +94,17 @@ analyzeDecls :: [AST.Decl] -> Analyze (Env Name)
 analyzeDecls = extendEnvT
              . concatMap (\(AST.Declare ns) -> NE.toList (sequence ns))
 
-infix 6 <:$>
-(<:$>) :: (TypeOf b, Pretty b)
-          => (a -> Analyze b) -> A.AST a -> Type -> Analyze b
-(<:$>) analyze (A.AST pos a) t = do
-  b <- analyze a
+infix 3 <::>
+(<::>) :: (Pretty a, TypeOf a, MonadTrans t, Monad (t Result))
+       => A.AST (t Result a) -> Type -> t Result a
+(<::>) (A.AST pos a) t = do
+  b <- a
   let t' = typeOf b
   lift $ if t == t'
          then Right b
          else Left (TypeMismatch (A.AST pos (Typed t' b)) t)
 
-infix 6 `guardAll`
-guardAll :: (TypeOf b, Pretty b)
-         => (a -> Analyze b) -> NonEmpty (A.AST a) -> NonEmpty Type
-         -> Analyze (NonEmpty b)
-guardAll = VNE.zipWithM . (<:$>)
-
-infix 5 .:
-(.:) :: (a -> b) -> a -> b
-(.:) = ($)
+guardType f a t = f <$> a <::> t
 
 analyzeTopLevel :: AST.TopLevel -> Analyze (Maybe B.TopLevel)
 analyzeTopLevel = \case
@@ -124,7 +116,7 @@ analyzeStmts = fmap catMaybes . mapM (analyzeStmt . A.astValue)
 
 analyzeStmt :: AST.Stmt' -> Analyze (Maybe B.Statement)
 analyzeStmt = \case
-  AST.If c a b -> B.if_ <$> analyzeExpr <:$> c .: Boolean
+  AST.If c a b -> B.if_ <$> (analyzeExpr <$> c <::> Boolean)
                         <*> analyzeStmts a <*> analyzeStmts b
   AST.Assign ass -> B.assign <$> mapM analyzeAssignment ass
 
@@ -134,7 +126,7 @@ analyzeAssume (AST.Assume f) = B.assume <$> analyzeProperty f
 analyzeAssignment :: (AST.LVal, AST.Expr) -> Analyze B.Assignment
 analyzeAssignment (lval, e) = do
   lv <- analyzeLValue lval
-  e' <- analyzeExpr <:$> e .: typeOf lv
+  e' <- analyzeExpr <$> e <::> typeOf lv
   return (lv, e')
 
 analyzeLValue :: AST.LVal -> Analyze B.LValue
@@ -146,7 +138,7 @@ analyzeLValue (AST.Ref ast is) = do
   is' <- lift $ if length is > length ais
                 then Left (ArrayDimensionMismatch (Typed t <$> var))
                 else Right (zip is ais)
-  es <- mapM (uncurry $ guardAll analyzeExpr) is'
+  es <- mapM (uncurry . VNE.zipWithM $ guardType analyzeExpr) is'
   return (B.lvalue n es)
 
 analyzeExpr :: AST.Expr' -> Analyze B.Expression
@@ -158,21 +150,21 @@ analyzeExpr = \case
     return (B.ref lval')
   AST.Unary op e -> do
     let d = unaryOpDomain op
-    e' <- analyzeExpr <:$> e .: d
+    e' <- analyzeExpr <$> e <::> d
     return (B.unary op e')
   AST.Binary op a b -> do
     let (d1, d2) = binaryOpDomain op
-    a' <- analyzeExpr <:$> a .: d1
-    b' <- analyzeExpr <:$> b .: d2
+    a' <- analyzeExpr <$> a <::> d1
+    b' <- analyzeExpr <$> b <::> d2
     return (B.binary op a' b')
   AST.Equals s a b -> do
     a' <- analyzeExpr (A.astValue a)
-    b' <- analyzeExpr <:$> b .: typeOf a'
+    b' <- analyzeExpr <$> b <::> typeOf a'
     return (B.equals s a' b')
   AST.Ternary c a b -> do
-    c' <- analyzeExpr <:$> c .: Boolean
+    c' <- analyzeExpr <$> c <::> Boolean
     a' <- analyzeExpr (A.astValue a)
-    b' <- analyzeExpr <:$> b .: typeOf a'
+    b' <- analyzeExpr <$> b <::> typeOf a'
     return (B.ifElse c' a' b')
 
 analyzeProperty :: F.AST.Term -> Analyze F.Formula
@@ -181,7 +173,7 @@ analyzeProperty = analyzeFormula emptyEnv
 type QV = Env F.Var
 
 analyzeFormula :: QV -> F.AST.Term -> Analyze F.Formula
-analyzeFormula qv f = analyzeTerm qv <:$> f .: Boolean
+analyzeFormula qv f = analyzeTerm qv <$> f <::> Boolean
 
 analyzeTerm :: QV -> F.AST.Term' -> Analyze F.Term
 analyzeTerm qv = \case
@@ -192,21 +184,21 @@ analyzeTerm qv = \case
     A.astValue <$> foldM (analyzeSelect qv) var is
   F.AST.Unary op t -> do
     let d = unaryOpDomain op
-    t' <- analyzeTerm qv <:$> t .: d
+    t' <- analyzeTerm qv <$> t <::> d
     return (F.unary op t')
   F.AST.Binary op a b -> do
     let (d1, d2) = binaryOpDomain op
-    a' <- analyzeTerm qv <:$> a .: d1
-    b' <- analyzeTerm qv <:$> b .: d2
+    a' <- analyzeTerm qv <$> a <::> d1
+    b' <- analyzeTerm qv <$> b <::> d2
     return (F.binary op a' b')
   F.AST.Ternary c a b -> do
     c' <- analyzeFormula qv c
     a' <- analyzeTerm qv (A.astValue a)
-    b' <- analyzeTerm qv <:$> b .: typeOf a'
+    b' <- analyzeTerm qv <$> b <::> typeOf a'
     return (F.if_ c' a' b')
   F.AST.Equals s a b -> do
     a' <- analyzeTerm qv (A.astValue a)
-    b' <- analyzeTerm qv <:$> b .: typeOf a'
+    b' <- analyzeTerm qv <$> b <::> typeOf a'
     return (F.equals s a' b')
   F.AST.Quantified q vars f -> do
     let flatVars = fmap (fmap F.var <$>) (sequence =<< vars)
@@ -224,5 +216,5 @@ analyzeName qv ast = do
 
 analyzeSelect :: QV -> A.AST F.Term -> NonEmpty F.AST.Term -> Analyze (A.AST F.Term)
 analyzeSelect qv ast@(A.AST pos term) as = case typeOf term of
-  Array ts _ -> A.AST pos <$> (F.select term <$> analyzeTerm qv `guardAll` as .: ts)
+  Array ts _ -> A.AST pos <$> (F.select term <$> VNE.zipWithM (guardType $ analyzeTerm qv) as ts)
   t -> lift $ Left (NonArraySelect (Typed t <$> ast))
