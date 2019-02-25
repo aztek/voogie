@@ -1,3 +1,5 @@
+{-# LANGUAGE CPP #-}
+
 module Voogie.Front (analyze) where
 
 import Control.Monad
