@@ -26,40 +26,42 @@ updates = NE.nub . updates'
     updates' (B.Assign ass) = B.lvariable . fst <$> ass
 
 translate :: TranslationOptions -> B.Boogie -> F.Problem
-translate opts (B.Boogie decls (B.Main _ pre stmts post))
-  | not (useArrayTheory opts) = eliminateArrayTheory problem
-  | otherwise = problem
+translate to boogie
+  | not (useArrayTheory to) = eliminateArrayTheory (translateBoogie boogie)
+  | otherwise = translateBoogie boogie
+
+translateBoogie :: B.Boogie -> F.Problem
+translateBoogie (B.Boogie decls (B.Main _ pre stmts post)) = problem
   where
     problem = F.Problem [] decls pre (foldr nextState conjecture stmts)
     conjecture = F.conjunction post
-    nextState = either translateStmt translateAssume
+    nextState = either translateStatement translateAssume
 
-    translateStmt :: B.Statement -> F.Term -> F.Term
-    translateStmt s = F.let_ (F.Binding (F.tupleD vars) (definition s))
-      where
-        vars = updates s
+translateStatement :: B.Statement -> F.Term -> F.Term
+translateStatement s = F.let_ (F.Binding definition body)
+  where
+    vars = updates s
 
-        definition :: B.Statement -> F.Term
-        definition (B.Assign ass) = F.tupleLiteral (translateAssign <$> ass)
-        definition (B.If c flipBranches a b)
-          | flipBranches = F.if_ c' b' a'
-          | otherwise    = F.if_ c' a' b'
-          where
-            c' = translateExpr c
-            a' = foldr translateStmt tuple a
-            b' = foldr translateStmt tuple b
-            tuple = F.tupleLiteral (F.constant <$> vars)
+    definition = F.tupleD vars
 
-    translateAssign :: B.Assignment -> F.Term
-    translateAssign (lval, e)
-      | Just is' <- is = F.store n is' e'
-      | otherwise = e'
-      where
-        (n, is) = translateLValue lval
-        e' = translateExpr e
+    body = case s of
+      B.Assign ass -> F.tupleLiteral (translateAssign <$> ass)
+      B.If c flipBranches a b
+        | flipBranches -> F.if_ c' b' a'
+        | otherwise    -> F.if_ c' a' b'
+        where
+          c' = translateExpr c
+          a' = foldr translateStatement tuple a
+          b' = foldr translateStatement tuple b
+          tuple = F.tupleLiteral (F.constant <$> vars)
 
-    translateAssume :: B.Assume -> F.Term -> F.Term
-    translateAssume (B.Assume f) = F.binary Imply f
+translateAssign :: B.Assignment -> F.Term
+translateAssign (lval, e) = maybe id (F.store n) is (translateExpr e)
+  where
+    (n, is) = translateLValue lval
+
+translateAssume :: B.Assume -> F.Term -> F.Term
+translateAssume (B.Assume f) = F.binary Imply f
 
 translateExpr :: B.Expression -> F.Term
 translateExpr = \case
