@@ -1,5 +1,7 @@
 module Voogie.TPTPretty() where
 
+import Voogie.Theory
+
 import Voogie.TPTP
 import Voogie.TPTPSyntax
 
