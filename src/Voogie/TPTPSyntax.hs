@@ -2,7 +2,7 @@ module Voogie.TPTPSyntax where
 
 import Voogie.Theory
 
-binaryOpName :: BinaryOp -> String
+binaryOpName :: BinaryOp -> Name
 binaryOpName = \case
   And      -> "&"
   Or       -> "|"
@@ -32,7 +32,7 @@ isInfix = \case
   Multiply -> False
   Divide   -> False
 
-unaryOpName :: UnaryOp -> String
+unaryOpName :: UnaryOp -> Name
 unaryOpName = \case
   Negate   -> "~"
   Negative -> "$uminus"
@@ -42,19 +42,32 @@ isPrefix = \case
   Negate   -> True
   Negative -> False
 
-quantifierName :: Quantifier -> String
+quantifierName :: Quantifier -> Name
 quantifierName = \case
   Forall -> "!"
   Exists -> "?"
 
-signName :: Sign -> String
+signName :: Sign -> Name
 signName = \case
   Pos -> "="
   Neg -> "!="
 
-booleanName :: Bool -> String
+booleanName :: Bool -> Name
 booleanName True = "$true"
 booleanName False = "$false"
+
+keywords :: [Name]
+keywords = [
+    kwdTtf
+  , kwdType
+  , kwdAxiom
+  , kwdConjecture
+  , kwdIf
+  , kwdLet
+  , kwdSelect
+  , kwdStore
+  , kwdTypeDecl
+  ]
 
 kwdTtf = "ttf"
 kwdType = "type"
@@ -66,9 +79,18 @@ kwdLet = "$let"
 kwdSelect = "$select"
 kwdStore = "$store"
 
+opAssign :: Name
 opAssign = ":="
 
 kwdTypeDecl = "$tType"
+
+typeNames :: [Name]
+typeNames = [
+    intName
+  , boolName
+  , arrayName
+  ]
+
 intName = "$int"
 boolName = "$o"
 arrayName = "$array"

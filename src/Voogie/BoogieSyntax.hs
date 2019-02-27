@@ -2,12 +2,12 @@ module Voogie.BoogieSyntax where
 
 import Voogie.Theory
 
-unaryOpName :: UnaryOp -> String
+unaryOpName :: UnaryOp -> Name
 unaryOpName = \case
   Negate   -> "!"
   Negative -> "-"
 
-binaryOpName :: BinaryOp -> String
+binaryOpName :: BinaryOp -> Name
 binaryOpName = \case
   And      -> "&&"
   Or       -> "||"
@@ -43,35 +43,22 @@ comparePrecedence op1 op2 = compare (precedence op1) (precedence op2)
 comparePrecedenceEquality :: BinaryOp -> Ordering
 comparePrecedenceEquality op = compare 7 (precedence op)
 
-signName :: Sign -> String
+signName :: Sign -> Name
 signName = \case
   Pos -> "=="
   Neg -> "!="
 
-quantifierName :: Quantifier -> String
+quantifierName :: Quantifier -> Name
 quantifierName = \case
   Forall -> "forall"
   Exists -> "exists"
 
-booleanName :: Bool -> String
+booleanName :: Bool -> Name
 booleanName = \case
   True  -> "true"
   False -> "false"
 
-kwdAssert = "assert"
-kwdAssume = "assume"
-kwdVar = "var"
-kwdIf = "if"
-kwdThen = "then"
-kwdElse = "else"
-
-kwdProcedure = "procedure"
-kwdMain = "main"
-kwdRequires = "requires"
-kwdEnsures = "ensures"
-kwdReturns = "returns"
-kwdModifies = "modifies"
-
+keywords :: [Name]
 keywords = [
     kwdAssert
   , kwdAssume
@@ -87,12 +74,33 @@ keywords = [
   , kwdModifies
   ]
 
-opAssign = ":="
-opTyped = ":"
+kwdAssert = "assert"
+kwdAssume = "assume"
+kwdVar = "var"
+kwdIf = "if"
+kwdThen = "then"
+kwdElse = "else"
 
+kwdProcedure = "procedure"
+kwdMain = "main"
+kwdRequires = "requires"
+kwdEnsures = "ensures"
+kwdReturns = "returns"
+kwdModifies = "modifies"
+
+operatorNames :: [Name]
 operatorNames = [
     opAssign
   , opTyped
+  ]
+
+opAssign = ":="
+opTyped = ":"
+
+typeNames :: [Name]
+typeNames = [
+    typeInteger
+  , typeBoolean
   ]
 
 typeInteger = "int"
