@@ -10,12 +10,12 @@ data Unit
   | Conjecture Name Formula
   deriving (Show, Eq)
 
-unitName :: Unit -> Name
-unitName = \case
-  TypeDeclaration n _ -> n
-  SymbolDeclaration n _ -> n
-  Axiom n _ -> n
-  Conjecture n _ -> n
+instance Named Unit where
+  nameOf = \case
+    TypeDeclaration n _ -> n
+    SymbolDeclaration n _ -> n
+    Axiom n _ -> n
+    Conjecture n _ -> n
 
 data InputType
   = TypeInputType

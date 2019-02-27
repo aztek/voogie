@@ -18,7 +18,7 @@ instance Pretty Unit where
   pretty unit = funapp3 (keyword kwdTtf) (text name) (pretty it)
                         contents <> punctuation "."
     where
-      name = unitName unit
+      name = nameOf unit
       it = unitInputType unit
       contents = case unit of
         TypeDeclaration _ n -> text n <> colon <+> keyword kwdTypeDecl
