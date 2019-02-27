@@ -63,7 +63,10 @@ executable voogie
   default-extensions:
     DeriveFunctor, DeriveFoldable, DeriveTraversable,
     FlexibleInstances, LambdaCase, PatternGuards
-  ghc-options: -Wall -fno-warn-missing-signatures -threaded
+  ghc-options:
+    -Wall -fno-warn-missing-signatures -threaded -Wcompat
+    -Wincomplete-record-updates -Wincomplete-uni-patterns
+    -Wredundant-constraints
   if flag(Werror)
     ghc-options: -Werror
   build-depends:
