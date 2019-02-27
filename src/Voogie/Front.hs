@@ -39,7 +39,7 @@ data Env a = Env (Map a Type)
 instance Ord a => Semigroup (Env a) where
   Env m1 <> Env m2 = Env (m1 <> m2)
 
-emptyEnv :: (Ord a, Named a) => Env a
+emptyEnv :: Env a
 emptyEnv = Env Map.empty
 
 type AnalyzeE a t = ReaderT (Env a) Result t
