@@ -14,7 +14,6 @@ import System.Exit
 
 import Voogie.Error
 import Voogie.CmdArgs
-import Voogie.AST()
 import Voogie.Boogie.Parse (parseBoogie)
 import Voogie.Front
 import Voogie.Back

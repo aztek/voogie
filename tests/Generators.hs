@@ -8,7 +8,6 @@ import Data.Maybe
 import Data.List as L
 import Data.List.NonEmpty as NE
 import Data.List.NonEmpty (NonEmpty)
-import Voogie.NonEmpty as VNE
 import Control.Monad
 
 import qualified Voogie.FOOL.Tuple as Tuple
