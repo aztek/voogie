@@ -2,7 +2,7 @@
 
 module Generators where
 
-import Test.QuickCheck
+import Test.QuickCheck as QC
 
 import Data.Maybe
 import Data.List as L
@@ -37,7 +37,7 @@ split n = do
   m <- choose (0, n - k)
   return (k, m)
 
-prop_split :: Positive Int -> Property
+prop_split :: Positive Int -> QC.Property
 prop_split (Positive n) = forAll (split n) $ \(k, m) -> k + m <= n
 
 splitList :: Int -> Gen [Int]
@@ -48,7 +48,7 @@ splitList = \case
     ks <- splitList m
     return (k : ks)
 
-prop_splitList :: Positive Int -> Property
+prop_splitList :: Positive Int -> QC.Property
 prop_splitList (Positive n) = forAll (splitList n) $ \ks -> sum ks <= n
 
 splitNE :: Int -> Gen (NonEmpty Int)
@@ -57,7 +57,7 @@ splitNE n = do
   ks <- splitList m
   return (k NE.:| ks)
 
-prop_splitNE :: Positive Int -> Property
+prop_splitNE :: Positive Int -> QC.Property
 prop_splitNE (Positive n) = forAll (splitNE n) $ \ks -> sum (NE.toList ks) <= n
 
 splitTuple :: Int -> Gen (Tuple Int)
@@ -66,7 +66,7 @@ splitTuple n = do
   ks <- splitNE m
   return (k Tuple.:| ks)
 
-prop_splitTuple :: Positive Int -> Property
+prop_splitTuple :: Positive Int -> QC.Property
 prop_splitTuple (Positive n) = forAll (splitTuple n) $ \ks -> sum (Tuple.toList ks) <= n
 
 instance Arbitrary Type where
