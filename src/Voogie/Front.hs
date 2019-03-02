@@ -116,7 +116,7 @@ guardType f a t = f <$> a <::> t
 analyzeTopLevel :: AST.TopLevel -> Analyze (Maybe B.TopLevel)
 analyzeTopLevel = \case
   Left stmt -> fmap Left <$> analyzeStmt (A.astValue stmt)
-  Right assume -> Just . Right <$> analyzeAssume assume
+  Right prop -> Just . Right <$> analyzeProp prop
 
 analyzeStmts :: [AST.Stmt] -> Analyze [B.Statement]
 analyzeStmts = fmap catMaybes . mapM (analyzeStmt . A.astValue)
@@ -127,8 +127,10 @@ analyzeStmt = \case
                         <*> analyzeStmts a <*> analyzeStmts b
   AST.Assign ass -> B.assign <$> mapM analyzeAssignment ass
 
-analyzeAssume :: AST.Assume -> Analyze B.Assume
-analyzeAssume (AST.Assume f) = B.assume <$> analyzeProperty f
+analyzeProp :: AST.Prop -> Analyze B.Property
+analyzeProp = \case
+  AST.Assume f -> B.assume <$> analyzeProperty f
+  AST.Assert f -> B.assert <$> analyzeProperty f
 
 analyzeAssignment :: (AST.LVal, AST.Expr) -> Analyze B.Assignment
 analyzeAssignment (lval, e) = do

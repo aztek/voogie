@@ -35,7 +35,7 @@ translateBoogie (B.Boogie decls (B.Main _ pre stmts post)) = problem
   where
     problem = F.Problem [] decls pre (foldr nextState conjecture stmts)
     conjecture = F.conjunction post
-    nextState = either translateStatement translateAssume
+    nextState = either translateStatement translateProperty
 
 translateStatement :: B.Statement -> F.Term -> F.Term
 translateStatement s = F.let_ (F.Binding definition body)
@@ -60,8 +60,10 @@ translateAssign (lval, e) = maybe id (F.store n) is (translateExpr e)
   where
     (n, is) = translateLValue lval
 
-translateAssume :: B.Assume -> F.Term -> F.Term
-translateAssume (B.Assume f) = F.binary Imply f
+translateProperty :: B.Property -> F.Term -> F.Term
+translateProperty = \case
+  B.Assume f -> F.binary Imply f
+  B.Assert f -> F.binary And f
 
 translateExpr :: B.Expression -> F.Term
 translateExpr = \case

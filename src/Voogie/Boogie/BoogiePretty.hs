@@ -72,8 +72,10 @@ instance Pretty Statement where
     If c False a b -> prettyIte c (NE.toList a) b
     If c True  a b -> prettyIte c b (NE.toList a)
 
-instance Pretty Assume where
-  pretty (Assume f) = marked kwdAssume (pretty f)
+instance Pretty Property where
+  pretty = \case
+    Assume f -> marked kwdAssume (pretty f)
+    Assert f -> marked kwdAssert (pretty f)
 
 instance Pretty TopLevel where
   pretty (Left stmt) = pretty stmt

@@ -1,6 +1,6 @@
 module Voogie.Boogie.Smart (
   module Voogie.Boogie.Smart,
-  TopLevel, Statement, Assignment, Assume, Expression, LValue, Main, Boogie
+  TopLevel, Statement, Assignment, Property, Expression, LValue, Main, Boogie
 ) where
 
 import qualified Data.List.NonEmpty as NE
@@ -29,6 +29,7 @@ if_ c a b
   | otherwise = Nothing
 
 assume = Assume
+assert = Assert
 
 main = Main
 

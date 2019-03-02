@@ -46,10 +46,12 @@ data Statement
   | If Expression Bool (NonEmpty Statement) [Statement]
   deriving (Show, Eq)
 
-data Assume = Assume F.Formula
+data Property
+  = Assume F.Formula
+  | Assert F.Formula
   deriving (Show, Eq)
 
-type TopLevel = Either Statement Assume
+type TopLevel = Either Statement Property
 
 data Main = Main
   { modifies :: [Name]

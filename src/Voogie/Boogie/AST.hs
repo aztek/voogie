@@ -36,10 +36,12 @@ data Decl = Declare (Typed (NonEmpty Identifier))
 data FunDef = FunDef Type Identifier [Typed Identifier] [Stmt]
   deriving (Show, Eq)
 
-data Assume = Assume F.Formula
+data Prop
+  = Assume F.Formula
+  | Assert F.Formula
   deriving (Show, Eq)
 
-type TopLevel = Either Stmt Assume
+type TopLevel = Either Stmt Prop
 
 data Returns = Returns (NonEmpty (Typed Identifier))
   deriving (Show, Eq)

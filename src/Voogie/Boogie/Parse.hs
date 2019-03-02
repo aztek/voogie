@@ -90,9 +90,10 @@ modifies = keyword kwdModifies (commaSep1 identifier)
 precondition  = keyword kwdRequires F.formula
 postcondition = keyword kwdEnsures  F.formula
 
-assume = keyword kwdAssume (Assume <$> F.formula)
+property =  keyword kwdAssume (Assume <$> F.formula)
+        <|> keyword kwdAssert (Assert <$> F.formula)
 
-topLevel = Left <$> stmt <|> Right <$> assume
+topLevel = Left <$> stmt <|> Right <$> property
 
 boogie = whiteSpace >> Boogie <$> many (try decl) <*> main
 
