@@ -4,20 +4,25 @@ import qualified Data.List.NonEmpty as NE
 import Data.List.NonEmpty (NonEmpty)
 import Data.Foldable
 
+import Text.Parsec.Char
 import Text.Parsec.Prim
 import Text.Parsec.String
 import Text.Parsec.Expr
-import Text.Parsec.Language
 import qualified Text.Parsec.Token as Token
 
 import Voogie.AST
 import Voogie.Theory
 import Voogie.BoogieSyntax
 
-language = emptyDef
+language = Token.LanguageDef
   { Token.commentStart    = "/*"
   , Token.commentEnd      = "*/"
   , Token.commentLine     = "//"
+  , Token.nestedComments  = True
+  , Token.identStart      = letter
+  , Token.identLetter     = alphaNum <|> oneOf "_'"
+  , Token.opStart         = Token.opLetter language
+  , Token.opLetter        = oneOf ":!#$%&*+./<=>?@\\^|-~"
   , Token.reservedNames   = keywords
                          ++ names quantifierName
                          ++ names booleanName
@@ -26,6 +31,7 @@ language = emptyDef
                          ++ names binaryOpName
                          ++ names signName
                          ++ ["::", "[]"]
+  , Token.caseSensitive   = True
   }
   where
     names p = p <$> [minBound..]
