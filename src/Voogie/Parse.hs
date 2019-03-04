@@ -30,7 +30,6 @@ language = Token.LanguageDef
                          ++ names unaryOpName
                          ++ names binaryOpName
                          ++ names signName
-                         ++ ["::", "[]"]
   , Token.caseSensitive   = True
   }
   where

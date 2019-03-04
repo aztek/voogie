@@ -41,7 +41,7 @@ arg =  parens term
 
 quantified =  Quantified
           <$> quantifier
-          <*> commaSep1 (typed $ commaSep1 identifier) <* reserved "::"
+          <*> commaSep1 (typed $ commaSep1 identifier) <* reserved opQsep
           <*> term
 
 formula :: Parser Formula

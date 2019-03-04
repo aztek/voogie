@@ -39,7 +39,7 @@ instance Pretty Term where
         pretty'' t = pretty' t
     Unary op t -> pretty op <> pretty' t
     Quantify q vs t -> parens $ pretty q <+> commaSep (prettyTyped <$> vs)
-                            <+> punctuation "::" <+> pretty t
+                            <+> punctuation opQsep <+> pretty t
     Equals s a b -> pretty'' a <+> pretty s <+> pretty'' b
       where
         pretty'' t@(Binary op _ _) = case comparePrecedenceEquality op of

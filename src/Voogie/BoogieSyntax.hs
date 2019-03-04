@@ -92,10 +92,12 @@ operatorNames :: [Name]
 operatorNames = [
     opAssign
   , opTyped
+  , opQsep
   ]
 
 opAssign = ":="
 opTyped = ":"
+opQsep = "::"
 
 typeNames :: [Name]
 typeNames = [
