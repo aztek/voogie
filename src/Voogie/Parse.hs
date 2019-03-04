@@ -6,7 +6,7 @@ import Data.Foldable
 
 import Text.Parsec.Char
 import Text.Parsec.Prim
-import Text.Parsec.String
+import Text.Parsec.Text
 import Text.Parsec.Expr
 import qualified Text.Parsec.Token as Token
 

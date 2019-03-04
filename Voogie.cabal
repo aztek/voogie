@@ -73,6 +73,7 @@ executable voogie
     extra >= 1.4,
     mtl >= 2.2 && < 3.0,
     parsec >= 3.1 && < 3.2,
+    text >= 0.11.3 && < 1.3,
     optparse-applicative >= 0.14,
     ansi-wl-pprint >= 0.6.6 && < 0.7,
     unix >= 2.7 && < 2.8

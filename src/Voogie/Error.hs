@@ -1,8 +1,12 @@
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Voogie.Error (
   Result, Error(..), ErrorReport(..)
 ) where
+
+import Data.Text (Text)
+import qualified Data.Text as Text
 
 import Voogie.Theory
 import Voogie.AST
@@ -68,9 +72,11 @@ errorRange = \case
   NonArraySelect (AST range _) -> Just range
   ArrayDimensionMismatch (AST range _) -> Just range
 
-errorText = bold . red . text
+data ErrorReport = ErrorReport (Maybe Text) Error
 
-data ErrorReport = ErrorReport (Maybe String) Error
+text' = text . Text.unpack
+
+errorText = bold . red . text'
 
 instance Pretty ErrorReport where
   pretty (ErrorReport contents error) =
@@ -82,29 +88,30 @@ instance Pretty ErrorReport where
 
       errorLine = case (contents, errorRange error) of
         (Just c, Just range@(begin, _)) -> prettyErrorLine line range <> hardline
-          where line = lines c !! (sourceLine begin - 1)
+          where line = Text.lines c !! (sourceLine begin - 1)
         _ -> empty
 
-prettyErrorLine :: String -> ErrorRange -> Doc
+prettyErrorLine :: Text -> ErrorRange -> Doc
 prettyErrorLine errorLine (begin, end) =
     vsep $ zipWith (<>) lineMargin [
       empty,
-      text preToken <> errorText token <> text postToken,
+      text' preToken <> errorText token <> text' postToken,
       errorText underlining
     ]
   where
-    lineNumber = show (sourceLine begin)
-    linePadding = replicate (length lineNumber) ' '
-    lineMargin = map (bold . blue . text . (++ " | "))
+    lineNumber = Text.pack . show $ sourceLine begin
+    linePadding = Text.replicate (Text.length lineNumber) " "
+    lineMargin = map (bold . blue . text' . (<> " | "))
                      [linePadding, lineNumber, linePadding]
     tokenBegin = sourceColumn begin - 1
     tokenEnd = if sourceLine end /= sourceLine begin || begin == end
-               then length errorLine else sourceColumn end - 1
+               then Text.length errorLine else sourceColumn end - 1
     tokenLength = tokenEnd - tokenBegin
-    (preToken, restLine) = splitAt tokenBegin errorLine
-    (token, postToken) = splitAt tokenLength restLine
-    underlining = replicate tokenBegin ' ' ++ replicate tokenLength '^' ++
-                  if sourceLine end /= sourceLine begin then "..." else ""
+    (preToken, restLine) = Text.splitAt tokenBegin errorLine
+    (token, postToken) = Text.splitAt tokenLength restLine
+    underlining = Text.replicate tokenBegin " "
+               <> Text.replicate tokenLength "^"
+               <> if sourceLine end /= sourceLine begin then "..." else ""
 
 instance Pretty SourcePos where
   pretty pos = text $ source ++ ":" ++ line ++ ":" ++ column

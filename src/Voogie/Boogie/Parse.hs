@@ -2,10 +2,11 @@ module Voogie.Boogie.Parse where
 
 import Control.Monad
 import Data.Maybe
+import Data.Text (Text)
 import qualified Data.List.NonEmpty as NE
 
 import Text.Parsec
-import Text.Parsec.String
+import Text.Parsec.Text
 import Text.Parsec.Expr
 
 import Voogie.Error
@@ -97,10 +98,10 @@ topLevel = Left <$> stmt <|> Right <$> property
 
 boogie = whiteSpace >> Boogie <$> many (try decl) <*> main
 
-rewrapParsingError :: Parser a -> SourceName -> String -> Result a
+rewrapParsingError :: Parser a -> SourceName -> Text -> Result a
 rewrapParsingError p sn s = case parse p sn s of
   Left e -> Left (ParsingError e)
   Right b -> Right b
 
-parseBoogie :: SourceName -> String -> Result Boogie
+parseBoogie :: SourceName -> Text -> Result Boogie
 parseBoogie = rewrapParsingError boogie

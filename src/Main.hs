@@ -9,6 +9,8 @@ import System.IO.Error (tryIOError)
 import System.Posix.Terminal (queryTerminal)
 import System.Posix.IO (stdOutput, stdError)
 
+import Data.Text
+import qualified Data.Text.IO as TIO
 import Data.Maybe
 import System.Exit
 
@@ -47,7 +49,7 @@ rewrapIOError :: Either IOError a -> (a -> Output) -> Output
 rewrapIOError (Left e) _ = Fail $ ErrorReport Nothing (InputOutputError e)
 rewrapIOError (Right a) f = f a
 
-runVoogie :: CmdArgs -> String -> Output
+runVoogie :: CmdArgs -> Text -> Output
 runVoogie cmdArgs contents = case action cmdArgs of
     Parse     -> buildOutput   runParser
     Check     -> buildOutput $ runParser >>= runAnalyzer
@@ -68,5 +70,5 @@ runVoogie cmdArgs contents = case action cmdArgs of
 main :: IO ()
 main = do
   cmdArgs <- execParser cmdArgsParserInfo
-  tryContents <- tryIOError $ maybe getContents readFile (filePath cmdArgs)
+  tryContents <- tryIOError $ maybe TIO.getContents TIO.readFile (filePath cmdArgs)
   printOutput . rewrapIOError tryContents $ runVoogie cmdArgs

@@ -1,7 +1,7 @@
 module Voogie.FOOL.Parse (term, formula) where
 
 import Text.Parsec
-import Text.Parsec.String
+import Text.Parsec.Text
 import Text.Parsec.Expr
 
 import Voogie.Theory
