@@ -1,5 +1,3 @@
-{-# LANGUAGE GADTs #-}
-
 module Main(main) where
 
 import Options.Applicative (execParser)
@@ -27,26 +25,24 @@ import Text.PrettyPrint.ANSI.Leijen
 collectOptions :: CmdArgs -> TranslationOptions
 collectOptions cmdArgs = TranslationOptions (not $ noArrayTheory cmdArgs)
 
-data Output where
-  Fail :: ErrorReport -> Output
-  Success :: Pretty a => a -> Output
+type Output = Either ErrorReport Doc
 
 printOutput :: Output -> IO ()
 printOutput = \case
-  Fail errorReport -> do
+  Left errorReport -> do
     istty <- queryTerminal stdError
     let pretty' = if istty then pretty else plain . pretty
     hPutDoc stderr (pretty' errorReport)
     exitFailure
 
-  Success result -> do
+  Right result -> do
     istty <- queryTerminal stdOutput
-    let pretty' = if istty then pretty else plain . pretty
-    hPutDoc stdout (pretty' result)
+    let result' = if istty then result else plain result
+    hPutDoc stdout result'
     exitSuccess
 
 rewrapIOError :: Either IOError a -> (a -> Output) -> Output
-rewrapIOError (Left e) _ = Fail $ ErrorReport Nothing (InputOutputError e)
+rewrapIOError (Left e) _ = Left $ ErrorReport Nothing (InputOutputError e)
 rewrapIOError (Right a) f = f a
 
 runVoogie :: CmdArgs -> Text -> Output
@@ -57,8 +53,8 @@ runVoogie cmdArgs contents = case action cmdArgs of
   where
     buildOutput :: Pretty a => Result a -> Output
     buildOutput = \case
-      Left error -> Fail $ ErrorReport (Just contents) error
-      Right a -> Success a
+      Left error -> Left $ ErrorReport (Just contents) error
+      Right a -> Right (pretty a)
 
     runParser = parseBoogie source contents
     runAnalyzer = analyze
