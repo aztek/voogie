@@ -14,10 +14,11 @@ instance Pretty LValue where
   pretty (LValue v is) = pretty v <> hcat (tuple . fmap pretty <$> is)
 
 pretty' :: Expression -> Doc
-pretty' e@Binary{} = parens (pretty e)
-pretty' e@Equals{} = parens (pretty e)
-pretty' e@IfElse{} = parens (pretty e)
-pretty' e = pretty e
+pretty' e = case e of
+  Binary{} -> parens (pretty e)
+  Equals{} -> parens (pretty e)
+  IfElse{} -> parens (pretty e)
+  _ -> pretty e
 
 instance Pretty Expression where
   pretty = \case

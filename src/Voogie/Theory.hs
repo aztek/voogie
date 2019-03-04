@@ -23,16 +23,19 @@ data Type
   deriving (Show, Eq, Ord)
 
 arrayElement :: Type -> Type
-arrayElement (Array _ r) = r
-arrayElement t = error (show t ++ " is not an array")
+arrayElement = \case
+  Array _ r -> r
+  t -> error (show t ++ " is not an array")
 
 arrayArgument :: Type -> Type
-arrayArgument (Array (_ :| is) r) = array is r
-arrayArgument t = error (show t ++ " is not an array")
+arrayArgument = \case
+  Array (_ :| is) r -> array is r
+  t -> error (show t ++ " is not an array")
 
 arrayIndexes :: Type -> [NonEmpty Type]
-arrayIndexes (Array i r) = i : arrayIndexes r
-arrayIndexes _ = []
+arrayIndexes = \case
+  Array i r -> i : arrayIndexes r
+  _ -> []
 
 array :: [Type] -> Type -> Type
 array [] s = s
@@ -42,8 +45,9 @@ tupleType :: NonEmpty Type -> Type
 tupleType = either id TupleType . Tuple.nonUnit
 
 returnType :: Type -> Type
-returnType (Functional _ r) = r
-returnType t = error (show t ++ " is not a function")
+returnType = \case
+  Functional _ r -> r
+  t -> error (show t ++ " is not a function")
 
 data Typed a = Typed Type a
   deriving (Show, Eq, Ord, Functor, Foldable, Traversable)
