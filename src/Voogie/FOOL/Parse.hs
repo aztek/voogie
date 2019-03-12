@@ -1,7 +1,6 @@
 module Voogie.FOOL.Parse (term, formula) where
 
 import Text.Parsec
-import Text.Parsec.Text
 import Text.Parsec.Expr
 
 import Voogie.Theory
@@ -34,10 +33,15 @@ arg =  parens term
    <|> ast quantified
    <|> ast (BoolConst <$> boolean)
    <|> ast (IntConst <$> integer)
-   <|> ast (Ref <$> identifier <*> many (brackets $ commaSep1 term))
-   <|> ast (Ternary <$> (reserved kwdIf   >> term)
-                    <*> (reserved kwdThen >> term)
-                    <*> (reserved kwdElse >> term))
+   <|> ast ref
+   <|> ast ternary
+
+ref = Ref <$> identifier <*> many (brackets $ commaSep1 term)
+
+ternary =  Ternary
+       <$> (reserved kwdIf   >> term)
+       <*> (reserved kwdThen >> term)
+       <*> (reserved kwdElse >> term)
 
 quantified =  Quantified
           <$> quantifier

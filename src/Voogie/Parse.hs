@@ -1,12 +1,36 @@
-module Voogie.Parse where
+module Voogie.Parse (
+  Parser,
+  identifier,
+  reserved,
+  reservedOp,
+  parens,
+  integer,
+  semi,
+  whiteSpace,
+  braces,
+  brackets,
+  commaSep1,
+  infix',
+  prefix,
+  postfix,
+  assocLeft,
+  assocNone,
+  ast,
+  constant,
+  typ,
+  typed,
+  constants,
+  boolean,
+  quantifier
+) where
 
+import Data.Text (Text)
 import qualified Data.List.NonEmpty as NE
 import Data.List.NonEmpty (NonEmpty)
 import Data.Foldable
 
 import Text.Parsec.Char
 import Text.Parsec.Prim
-import Text.Parsec.Text
 import Text.Parsec.Expr
 import qualified Text.Parsec.Token as Token
 
@@ -14,6 +38,9 @@ import Voogie.AST
 import Voogie.Theory
 import Voogie.BoogieSyntax
 
+type Parser = Parsec Text ()
+
+language :: Monad m => Token.GenLanguageDef Text u m
 language = Token.LanguageDef
   { Token.commentStart    = "/*"
   , Token.commentEnd      = "*/"
@@ -46,7 +73,6 @@ semi       = Token.semi       lexer
 whiteSpace = Token.whiteSpace lexer
 braces     = Token.braces     lexer
 brackets   = Token.brackets   lexer
-commaSep   = Token.commaSep   lexer
 
 commaSep1 :: Parser a -> Parser (NonEmpty a)
 commaSep1 p = NE.fromList <$> Token.commaSep1 lexer p
