@@ -12,9 +12,9 @@ import Voogie.BoogieSyntax
 term :: Parser Term
 term = buildExpressionParser operators arg
 
-unary  = prefix <$> unaryOpName <*> Unary
-binary = infix' <$> binaryOpName <*> Binary
-equals = infix' <$> signName <*> Equals
+unary  = prefix <$> nameOf <*> Unary
+binary = infix' <$> nameOf <*> Binary
+equals = infix' <$> nameOf <*> Equals
 
 operators = unaryOperators ++ binaryOperators
   where

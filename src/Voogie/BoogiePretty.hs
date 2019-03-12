@@ -24,16 +24,16 @@ prettyTyped :: Pretty a => Typed a -> Doc
 prettyTyped (Typed t a) = pretty a <> punctuation opTyped <+> pretty t
 
 instance Pretty Quantifier where
-  pretty = keyword . quantifierName
+  pretty = keyword . nameOf
 
 instance Pretty UnaryOp where
-  pretty = operator . unaryOpName
+  pretty = operator . nameOf
 
 instance Pretty BinaryOp where
-  pretty = operator . binaryOpName
+  pretty = operator . nameOf
 
 boolean :: Bool -> Doc
-boolean = builtin . booleanName
+boolean = builtin . nameOf
 
 instance Pretty Sign where
-  pretty = operator . signName
+  pretty = operator . nameOf

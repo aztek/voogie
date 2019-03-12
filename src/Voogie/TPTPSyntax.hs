@@ -2,20 +2,20 @@ module Voogie.TPTPSyntax where
 
 import Voogie.Theory
 
-binaryOpName :: BinaryOp -> Name
-binaryOpName = \case
-  And      -> "&"
-  Or       -> "|"
-  Imply    -> "=>"
-  Iff      -> "<=>"
-  Greater  -> "$greater"
-  Less     -> "$less"
-  Geq      -> "$greatereq"
-  Leq      -> "$lesseq"
-  Add      -> "$sum"
-  Subtract -> "$difference"
-  Multiply -> "$product"
-  Divide   -> "$quotient_e"
+instance Named BinaryOp where
+  nameOf = \case
+    And      -> "&"
+    Or       -> "|"
+    Imply    -> "=>"
+    Iff      -> "<=>"
+    Greater  -> "$greater"
+    Less     -> "$less"
+    Geq      -> "$greatereq"
+    Leq      -> "$lesseq"
+    Add      -> "$sum"
+    Subtract -> "$difference"
+    Multiply -> "$product"
+    Divide   -> "$quotient_e"
 
 isInfix :: BinaryOp -> Bool
 isInfix = \case
@@ -32,29 +32,30 @@ isInfix = \case
   Multiply -> False
   Divide   -> False
 
-unaryOpName :: UnaryOp -> Name
-unaryOpName = \case
-  Negate   -> "~"
-  Negative -> "$uminus"
+instance Named UnaryOp where
+  nameOf = \case
+    Negate   -> "~"
+    Negative -> "$uminus"
 
 isPrefix :: UnaryOp -> Bool
 isPrefix = \case
   Negate   -> True
   Negative -> False
 
-quantifierName :: Quantifier -> Name
-quantifierName = \case
-  Forall -> "!"
-  Exists -> "?"
+instance Named Quantifier where
+  nameOf = \case
+    Forall -> "!"
+    Exists -> "?"
 
-signName :: Sign -> Name
-signName = \case
-  Pos -> "="
-  Neg -> "!="
+instance Named Sign where
+  nameOf = \case
+    Pos -> "="
+    Neg -> "!="
 
-booleanName :: Bool -> Name
-booleanName True = "$true"
-booleanName False = "$false"
+instance Named Bool where
+  nameOf = \case
+    True  -> "$true"
+    False -> "$false"
 
 keywords :: [Name]
 keywords = [

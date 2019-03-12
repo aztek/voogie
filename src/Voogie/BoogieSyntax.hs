@@ -2,25 +2,25 @@ module Voogie.BoogieSyntax where
 
 import Voogie.Theory
 
-unaryOpName :: UnaryOp -> Name
-unaryOpName = \case
-  Negate   -> "!"
-  Negative -> "-"
+instance Named UnaryOp where
+  nameOf = \case
+    Negate   -> "!"
+    Negative -> "-"
 
-binaryOpName :: BinaryOp -> Name
-binaryOpName = \case
-  And      -> "&&"
-  Or       -> "||"
-  Imply    -> "==>"
-  Iff      -> "<==>"
-  Greater  -> ">"
-  Less     -> "<"
-  Geq      -> ">="
-  Leq      -> "<="
-  Add      -> "+"
-  Subtract -> "-"
-  Multiply -> "*"
-  Divide   -> "div"
+instance Named BinaryOp where
+  nameOf = \case
+    And      -> "&&"
+    Or       -> "||"
+    Imply    -> "==>"
+    Iff      -> "<==>"
+    Greater  -> ">"
+    Less     -> "<"
+    Geq      -> ">="
+    Leq      -> "<="
+    Add      -> "+"
+    Subtract -> "-"
+    Multiply -> "*"
+    Divide   -> "div"
 
 precedence :: BinaryOp -> Int
 precedence = \case
@@ -43,20 +43,20 @@ comparePrecedence op1 op2 = compare (precedence op1) (precedence op2)
 comparePrecedenceEquality :: BinaryOp -> Ordering
 comparePrecedenceEquality op = compare 7 (precedence op)
 
-signName :: Sign -> Name
-signName = \case
-  Pos -> "=="
-  Neg -> "!="
+instance Named Sign where
+  nameOf = \case
+    Pos -> "=="
+    Neg -> "!="
 
-quantifierName :: Quantifier -> Name
-quantifierName = \case
-  Forall -> "forall"
-  Exists -> "exists"
+instance Named Quantifier where
+  nameOf = \case
+    Forall -> "forall"
+    Exists -> "exists"
 
-booleanName :: Bool -> Name
-booleanName = \case
-  True  -> "true"
-  False -> "false"
+instance Named Bool where
+  nameOf = \case
+    True  -> "true"
+    False -> "false"
 
 keywords :: [Name]
 keywords = [

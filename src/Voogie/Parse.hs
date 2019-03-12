@@ -51,16 +51,20 @@ language = Token.LanguageDef
   , Token.opStart         = Token.opLetter language
   , Token.opLetter        = oneOf ":!#$%&*+./<=>?@\\^|-~"
   , Token.reservedNames   = keywords
-                         ++ names quantifierName
-                         ++ names booleanName
+                         ++ quantifiers
+                         ++ booleans
   , Token.reservedOpNames = operatorNames
-                         ++ names unaryOpName
-                         ++ names binaryOpName
-                         ++ names signName
+                         ++ unaryOps
+                         ++ binaryOps
+                         ++ signs
   , Token.caseSensitive   = True
   }
   where
-    names p = p <$> [minBound..]
+    quantifiers = nameOf <$> [(minBound :: Quantifier)..]
+    booleans    = nameOf <$> [(minBound :: Bool)..]
+    unaryOps    = nameOf <$> [(minBound :: UnaryOp)..]
+    binaryOps   = nameOf <$> [(minBound :: BinaryOp)..]
+    signs       = nameOf <$> [(minBound :: Sign)..]
 
 lexer = Token.makeTokenParser language
 
@@ -111,11 +115,11 @@ typ = constant typeInteger Integer
 typed :: Parser a -> Parser (Typed a)
 typed a = flip Typed <$> a <* reservedOp opTyped <*> typ
 
-constants :: (Enum a, Bounded a) => (a -> String) -> Parser a
-constants p = asum $ fmap (constant =<< p) [minBound..]
+constants :: (Enum a, Bounded a, Named a) => Parser a
+constants = asum $ fmap (constant =<< nameOf) [minBound..]
 
 boolean :: Parser Bool
-boolean = constants booleanName
+boolean = constants
 
 quantifier :: Parser Quantifier
-quantifier = constants quantifierName
+quantifier = constants

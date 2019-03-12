@@ -13,11 +13,11 @@ import Text.PrettyPrint.ANSI.Leijen hiding ((<$>))
 
 instance Pretty BinaryOp where
   pretty op = if isInfix op then operator op' else builtin op'
-    where op' = binaryOpName op
+    where op' = nameOf op
 
 instance Pretty UnaryOp where
   pretty op = if isPrefix op then operator op' else builtin op'
-    where op' = unaryOpName op
+    where op' = nameOf op
 
 instance Pretty Type where
   pretty = \case
@@ -52,10 +52,10 @@ instance Pretty Binding where
   pretty (Binding d t) = pretty d <+> operator opAssign <+> pretty t
 
 instance Pretty Quantifier where
-  pretty = operator . quantifierName
+  pretty = operator . nameOf
 
 instance Pretty Sign where
-  pretty = operator . signName
+  pretty = operator . nameOf
 
 pretty' :: Term -> Doc
 pretty' t = case t of
@@ -68,7 +68,7 @@ pretty' t = case t of
 instance Pretty Term where
   pretty = \case
     IntegerConstant n -> number n
-    BooleanConstant b -> builtin (booleanName b)
+    BooleanConstant b -> builtin (nameOf b)
 
     Variable (Typed _ v) -> pretty v
     Constant f -> prettyIdentifier f

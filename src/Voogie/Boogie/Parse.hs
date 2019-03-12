@@ -19,9 +19,9 @@ import qualified Voogie.FOOL.Parse as F
 expr :: Parser Expr
 expr = buildExpressionParser operators term
 
-unary  = prefix <$> unaryOpName <*> Unary
-binary = infix' <$> binaryOpName <*> Binary
-equals = infix' <$> signName <*> Equals
+unary  = prefix <$> nameOf <*> Unary
+binary = infix' <$> nameOf <*> Binary
+equals = infix' <$> nameOf <*> Equals
 
 operators = unaryOperators ++ binaryOperators
   where
