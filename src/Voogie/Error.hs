@@ -2,9 +2,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Voogie.Error (
-  Result, Error(..), ErrorReport(..)
+  Result, Error(..), ErrorReport(..), fmapError
 ) where
 
+import Data.Bifunctor
 import Data.Text (Text)
 import qualified Data.Text as Text
 
@@ -18,6 +19,9 @@ import Text.Parsec.Error
 import Text.PrettyPrint.ANSI.Leijen hiding ((<$>))
 
 type Result = Either Error
+
+fmapError :: (e -> e') -> Either e a -> Either e' a
+fmapError = flip bimap id
 
 data Error where
   InputOutputError :: IOError -> Error

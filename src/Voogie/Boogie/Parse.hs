@@ -100,9 +100,7 @@ topLevel = Left <$> stmt <|> Right <$> property
 boogie = whiteSpace >> Boogie <$> many (try decl) <*> main
 
 rewrapParsingError :: Parser a -> SourceName -> Text -> Result a
-rewrapParsingError p sn s = case parse p sn s of
-  Left e -> Left (ParsingError e)
-  Right b -> Right b
+rewrapParsingError p sn s = fmapError ParsingError (parse p sn s)
 
 parseBoogie :: SourceName -> Text -> Result Boogie
 parseBoogie = rewrapParsingError boogie

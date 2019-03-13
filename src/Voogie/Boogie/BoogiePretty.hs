@@ -79,8 +79,7 @@ instance Pretty Property where
     Assert f -> marked kwdAssert (pretty f)
 
 instance Pretty TopLevel where
-  pretty (Left stmt) = pretty stmt
-  pretty (Right ass) = pretty ass
+  pretty = either pretty pretty
 
 instance Pretty Main where
   pretty (Main modifies requires contents ensures) =

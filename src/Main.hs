@@ -42,8 +42,7 @@ printOutput = \case
     exitSuccess
 
 rewrapIOError :: Either IOError a -> (a -> Output) -> Output
-rewrapIOError (Left e) _ = Left $ ErrorReport Nothing (InputOutputError e)
-rewrapIOError (Right a) f = f a
+rewrapIOError e f = fmapError (ErrorReport Nothing . InputOutputError) e >>= f
 
 runVoogie :: CmdArgs -> Text -> Output
 runVoogie cmdArgs contents = case action cmdArgs of
@@ -52,9 +51,7 @@ runVoogie cmdArgs contents = case action cmdArgs of
     Translate -> buildOutput $ runParser >>= runAnalyzer >>= runTranslator
   where
     buildOutput :: Pretty a => Result a -> Output
-    buildOutput = \case
-      Left error -> Left $ ErrorReport (Just contents) error
-      Right a -> Right (pretty a)
+    buildOutput = fmapError (ErrorReport $ Just contents) . fmap pretty
 
     runParser = parseBoogie source contents
     runAnalyzer = analyze
