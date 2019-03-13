@@ -10,6 +10,7 @@ import Data.Maybe
 import Data.Semigroup
 #endif
 
+import Data.Bifunctor (first)
 import qualified Data.List.NonEmpty as NE
 import Data.List.NonEmpty (NonEmpty)
 import qualified Voogie.NonEmpty as VNE
@@ -177,53 +178,56 @@ analyzeExpr = \case
     return (B.ifElse c' a' b')
 
 analyzeProperty :: F.AST.Term -> Analyze F.Formula
-analyzeProperty = analyzeFormula emptyEnv
+analyzeProperty t = withReaderT (emptyEnv,) (analyzeFormula t)
 
-type QV = Env F.Var
+type AnalyzeF t = ReaderT (Env F.Var, Env Name) Result t
 
-analyzeFormula :: QV -> F.AST.Term -> Analyze F.Formula
-analyzeFormula qv f = analyzeTerm qv <$> f <::> Boolean
+analyzeFormula :: F.AST.Term -> AnalyzeF F.Formula
+analyzeFormula f = analyzeTerm <$> f <::> Boolean
 
-analyzeTerm :: QV -> F.AST.Term' -> Analyze F.Term
-analyzeTerm qv = \case
+analyzeTerm :: F.AST.Term' -> AnalyzeF F.Term
+analyzeTerm = \case
   F.AST.IntConst  i -> return (F.integerConstant i)
   F.AST.BoolConst b -> return (F.booleanConstant b)
   F.AST.Ref ast is -> do
-    var <- analyzeName qv ast
-    A.astValue <$> foldM (analyzeSelect qv) var is
+    var <- analyzeName ast
+    A.astValue <$> foldM analyzeSelect var is
   F.AST.Unary op t -> do
     let d = unaryOpDomain op
-    t' <- analyzeTerm qv <$> t <::> d
+    t' <- analyzeTerm <$> t <::> d
     return (F.unary op t')
   F.AST.Binary op a b -> do
     let (d1, d2) = binaryOpDomain op
-    a' <- analyzeTerm qv <$> a <::> d1
-    b' <- analyzeTerm qv <$> b <::> d2
+    a' <- analyzeTerm <$> a <::> d1
+    b' <- analyzeTerm <$> b <::> d2
     return (F.binary op a' b')
   F.AST.Ternary c a b -> do
-    c' <- analyzeFormula qv c
-    a' <- analyzeTerm qv (A.astValue a)
-    b' <- analyzeTerm qv <$> b <::> typeOf a'
+    c' <- analyzeFormula c
+    a' <- analyzeTerm (A.astValue a)
+    b' <- analyzeTerm <$> b <::> typeOf a'
     return (F.if_ c' a' b')
   F.AST.Equals s a b -> do
-    a' <- analyzeTerm qv (A.astValue a)
-    b' <- analyzeTerm qv <$> b <::> typeOf a'
+    a' <- analyzeTerm (A.astValue a)
+    b' <- analyzeTerm <$> b <::> typeOf a'
     return (F.equals s a' b')
   F.AST.Quantified q vars f -> do
     let flatVars = fmap (fmap F.var <$>) (sequence =<< vars)
-    qv' <- lift $ runReaderT (extendEnvT flatVars) emptyEnv
-    f' <- analyzeFormula (qv <> qv') f
+    qv <- lift $ runReaderT (extendEnvT flatVars) emptyEnv
+    f' <- local (first (<> qv)) (analyzeFormula f)
     let vars' = fmap (fmap A.astValue) flatVars
     return (F.quantify q vars' f')
 
-analyzeName :: QV -> A.AST Name -> Analyze (A.AST F.Term)
-analyzeName qv ast = do
-  env <- ask
-  let analyzeVar = fmap F.variable <$> runReaderT (lookupEnv (F.var <$> ast)) qv
-  let analyzeSym = fmap F.constant <$> runReaderT (lookupEnv ast) env
-  lift $ analyzeVar <> analyzeSym
+instance Semigroup (m a) => Semigroup (ReaderT r m a) where
+  ReaderT f <> ReaderT g = ReaderT $ \r -> f r <> g r
 
-analyzeSelect :: QV -> A.AST F.Term -> NonEmpty F.AST.Term -> Analyze (A.AST F.Term)
-analyzeSelect qv ast@(A.AST pos term) as = case typeOf term of
-  Array ts _ -> A.AST pos <$> (F.select term <$> VNE.zipWithM (guardType $ analyzeTerm qv) as ts)
+analyzeName :: A.AST Name -> AnalyzeF (A.AST F.Term)
+analyzeName ast = withReaderT fst analyzeVar
+               <> withReaderT snd analyzeSym
+  where
+    analyzeVar = fmap F.variable <$> lookupEnv (F.var <$> ast)
+    analyzeSym = fmap F.constant <$> lookupEnv ast
+
+analyzeSelect :: A.AST F.Term -> NonEmpty F.AST.Term -> AnalyzeF (A.AST F.Term)
+analyzeSelect ast@(A.AST pos term) as = case typeOf term of
+  Array ts _ -> A.AST pos <$> (F.select term <$> VNE.zipWithM (guardType analyzeTerm) as ts)
   t -> lift $ Left (NonArraySelect (Typed t <$> ast))

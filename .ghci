@@ -6,3 +6,4 @@
 :set -XFlexibleInstances
 :set -XLambdaCase
 :set -XPatternGuards
+:set -XTupleSections
