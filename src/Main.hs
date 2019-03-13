@@ -1,16 +1,16 @@
-module Main(main) where
+module Main (main) where
 
 import Options.Applicative (execParser)
 
+import System.Exit (exitSuccess, exitFailure)
 import System.IO (stdout, stderr)
 import System.IO.Error (tryIOError)
 import System.Posix.Terminal (queryTerminal)
 import System.Posix.IO (stdOutput, stdError)
 
+import Data.Maybe
 import Data.Text
 import qualified Data.Text.IO as TIO
-import Data.Maybe
-import System.Exit
 
 import Voogie.Error
 import Voogie.CmdArgs
@@ -20,48 +20,49 @@ import Voogie.Back
 import Voogie.TPTP
 import Voogie.TPTPretty()
 
-import Text.PrettyPrint.ANSI.Leijen
+import Text.PrettyPrint.ANSI.Leijen hiding ((<$>))
 
 collectOptions :: CmdArgs -> TranslationOptions
 collectOptions cmdArgs = TranslationOptions (not $ noArrayTheory cmdArgs)
 
+printErrorReport :: Doc -> IO ()
+printErrorReport e = do
+  istty <- queryTerminal stdError
+  hPutDoc stderr (if istty then e else plain e)
+  exitFailure
+
+printResult :: Doc -> IO ()
+printResult r = do
+  istty <- queryTerminal stdOutput
+  hPutDoc stdout (if istty then r else plain r)
+  exitSuccess
+
 type Output = Either ErrorReport Doc
 
 printOutput :: Output -> IO ()
-printOutput = \case
-  Left errorReport -> do
-    istty <- queryTerminal stdError
-    let pretty' = if istty then pretty else plain . pretty
-    hPutDoc stderr (pretty' errorReport)
-    exitFailure
+printOutput = either (printErrorReport . pretty) printResult
 
-  Right result -> do
-    istty <- queryTerminal stdOutput
-    let result' = if istty then result else plain result
-    hPutDoc stdout result'
-    exitSuccess
-
-rewrapIOError :: Either IOError a -> (a -> Output) -> Output
-rewrapIOError e f = fmapError (ErrorReport Nothing . InputOutputError) e >>= f
+reportIOError :: Either IOError a -> Either ErrorReport a
+reportIOError = fmapError (ErrorReport Nothing . InputOutputError)
 
 runVoogie :: CmdArgs -> Text -> Output
-runVoogie cmdArgs contents = case action cmdArgs of
-    Parse     -> buildOutput   runParser
-    Check     -> buildOutput $ runParser >>= runAnalyzer
-    Translate -> buildOutput $ runParser >>= runAnalyzer >>= runTranslator
+runVoogie cmdArgs contents = reportContents $ case action cmdArgs of
+    Parse     -> pretty <$> runParser
+    Check     -> pretty <$> (runParser >>= runAnalyzer)
+    Translate -> pretty <$> (runParser >>= runAnalyzer >>= runTranslator)
   where
-    buildOutput :: Pretty a => Result a -> Output
-    buildOutput = fmapError (ErrorReport $ Just contents) . fmap pretty
+    source = fromMaybe "<stdin>" (filePath cmdArgs)
+    options = collectOptions cmdArgs
 
     runParser = parseBoogie source contents
     runAnalyzer = analyze
     runTranslator = return . toTPTP . translate options
 
-    options = collectOptions cmdArgs
-    source = fromMaybe "<stdin>" (filePath cmdArgs)
+    reportContents = fmapError (ErrorReport $ Just contents)
 
 main :: IO ()
 main = do
   cmdArgs <- execParser cmdArgsParserInfo
-  tryContents <- tryIOError $ maybe TIO.getContents TIO.readFile (filePath cmdArgs)
-  printOutput . rewrapIOError tryContents $ runVoogie cmdArgs
+  let input = maybe TIO.getContents TIO.readFile (filePath cmdArgs)
+  tryContents <- tryIOError input
+  printOutput $ reportIOError tryContents >>= runVoogie cmdArgs
