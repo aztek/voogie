@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE CPP #-}
 
 module Voogie.Front (analyze) where
