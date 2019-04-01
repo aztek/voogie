@@ -68,9 +68,9 @@ language = Token.LanguageDef
 
 lexer = Token.makeTokenParser language
 
-identifier = ast (Token.identifier lexer)
+identifier = ast $ Token.identifier lexer
 reserved   = Token.reserved   lexer
-reservedOp = Token.reservedOp lexer
+reservedOp = ast . Token.reservedOp lexer
 parens     = Token.parens     lexer
 integer    = Token.integer    lexer
 semi       = Token.semi       lexer
@@ -88,11 +88,11 @@ infix' name fun = Infix $ do
   return $ \a b -> AST (a <+> b) (fun a b)
 
 prefix name fun = Prefix $ do
-  op <- ast (reservedOp name)
+  op <- reservedOp name
   return $ \x -> AST (op <+> x) (fun x)
 
 postfix name fun = Postfix $ do
-  op <- ast (reservedOp name)
+  op <- reservedOp name
   return $ \x -> AST (x <+> op) (fun x)
 
 assocLeft = map ($ AssocLeft)
