@@ -27,10 +27,10 @@ data Definition
   = ConstantSymbol Identifier
   | Function Identifier (NonEmpty (Typed Var))
   | TupleD (Tuple Identifier)
-  deriving (Show, Eq)
+  deriving (Show, Eq, Ord)
 
 data Binding = Binding Definition Term
-  deriving (Show, Eq)
+  deriving (Show, Eq, Ord)
 
 type VarList = NonEmpty (Typed Var)
 
@@ -51,7 +51,7 @@ data Term
   | Store Term Term Term
   -- Tuples
   | TupleLiteral (Tuple Term)
-  deriving (Show, Eq)
+  deriving (Show, Eq, Ord)
 
 type Formula = Term
 
@@ -59,18 +59,18 @@ instance TypeOf Term where
   typeOf = \case
     IntegerConstant _ -> Integer
     BooleanConstant _ -> Boolean
-    Variable v -> typeOf v
-    Constant i -> typeOf i
-    Application i _ -> returnType (typeOf i)
-    Binary op _ _ -> binaryOpRange op
-    Unary  op _ -> unaryOpRange op
-    Quantify{} -> Boolean
-    Equals{} -> Boolean
-    Let _ t -> typeOf t
-    If _ a _ -> typeOf a
-    Select a _ -> arrayArgument (typeOf a)
-    Store a _ _ -> typeOf a
-    TupleLiteral es -> TupleType (fmap typeOf es)
+    Variable v        -> typeOf v
+    Constant i        -> typeOf i
+    Application i _   -> returnType (typeOf i)
+    Binary op _ _     -> binaryOpRange op
+    Unary  op _       -> unaryOpRange op
+    Quantify{}        -> Boolean
+    Equals{}          -> Boolean
+    Let _ t           -> typeOf t
+    If _ a _          -> typeOf a
+    Select a _        -> arrayArgument (typeOf a)
+    Store a _ _       -> typeOf a
+    TupleLiteral es   -> TupleType (fmap typeOf es)
 
 newtype Conjunction = Conjunction { getConjunction :: Formula }
   deriving (Eq, Show)
@@ -90,7 +90,7 @@ instance Monoid Conjunction where
   mappend = (<>)
 
 data Theory = Theory [Name] [Identifier] [Formula]
-  deriving (Show, Eq)
+  deriving (Show, Eq, Ord)
 
 instance Semigroup Theory where
   Theory ts ss as <> Theory ts' ss' as' =
@@ -100,13 +100,12 @@ instance Monoid Theory where
   mempty = Theory mempty mempty mempty
   mappend = (<>)
 
-data Problem = Problem
-  { types :: [Name]
-  , symbols :: [Identifier]
-  , axioms :: [Formula]
-  , conjecture :: Formula
-  }
-  deriving (Show, Eq)
+data Problem = Problem {
+  types      :: [Name],
+  symbols    :: [Identifier],
+  axioms     :: [Formula],
+  conjecture :: Formula
+} deriving (Show, Eq, Ord)
 
 appendTheory :: Problem -> Theory -> Problem
 appendTheory (Problem ts ss as c) th = Problem ts' ss' as' c
