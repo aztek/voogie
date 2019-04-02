@@ -24,6 +24,7 @@ module Voogie.Parse (
   quantifier
 ) where
 
+import Data.Functor (($>), (<&>))
 import Data.Text (Text)
 import qualified Data.List.NonEmpty as NE
 import Data.List.NonEmpty (NonEmpty)
@@ -83,17 +84,9 @@ commaSep1 p = NE.fromList <$> Token.commaSep1 lexer p
 
 AST (a, _) _ <+> AST (_, b) _ = (a, b)
 
-infix' name fun = Infix $ do
-  reservedOp name
-  return $ \a b -> AST (a <+> b) (fun a b)
-
-prefix name fun = Prefix $ do
-  op <- reservedOp name
-  return $ \x -> AST (op <+> x) (fun x)
-
-postfix name fun = Postfix $ do
-  op <- reservedOp name
-  return $ \x -> AST (x <+> op) (fun x)
+infix'  name fun = Infix   $ reservedOp name  $> \a b -> AST (a <+> b) (fun a b)
+prefix  name fun = Prefix  $ reservedOp name <&> \op x -> AST (op <+> x) (fun x)
+postfix name fun = Postfix $ reservedOp name <&> \op x -> AST (x <+> op) (fun x)
 
 assocLeft = map ($ AssocLeft)
 assocNone = map ($ AssocNone)
