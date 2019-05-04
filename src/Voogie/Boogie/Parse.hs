@@ -42,9 +42,10 @@ term =  parens expr
     <|> ast (LVal <$> lval)
     <|> ast ternary
 
-ternary = Ternary <$> (reserved kwdIf   >> expr)
-                  <*> (reserved kwdThen >> expr)
-                  <*> (reserved kwdElse >> expr)
+ternary =  Ternary
+       <$> (reserved kwdIf   *> expr)
+       <*> (reserved kwdThen *> expr)
+       <*> (reserved kwdElse *> expr)
 
 lval :: Parser LVal
 lval = Ref <$> identifier <*> many (brackets $ commaSep1 expr)
@@ -64,11 +65,11 @@ assignStmt = atomicStmt $ do
   return $ Assign (NE.zip lvals rvals)
 
 ifStmt = reserved kwdIf >> If <$> parens expr <*> stmts <*> elseStmts
-elseStmts = fromMaybe [] <$> optionMaybe (reserved kwdElse >> stmts)
+elseStmts = fromMaybe [] <$> optionMaybe (reserved kwdElse *> stmts)
 
 atomicStmt p = p <* semi
 
-keyword k p = atomicStmt (reserved k >> p)
+keyword k p = atomicStmt (reserved k *> p)
 
 decl :: Parser Decl
 decl = keyword kwdVar $ Declare <$> typed (commaSep1 identifier)

@@ -32,12 +32,12 @@ instance TypeOf Expression where
   typeOf = \case
     IntegerLiteral _ -> Integer
     BooleanLiteral _ -> Boolean
-    Ref lv -> typeOf lv
-    Unary op _ -> unaryOpRange op
-    Binary op _ _ -> binaryOpRange op
-    IfElse _ a _ -> typeOf a
-    FunApp f _ -> returnType (typeOf f)
-    Equals{} -> Boolean
+    Ref           lv -> typeOf lv
+    Unary       op _ -> unaryOpRange op
+    Binary    op _ _ -> binaryOpRange op
+    IfElse     _ a _ -> typeOf a
+    FunApp       f _ -> returnType (typeOf f)
+    Equals{}         -> Boolean
 
 type Assignment = (LValue, Expression)
 
@@ -53,13 +53,12 @@ data Property
 
 type TopLevel = Either Statement Property
 
-data Main = Main
-  { modifies :: [Name]
-  , requires :: [F.Formula]
-  , contents :: [TopLevel]
-  , ensures  :: [F.Formula]
-  }
-  deriving (Show, Eq)
+data Main = Main {
+  modifies :: [Name],
+  requires :: [F.Formula],
+  contents :: [TopLevel],
+  ensures  :: [F.Formula]
+} deriving (Show, Eq)
 
 data Boogie = Boogie [Var] Main
   deriving (Show, Eq)

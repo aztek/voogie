@@ -12,10 +12,10 @@ data Unit
 
 instance Named Unit where
   nameOf = \case
-    TypeDeclaration n _ -> n
+    TypeDeclaration   n _ -> n
     SymbolDeclaration n _ -> n
-    Axiom n _ -> n
-    Conjecture n _ -> n
+    Axiom             n _ -> n
+    Conjecture        n _ -> n
 
 data InputType
   = TypeInputType
@@ -25,22 +25,23 @@ data InputType
 
 unitInputType :: Unit -> InputType
 unitInputType = \case
-  TypeDeclaration{} -> TypeInputType
+  TypeDeclaration{}   -> TypeInputType
   SymbolDeclaration{} -> TypeInputType
-  Axiom{} -> AxiomInputType
-  Conjecture{} -> ConjectureInputType
+  Axiom{}             -> AxiomInputType
+  Conjecture{}        -> ConjectureInputType
 
 newtype TPTP = TPTP [Unit]
   deriving (Show, Eq)
 
 toTPTP :: Problem -> TPTP
-toTPTP (Problem types symbols axioms conjecture) =
-  TPTP (tptpTypes ++ tptpSymbols ++ tptpAxioms ++ [tptpConjecture conjecture])
+toTPTP (Problem types symbols axioms conjecture) = TPTP units
   where
-    tptpTypes = tptpType <$> types
+    units = tptpTypes ++ tptpSymbols ++ tptpAxioms ++ [tptpConjecture conjecture]
+
+    tptpTypes   = tptpType   <$> types
     tptpSymbols = tptpSymbol <$> symbols
-    tptpAxioms = tptpAxiom <$> zip [(1::Integer)..] axioms
-    
+    tptpAxioms  = tptpAxiom  <$> zip [(1::Integer)..] axioms
+
     tptpType t = TypeDeclaration t t
     tptpSymbol n = SymbolDeclaration (valueOf n) n
     tptpAxiom (nr, f) = Axiom ("voogie_precondition_" ++ show nr) f

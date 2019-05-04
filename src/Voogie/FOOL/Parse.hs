@@ -1,4 +1,7 @@
-module Voogie.FOOL.Parse (term, formula) where
+module Voogie.FOOL.Parse (
+  term,
+  formula
+) where
 
 import Text.Parsec
 import Text.Parsec.Expr
@@ -39,9 +42,9 @@ arg =  parens term
 ref = Ref <$> identifier <*> many (brackets $ commaSep1 term)
 
 ternary =  Ternary
-       <$> (reserved kwdIf   >> term)
-       <*> (reserved kwdThen >> term)
-       <*> (reserved kwdElse >> term)
+       <$> (reserved kwdIf   *> term)
+       <*> (reserved kwdThen *> term)
+       <*> (reserved kwdElse *> term)
 
 quantified =  Quantified
           <$> quantifier

@@ -8,4 +8,4 @@ data AST a = AST {
 } deriving (Eq, Functor, Foldable, Traversable)
 
 instance Show a => Show (AST a) where
-  show (AST _ a) = show a
+  show = show . astValue

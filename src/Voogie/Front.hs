@@ -36,7 +36,7 @@ import Voogie.FOOL.BoogiePretty()
 
 import Text.PrettyPrint.ANSI.Leijen (Pretty)
 
-data Env a = Env (Map a Type)
+newtype Env a = Env (Map a Type)
 
 instance Ord a => Semigroup (Env a) where
   Env m1 <> Env m2 = Env (m1 <> m2)
@@ -219,7 +219,7 @@ analyzeTerm = \case
     return (F.quantify q vars' f')
 
 instance Semigroup (m a) => Semigroup (ReaderT r m a) where
-  ReaderT f <> ReaderT g = ReaderT $ \r -> f r <> g r
+  ReaderT f <> ReaderT g = ReaderT (f <> g)
 
 analyzeName :: A.AST Name -> AnalyzeF (A.AST F.Term)
 analyzeName ast = withReaderT fst analyzeVar

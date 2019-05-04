@@ -1,4 +1,6 @@
-module Voogie.FOOL.BoogiePretty (pretty) where
+module Voogie.FOOL.BoogiePretty (
+  pretty
+) where
 
 import Voogie.Theory
 import Voogie.FOOL
@@ -17,7 +19,7 @@ pretty' :: Term -> Doc
 pretty' t = case t of
   Binary{} -> parens (pretty t)
   Equals{} -> parens (pretty t)
-  If{} -> parens (pretty t)
+  If{}     -> parens (pretty t)
   _ -> pretty t
 
 instance Pretty Term where

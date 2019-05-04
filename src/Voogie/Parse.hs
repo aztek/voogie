@@ -42,30 +42,29 @@ import Voogie.BoogieSyntax
 type Parser = Parsec Text ()
 
 language :: Monad m => Token.GenLanguageDef Text u m
-language = Token.LanguageDef
-  { Token.commentStart    = "/*"
-  , Token.commentEnd      = "*/"
-  , Token.commentLine     = "//"
-  , Token.nestedComments  = True
-  , Token.identStart      = letter
-  , Token.identLetter     = alphaNum <|> oneOf "_'"
-  , Token.opStart         = Token.opLetter language
-  , Token.opLetter        = oneOf ":!#$%&*+./<=>?@\\^|-~"
-  , Token.reservedNames   = keywords
-                         ++ quantifiers
-                         ++ booleans
-  , Token.reservedOpNames = operatorNames
-                         ++ unaryOps
-                         ++ binaryOps
-                         ++ signs
-  , Token.caseSensitive   = True
-  }
-  where
-    quantifiers = nameOf <$> [(minBound :: Quantifier)..]
-    booleans    = nameOf <$> [(minBound :: Bool)..]
-    unaryOps    = nameOf <$> [(minBound :: UnaryOp)..]
-    binaryOps   = nameOf <$> [(minBound :: BinaryOp)..]
-    signs       = nameOf <$> [(minBound :: Sign)..]
+language = Token.LanguageDef {
+  Token.commentStart    = "/*",
+  Token.commentEnd      = "*/",
+  Token.commentLine     = "//",
+  Token.nestedComments  = True,
+  Token.identStart      = letter,
+  Token.identLetter     = alphaNum <|> oneOf "_'",
+  Token.opStart         = Token.opLetter language,
+  Token.opLetter        = oneOf ":!#$%&*+./<=>?@\\^|-~",
+  Token.reservedNames   = keywords
+                       ++ quantifiers
+                       ++ booleans,
+  Token.reservedOpNames = operatorNames
+                       ++ unaryOps
+                       ++ binaryOps
+                       ++ signs,
+  Token.caseSensitive   = True
+} where
+  quantifiers = nameOf <$> [minBound :: Quantifier ..]
+  booleans    = nameOf <$> [minBound :: Bool ..]
+  unaryOps    = nameOf <$> [minBound :: UnaryOp ..]
+  binaryOps   = nameOf <$> [minBound :: BinaryOp ..]
+  signs       = nameOf <$> [minBound :: Sign ..]
 
 lexer = Token.makeTokenParser language
 
@@ -98,7 +97,7 @@ ast p = do
   end <- getPosition
   return $ AST (begin, end) a
 
-constant name fun = reserved name >> return fun
+constant name fun = reserved name $> fun
 
 typ :: Parser Type
 typ = constant typeInteger Integer

@@ -59,18 +59,18 @@ instance TypeOf Term where
   typeOf = \case
     IntegerConstant _ -> Integer
     BooleanConstant _ -> Boolean
-    Variable v        -> typeOf v
-    Constant i        -> typeOf i
-    Application i _   -> returnType (typeOf i)
-    Binary op _ _     -> binaryOpRange op
-    Unary  op _       -> unaryOpRange op
+    Variable        v -> typeOf v
+    Constant        i -> typeOf i
+    Application   i _ -> returnType (typeOf i)
+    Binary     op _ _ -> binaryOpRange op
+    Unary        op _ -> unaryOpRange op
     Quantify{}        -> Boolean
     Equals{}          -> Boolean
-    Let _ t           -> typeOf t
-    If _ a _          -> typeOf a
-    Select a _        -> arrayArgument (typeOf a)
-    Store a _ _       -> typeOf a
-    TupleLiteral es   -> TupleType (fmap typeOf es)
+    Let           _ t -> typeOf t
+    If          _ a _ -> typeOf a
+    Select        a _ -> arrayArgument (typeOf a)
+    Store       a _ _ -> typeOf a
+    TupleLiteral   es -> TupleType (fmap typeOf es)
 
 newtype Conjunction = Conjunction { getConjunction :: Formula }
   deriving (Eq, Show)

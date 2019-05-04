@@ -15,9 +15,9 @@ import Voogie.Boogie.BoogiePretty()
 import qualified Voogie.FOOL.ArrayTheory as AT
 import Voogie.FOOL.Rewrite
 
-data TranslationOptions = TranslationOptions
-  { useArrayTheory :: Bool
-  }
+data TranslationOptions = TranslationOptions {
+  useArrayTheory :: Bool
+} deriving (Show, Eq, Ord)
 
 updates :: B.Statement -> NonEmpty B.Var
 updates = NE.nub . updates'
@@ -69,12 +69,12 @@ translateExpr :: B.Expression -> F.Term
 translateExpr = \case
   B.IntegerLiteral i -> F.integerConstant i
   B.BooleanLiteral b -> F.booleanConstant b
-  B.Unary op e -> F.unary op (translateExpr e)
-  B.Binary op a b -> F.binary op (translateExpr a) (translateExpr b)
-  B.IfElse c a b -> F.if_ (translateExpr c) (translateExpr a) (translateExpr b)
-  B.Equals s a b -> F.equals s (translateExpr a) (translateExpr b)
-  B.FunApp f args -> F.application f (fmap translateExpr args)
-  B.Ref lval -> maybe n (F.select n) is
+  B.Unary     op   e -> F.unary  op (translateExpr e)
+  B.Binary    op a b -> F.binary op (translateExpr a) (translateExpr b)
+  B.IfElse     c a b -> F.if_ (translateExpr c) (translateExpr a) (translateExpr b)
+  B.Equals     s a b -> F.equals s (translateExpr a) (translateExpr b)
+  B.FunApp    f args -> F.application f (fmap translateExpr args)
+  B.Ref         lval -> maybe n (F.select n) is
     where
       (n, is) = translateLValue lval
 

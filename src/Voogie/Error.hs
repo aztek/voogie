@@ -24,12 +24,12 @@ fmapError :: (e -> e') -> Either e a -> Either e' a
 fmapError = flip bimap id
 
 data Error where
-  InputOutputError :: IOError -> Error
-  ParsingError :: ParseError -> Error
-  UndefinedVariable :: Named a => AST a -> Error
-  MultipleDefinitions :: Named a => AST (Typed a) -> Error
-  TypeMismatch :: Pretty a => AST (Typed a) -> Type -> Error
-  NonArraySelect :: Pretty a => AST (Typed a) -> Error
+  InputOutputError       :: IOError -> Error
+  ParsingError           :: ParseError -> Error
+  UndefinedVariable      :: Named  a => AST a -> Error
+  MultipleDefinitions    :: Named  a => AST (Typed a) -> Error
+  TypeMismatch           :: Pretty a => AST (Typed a) -> Type -> Error
+  NonArraySelect         :: Pretty a => AST (Typed a) -> Error
   ArrayDimensionMismatch :: Pretty a => AST (Typed a) -> Error
 
 instance Pretty Error where
@@ -68,12 +68,12 @@ type ErrorRange = (SourcePos, SourcePos)
 
 errorRange :: Error -> Maybe ErrorRange
 errorRange = \case
-  InputOutputError _ -> Nothing
-  ParsingError err -> Just (errorPos err, errorPos err)
-  UndefinedVariable (AST range _) -> Just range
-  MultipleDefinitions (AST range _) -> Just range
-  TypeMismatch (AST range _) _ -> Just range
-  NonArraySelect (AST range _) -> Just range
+  InputOutputError                   _ -> Nothing
+  ParsingError                     err -> Just (errorPos err, errorPos err)
+  UndefinedVariable      (AST range _) -> Just range
+  MultipleDefinitions    (AST range _) -> Just range
+  TypeMismatch         (AST range _) _ -> Just range
+  NonArraySelect         (AST range _) -> Just range
   ArrayDimensionMismatch (AST range _) -> Just range
 
 data ErrorReport = ErrorReport (Maybe Text) Error

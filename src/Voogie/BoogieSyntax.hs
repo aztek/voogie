@@ -1,5 +1,7 @@
 module Voogie.BoogieSyntax where
 
+import Data.Function (on)
+
 import Voogie.Theory
 
 instance Named UnaryOp where
@@ -38,10 +40,10 @@ precedence = \case
   Iff      -> 4
 
 comparePrecedence :: BinaryOp -> BinaryOp -> Ordering
-comparePrecedence op1 op2 = compare (precedence op1) (precedence op2)
+comparePrecedence = compare `on` precedence
 
 comparePrecedenceEquality :: BinaryOp -> Ordering
-comparePrecedenceEquality op = compare 7 (precedence op)
+comparePrecedenceEquality op = 7 `compare` precedence op
 
 instance Named Sign where
   nameOf = \case
@@ -60,39 +62,39 @@ instance Named Bool where
 
 keywords :: [Name]
 keywords = [
-    kwdAssert
-  , kwdAssume
-  , kwdVar
-  , kwdIf
-  , kwdThen
-  , kwdElse
-  , kwdProcedure
-  , kwdMain
-  , kwdRequires
-  , kwdEnsures
-  , kwdReturns
-  , kwdModifies
+  kwdAssert,
+  kwdAssume,
+  kwdVar,
+  kwdIf,
+  kwdThen,
+  kwdElse,
+  kwdProcedure,
+  kwdMain,
+  kwdRequires,
+  kwdEnsures,
+  kwdReturns,
+  kwdModifies
   ]
 
 kwdAssert = "assert"
 kwdAssume = "assume"
-kwdVar = "var"
-kwdIf = "if"
-kwdThen = "then"
-kwdElse = "else"
+kwdVar    = "var"
+kwdIf     = "if"
+kwdThen   = "then"
+kwdElse   = "else"
 
 kwdProcedure = "procedure"
-kwdMain = "main"
-kwdRequires = "requires"
-kwdEnsures = "ensures"
-kwdReturns = "returns"
-kwdModifies = "modifies"
+kwdMain      = "main"
+kwdRequires  = "requires"
+kwdEnsures   = "ensures"
+kwdReturns   = "returns"
+kwdModifies  = "modifies"
 
 operatorNames :: [Name]
 operatorNames = [
-    opAssign
-  , opTyped
-  , opQsep
+  opAssign,
+  opTyped,
+  opQsep
   ]
 
 opAssign = ":="
@@ -101,8 +103,8 @@ opQsep = "::"
 
 typeNames :: [Name]
 typeNames = [
-    typeInteger
-  , typeBoolean
+  typeInteger,
+  typeBoolean
   ]
 
 typeInteger = "int"
