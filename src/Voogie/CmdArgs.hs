@@ -10,7 +10,7 @@ import Options.Applicative
 import Data.Semigroup ((<>))
 #endif
 
-import Paths_Voogie (version)
+import Paths_voogie (version)
 import Data.Version (showVersion)
 
 data Action = Parse | Check | Translate

@@ -1,4 +1,4 @@
-name: Voogie
+name: voogie
 version: 0.1.0.0
 synopsis: A verification conditions generator for simple Boogie programs
 description:
@@ -30,7 +30,7 @@ executable voogie
   hs-source-dirs: src
   main-is: Main.hs
   other-modules:
-    Paths_Voogie
+    Paths_voogie
     Voogie.AST
     Voogie.Back
     Voogie.Boogie
