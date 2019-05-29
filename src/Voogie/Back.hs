@@ -1,5 +1,7 @@
 module Voogie.Back where
 
+import Control.Monad.Writer
+
 import qualified Data.List as L
 
 import qualified Data.List.NonEmpty as NE
@@ -90,7 +92,7 @@ eliminateArrayTheory (F.Problem types symbols axioms conjecture) =
   where
     theories = map AT.theory (L.nub instantiations)
 
-    Accumulate (problem', instantiations) =
+    (problem', instantiations) = runWriter $
       F.Problem types <$> traverse (rewriteSymbol typeRewriter) symbols
                       <*> traverse rewrite axioms
                       <*> rewrite conjecture
@@ -110,9 +112,8 @@ eliminateArrayTheory (F.Problem types symbols axioms conjecture) =
     typeRewriter :: Rewriter [AT.Instantiation] Type
     typeRewriter = fmap (fmap AT.arrayType) . accumulateInstantiations
 
-    accumulateInstantiations :: Type -> Maybe (Accumulate [AT.Instantiation] AT.Instantiation)
+    accumulateInstantiations :: Type -> Maybe (Writer [AT.Instantiation] AT.Instantiation)
     accumulateInstantiations = \case
-      Array (t :| ts) s -> Just $ Accumulate (i, i:is)
-        where
-          Accumulate (i, is) = traverse (rewriteType typeRewriter) (t, array ts s)
+      Array (t :| ts) s -> Just . mapWriter (\(i, is) -> (i, i:is))
+                         $ traverse (rewriteType typeRewriter) (t, array ts s)
       _ -> Nothing

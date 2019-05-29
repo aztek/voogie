@@ -1,18 +1,13 @@
 module Voogie.FOOL.Rewrite where
 
+import Control.Monad.Writer
+
 import Voogie.Theory
 import Voogie.FOOL
 
-newtype Accumulate m t = Accumulate (t, m)
-  deriving (Show, Eq, Functor)
+type Rewriter a t = t -> Maybe (Writer a t)
 
-instance Monoid m => Applicative (Accumulate m) where
-  pure t = Accumulate (t, mempty)
-  Accumulate (f, m1) <*> Accumulate (a, m2) = Accumulate (f a, m1 `mappend` m2)
-
-type Rewriter a t = t -> Maybe (Accumulate a t)
-
-rewriteType :: Monoid m => Rewriter m Type -> Type -> Accumulate m Type
+rewriteType :: Monoid m => Rewriter m Type -> Type -> Writer m Type
 rewriteType typec t
   | Just c <- typec t = c
   | otherwise = inlineType t
@@ -25,13 +20,13 @@ rewriteType typec t
       Functional ts t -> Functional <$> traverse inline ts <*> inline t
       t               -> pure t
 
-rewriteSymbol :: Monoid m => Rewriter m Type -> Typed a -> Accumulate m (Typed a)
+rewriteSymbol :: Monoid m => Rewriter m Type -> Typed a -> Writer m (Typed a)
 rewriteSymbol typec i@(Typed t a)
   | Just c <- typec t = flip Typed a <$> c
   | otherwise = pure i
 
 rewriteTerm :: Monoid m =>
-               Rewriter m Term -> Rewriter m Type -> Term -> Accumulate m Term
+               Rewriter m Term -> Rewriter m Type -> Term -> Writer m Term
 rewriteTerm termc typec t
   | Just c <- termc t = c
   | otherwise = inlineTerm t
