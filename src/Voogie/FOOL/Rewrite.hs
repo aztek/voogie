@@ -31,6 +31,16 @@ rewriteTerm termc typec t
   | Just c <- termc t = c
   | otherwise = traverseTerm (rewriteTerm termc typec) (rewriteSymbol typec) t
 
+rewriteProblem :: Monoid m
+               => Rewriter m Term
+               -> Rewriter m Type
+               -> Problem -> Writer m Problem
+rewriteProblem rt rs = \case
+  Problem types symbols axioms conjecture ->
+    Problem types <$> traverse (rewriteSymbol rs) symbols
+                  <*> traverse (rewriteTerm rt rs) axioms
+                  <*> rewriteTerm rt rs conjecture
+
 traverseType :: Monoid m
              => (Type -> Writer m Type)
              -> Type -> Writer m Type

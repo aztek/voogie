@@ -87,17 +87,12 @@ translateLValue (B.LValue n is) = (n', is')
     is' = fmap translateExpr . sconcat <$> NE.nonEmpty is
 
 eliminateArrayTheory :: F.Problem -> F.Problem
-eliminateArrayTheory (F.Problem types symbols axioms conjecture) =
-  F.appendTheory problem' (mconcat theories)
+eliminateArrayTheory problem = F.appendTheory problem' theories
   where
-    theories = map AT.theory (L.nub instantiations)
+    theories = mconcat . fmap AT.theory $ L.nub instantiations
 
-    (problem', instantiations) = runWriter $
-      F.Problem types <$> traverse (rewriteSymbol typeRewriter) symbols
-                      <*> traverse rewrite axioms
-                      <*> rewrite conjecture
-
-    rewrite = rewriteTerm termRewriter typeRewriter
+    (problem', instantiations) =
+      runWriter $ rewriteProblem termRewriter typeRewriter problem
 
     termRewriter :: Rewriter [AT.Instantiation] F.Term
     termRewriter = \case
@@ -107,7 +102,7 @@ eliminateArrayTheory (F.Problem types symbols axioms conjecture) =
 
     application s f as = app <$> accumulateInstantiations (typeOf f)
       where
-        app t = F.application . s <$> t <*> traverse rewrite (f :| as)
+        app t = F.application . s <$> t <*> traverse (rewriteTerm termRewriter typeRewriter) (f :| as)
 
     typeRewriter :: Rewriter [AT.Instantiation] Type
     typeRewriter = fmap (fmap AT.arrayType) . accumulateInstantiations
