@@ -1,3 +1,5 @@
+{-# LANGUAGE RankNTypes #-}
+
 module Voogie.FOOL.Rewrite where
 
 import Control.Monad.Writer
@@ -5,52 +7,69 @@ import Control.Monad.Writer
 import Voogie.Theory
 import Voogie.FOOL
 
-type Rewriter a t = t -> Maybe (Writer a t)
+type Rewriter m a = a -> Maybe (Writer m a)
 
-rewriteType :: Monoid m => Rewriter m Type -> Type -> Writer m Type
+rewriteType :: Monoid m
+            => Rewriter m Type
+            -> Type -> Writer m Type
 rewriteType typec t
   | Just c <- typec t = c
-  | otherwise = inlineType t
-  where
-    inline = rewriteType typec
+  | otherwise = traverseType (rewriteType typec) t
 
-    inlineType = \case
-      Array      ts t -> Array      <$> traverse inline ts <*> inline t
-      TupleType    ts -> TupleType  <$> traverse inline ts
-      Functional ts t -> Functional <$> traverse inline ts <*> inline t
-      t               -> pure t
-
-rewriteSymbol :: Monoid m => Rewriter m Type -> Typed a -> Writer m (Typed a)
+rewriteSymbol :: Monoid m
+              => Rewriter m Type
+              -> Typed a -> Writer m (Typed a)
 rewriteSymbol typec i@(Typed t a)
   | Just c <- typec t = flip Typed a <$> c
   | otherwise = pure i
 
-rewriteTerm :: Monoid m =>
-               Rewriter m Term -> Rewriter m Type -> Term -> Writer m Term
+rewriteTerm :: Monoid m
+            => Rewriter m Term
+            -> Rewriter m Type
+            -> Term -> Writer m Term
 rewriteTerm termc typec t
   | Just c <- termc t = c
-  | otherwise = inlineTerm t
-  where
-    inline = rewriteTerm termc typec
+  | otherwise = traverseTerm (rewriteTerm termc typec) (rewriteSymbol typec) t
 
-    inlineTerm = \case
-      Variable        v -> Variable     <$> rewriteSymbol typec v
-      Constant        i -> Constant     <$> rewriteSymbol typec i
-      Application  f ts -> Application  <$> rewriteSymbol typec f <*> traverse inline ts
-      Binary     op f g -> Binary op    <$> inline f <*> inline g
-      Unary        op f -> Unary op     <$> inline f
-      Quantify   q vs f -> Quantify q   <$> traverse (rewriteSymbol typec) vs <*> inline f
-      Equals      s a b -> Equals s     <$> inline a <*> inline b
-      Let           b t -> Let          <$> inlineBinding b <*> inline t
-      If          c a b -> If           <$> inline c <*> inline a <*> inline b
-      Select        a i -> Select       <$> inline a <*> inline i
-      Store       a i v -> Store        <$> inline a <*> inline i <*> inline v
-      TupleLiteral   es -> TupleLiteral <$> traverse inline es
-      t                 -> pure t
+traverseType :: Monoid m
+             => (Type -> Writer m Type)
+             -> Type -> Writer m Type
+traverseType f = \case
+  Array      ts t -> Array      <$> traverse f ts <*> f t
+  TupleType    ts -> TupleType  <$> traverse f ts
+  Functional ts t -> Functional <$> traverse f ts <*> f t
+  t               -> pure t
 
-    inlineBinding (Binding d b) = Binding <$> inlineDefinition d <*> inline b
+traverseTerm :: Monoid m
+             => (Term -> Writer m Term)
+             -> (forall a. Typed a -> Writer m (Typed a))
+             -> Term -> Writer m Term
+traverseTerm rt rs = \case
+  Variable        v -> Variable     <$> rs v
+  Constant        i -> Constant     <$> rs i
+  Application  f ts -> Application  <$> rs f <*> traverse rt ts
+  Binary     op f g -> Binary op    <$> rt f <*> rt g
+  Unary        op f -> Unary op     <$> rt f
+  Quantify   q vs f -> Quantify q   <$> traverse rs vs <*> rt f
+  Equals      s a b -> Equals s     <$> rt a <*> rt b
+  Let           b t -> Let          <$> traverseBinding rt rs b <*> rt t
+  If          c a b -> If           <$> rt c <*> rt a <*> rt b
+  Select        a i -> Select       <$> rt a <*> rt i
+  Store       a i v -> Store        <$> rt a <*> rt i <*> rt v
+  TupleLiteral   es -> TupleLiteral <$> traverse rt es
+  t                 -> pure t
 
-    inlineDefinition = \case
-      ConstantSymbol i -> ConstantSymbol <$> rewriteSymbol typec i
-      Function    i vs -> Function       <$> rewriteSymbol typec i <*> traverse (rewriteSymbol typec) vs
-      TupleD        is -> TupleD         <$> traverse (rewriteSymbol typec) is
+traverseBinding :: Monoid m
+                => (Term -> Writer m Term)
+                -> (forall a. Typed a -> Writer m (Typed a))
+                -> Binding -> Writer m Binding
+traverseBinding rt rs = \case
+  Binding d b -> Binding <$> traverseDefinition rs d <*> rt b
+
+traverseDefinition :: Monoid m
+                   => (forall a. Typed a -> Writer m (Typed a))
+                   -> Definition -> Writer m Definition
+traverseDefinition rs = \case
+  ConstantSymbol i -> ConstantSymbol <$> rs i
+  Function    i vs -> Function       <$> rs i <*> traverse rs vs
+  TupleD        is -> TupleD         <$> traverse rs is
