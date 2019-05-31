@@ -1,3 +1,5 @@
+{-# LANGUAGE DeriveFunctor, DeriveFoldable, DeriveTraversable #-}
+
 module Voogie.AST where
 
 import Text.Parsec.Pos (SourcePos)

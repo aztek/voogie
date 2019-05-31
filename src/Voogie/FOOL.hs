@@ -1,4 +1,5 @@
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE LambdaCase #-}
 
 module Voogie.FOOL (
   Var(..), VarList, Identifier,

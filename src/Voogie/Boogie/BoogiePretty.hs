@@ -1,3 +1,6 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE LambdaCase #-}
+
 module Voogie.Boogie.BoogiePretty() where
 
 import qualified Data.List.NonEmpty as NE (nonEmpty, toList, unzip)

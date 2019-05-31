@@ -1,3 +1,5 @@
+{-# LANGUAGE LambdaCase #-}
+
 module Voogie.BoogiePretty(
   module Voogie.Pretty,
   prettyTyped, boolean

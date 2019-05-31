@@ -1,3 +1,5 @@
+{-# LANGUAGE LambdaCase #-}
+
 module Voogie.TPTPretty() where
 
 import Voogie.Theory

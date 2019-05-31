@@ -1,3 +1,5 @@
+{-# LANGUAGE LambdaCase #-}
+
 module Voogie.FOOL.BoogiePretty (
   pretty
 ) where

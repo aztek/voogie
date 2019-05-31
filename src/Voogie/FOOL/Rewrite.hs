@@ -1,3 +1,5 @@
+{-# LANGUAGE LambdaCase #-}
+
 module Voogie.FOOL.Rewrite where
 
 import Voogie.Theory

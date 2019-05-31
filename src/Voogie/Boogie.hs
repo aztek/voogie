@@ -1,3 +1,5 @@
+{-# LANGUAGE LambdaCase #-}
+
 module Voogie.Boogie where
 
 import Data.List.NonEmpty (NonEmpty)

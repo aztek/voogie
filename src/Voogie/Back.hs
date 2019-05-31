@@ -1,3 +1,5 @@
+{-# LANGUAGE LambdaCase #-}
+
 module Voogie.Back where
 
 import Control.Monad.Writer (Writer, runWriter, tell)

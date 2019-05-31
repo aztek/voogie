@@ -1,3 +1,5 @@
+{-# LANGUAGE LambdaCase #-}
+
 module Voogie.FOOL.TPTPretty() where
 
 import Data.Char (toUpper, toLower)

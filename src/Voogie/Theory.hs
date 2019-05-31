@@ -1,3 +1,7 @@
+{-# LANGUAGE DeriveFunctor, DeriveFoldable, DeriveTraversable #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE LambdaCase #-}
+
 module Voogie.Theory where
 
 import Data.List.NonEmpty (NonEmpty((:|)))

@@ -66,9 +66,6 @@ executable voogie
     Voogie.TPTP
     Voogie.TPTPretty
     Voogie.TPTPSyntax
-  default-extensions:
-    DeriveFunctor, DeriveFoldable, DeriveTraversable,
-    FlexibleInstances, LambdaCase, PatternGuards, TupleSections
   ghc-options:
     -Wall -fno-warn-missing-signatures -threaded
   if flag(Werror)
@@ -117,9 +114,6 @@ test-suite test-quickcheck-generators
     Voogie.FOOL.Tuple
     Voogie.NonEmpty
     Voogie.Theory
-  default-extensions:
-    DeriveFunctor, DeriveFoldable, DeriveTraversable,
-    FlexibleInstances, LambdaCase, PatternGuards, TupleSections
   build-depends:
     base,
     QuickCheck
@@ -150,9 +144,6 @@ test-suite test-quickcheck-back
     Voogie.NonEmpty
     Voogie.Pretty
     Voogie.Theory
-  default-extensions:
-    DeriveFunctor, DeriveFoldable, DeriveTraversable,
-    FlexibleInstances, LambdaCase, PatternGuards, TupleSections
   build-depends:
     base,
     mtl,
