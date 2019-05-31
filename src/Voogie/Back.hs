@@ -6,6 +6,8 @@ import qualified Data.List as L
 
 import qualified Data.List.NonEmpty as NE
 import Data.List.NonEmpty (NonEmpty((:|)))
+import qualified Voogie.NonEmpty as VNE
+
 import Data.Semigroup (sconcat)
 
 import Voogie.Theory
@@ -90,28 +92,38 @@ eliminateArrayTheory :: F.Problem -> F.Problem
 eliminateArrayTheory problem = F.appendTheories problem' theories
   where
     theories = fmap AT.theory (L.nub instantiations)
+    (problem', instantiations) = runWriter (eliminateProblem problem)
 
-    (problem', instantiations) =
-      runWriter $ traverseProblem (rewriteTerm termF typeF) problem
+    eliminateProblem :: F.Problem -> Writer [AT.Instantiation] F.Problem
+    eliminateProblem = traverseProblem eliminateTerm eliminateType
 
-    termF :: F.Term -> Maybe (Writer [AT.Instantiation] F.Term)
-    termF = \case
-      F.Select a i   -> application AT.selectSymbol a [i]
-      F.Store  a i v -> application AT.storeSymbol  a [i, v]
-      _ -> Nothing
+    eliminateTerm :: F.Term -> Writer [AT.Instantiation] F.Term
+    eliminateTerm = \case
+      F.Select a i   -> select a i
+      F.Store  a i v -> store  a i v
+      t -> traverseTerm eliminateTerm eliminateType t
 
-    application :: (AT.Instantiation -> F.Identifier) -> F.Term -> [F.Term]
-                -> Maybe (Writer [AT.Instantiation] F.Term)
-    application f a as = app <$> accumulate (typeOf a)
+    select :: F.Term -> F.Term -> Writer [AT.Instantiation] F.Term
+    select a i =  F.application
+              <$> (AT.selectSymbol <$> inst)
+              <*> traverse eliminateTerm (VNE.two a i)
       where
-        app :: Writer [AT.Instantiation] AT.Instantiation -> Writer [AT.Instantiation] F.Term
-        app t = F.application . f <$> t <*> traverse (rewriteTerm termF typeF) (a :| as)
+        inst = instantiation (typeOf i) (arrayArgument (typeOf a))
 
-    typeF :: Type -> Maybe (Writer [AT.Instantiation] Type)
-    typeF = fmap (fmap AT.arrayType) . accumulate
+    store :: F.Term -> F.Term -> F.Term -> Writer [AT.Instantiation] F.Term
+    store a i v =  F.application
+               <$> (AT.storeSymbol <$> inst)
+               <*> traverse eliminateTerm (VNE.three a i v)
+      where
+        inst = instantiation (typeOf i) (typeOf v)
 
-    accumulate :: Type -> Maybe (Writer [AT.Instantiation] AT.Instantiation)
-    accumulate = \case
-      Array (t :| ts) s -> Just . mapWriter (\(i, is) -> (i, i:is))
-                         $ traverse (rewriteType typeF) (t, array ts s)
-      _ -> Nothing
+    eliminateType :: Type -> Writer [AT.Instantiation] Type
+    eliminateType = \case
+      Array (t :| ts) r -> do
+        inst <- instantiation t (array ts r)
+        tell [inst]
+        return (AT.arrayType inst)
+      t -> traverseType eliminateType t
+
+    instantiation :: Type -> Type -> Writer [AT.Instantiation] AT.Instantiation
+    instantiation = curry (traverse eliminateType)

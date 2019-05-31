@@ -3,26 +3,14 @@ module Voogie.FOOL.Rewrite where
 import Voogie.Theory
 import Voogie.FOOL
 
-rewriteType :: Applicative f
-            => (Type -> Maybe (f Type))
-            -> Type -> f Type
-rewriteType typeF t
-  | Just c <- typeF t = c
-  | otherwise = traverseType (rewriteType typeF) t
-
-rewriteTerm :: Applicative f
-            => (Term -> Maybe (f Term))
-            -> (Type -> Maybe (f Type))
-            -> Term -> f Term
-rewriteTerm termF typeF t
-  | Just c <- termF t = c
-  | otherwise = traverseTerm (rewriteTerm termF typeF) (rewriteType typeF) t
-
 traverseProblem :: Applicative f
                 => (Term -> f Term)
+                -> (Type -> f Type)
                 -> Problem -> f Problem
-traverseProblem termF (Problem types symbols axioms conjecture) =
-  Problem types symbols <$> traverse termF axioms <*> termF conjecture
+traverseProblem termF typeF (Problem types symbols axioms conjecture) =
+  Problem types <$> traverse (traverseTyped typeF) symbols
+                <*> traverse termF axioms
+                <*> termF conjecture
 
 traverseType :: Applicative f
              => (Type -> f Type)
