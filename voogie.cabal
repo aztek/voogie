@@ -154,7 +154,8 @@ test-suite test-quickcheck-back
     DeriveFunctor, DeriveFoldable, DeriveTraversable,
     FlexibleInstances, LambdaCase, PatternGuards, TupleSections
   build-depends:
-    base >= 4 && < 5,
+    base           >= 4     && < 5,
+    mtl            >= 2.2   && < 3.0,
     ansi-wl-pprint >= 0.6.6 && < 0.7,
     QuickCheck
   if impl(ghc < 8)
