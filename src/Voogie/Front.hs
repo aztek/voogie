@@ -3,20 +3,20 @@
 
 module Voogie.Front (analyze) where
 
-import Control.Monad
-import Control.Monad.Extra
-import Control.Monad.Reader
-import Data.Maybe
+import Control.Monad (foldM)
+import Control.Monad.Extra (mapMaybeM)
+import Control.Monad.Reader (MonadTrans, lift, ReaderT(..), withReaderT, ask, local)
+import Data.Maybe (catMaybes)
 #if __GLASGOW_HASKELL__ < 804
-import Data.Semigroup
+import Data.Semigroup (Semigroup(..))
 #endif
 
 import Data.Bifunctor (first)
-import qualified Data.List.NonEmpty as NE
+import qualified Data.List.NonEmpty as NE (toList)
 import Data.List.NonEmpty (NonEmpty)
-import qualified Voogie.NonEmpty as VNE
+import qualified Voogie.NonEmpty as VNE (zipWithM)
 
-import qualified Data.Map as Map
+import qualified Data.Map as Map (empty, insert, lookup, toList)
 import Data.Map (Map)
 
 import Voogie.Error

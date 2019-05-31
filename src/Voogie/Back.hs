@@ -1,12 +1,11 @@
 module Voogie.Back where
 
-import Control.Monad.Writer
+import Control.Monad.Writer (Writer, runWriter, tell)
 
-import qualified Data.List as L
-
-import qualified Data.List.NonEmpty as NE
+import qualified Data.List as L (nub)
+import qualified Data.List.NonEmpty as NE (nub, cons, nonEmpty)
 import Data.List.NonEmpty (NonEmpty((:|)))
-import qualified Voogie.NonEmpty as VNE
+import qualified Voogie.NonEmpty as VNE (two, three)
 
 import Data.Semigroup (sconcat)
 
@@ -67,18 +66,18 @@ translateAssign (lval, e) = maybe id (F.store n) is (translateExpr e)
 translateProperty :: B.Property -> F.Term -> F.Term
 translateProperty = \case
   B.Assume f -> F.binary Imply f
-  B.Assert f -> F.binary And f
+  B.Assert f -> F.binary And  f
 
 translateExpr :: B.Expression -> F.Term
 translateExpr = \case
   B.IntegerLiteral i -> F.integerConstant i
   B.BooleanLiteral b -> F.booleanConstant b
-  B.Unary     op   e -> F.unary  op (translateExpr e)
-  B.Binary    op a b -> F.binary op (translateExpr a) (translateExpr b)
-  B.IfElse     c a b -> F.if_ (translateExpr c) (translateExpr a) (translateExpr b)
-  B.Equals     s a b -> F.equals s (translateExpr a) (translateExpr b)
-  B.FunApp    f args -> F.application f (fmap translateExpr args)
-  B.Ref         lval -> maybe n (F.select n) is
+  B.Unary  op   e -> F.unary  op (translateExpr e)
+  B.Binary op a b -> F.binary op (translateExpr a) (translateExpr b)
+  B.IfElse  c a b -> F.if_ (translateExpr c) (translateExpr a) (translateExpr b)
+  B.Equals  s a b -> F.equals s (translateExpr a) (translateExpr b)
+  B.FunApp f args -> F.application f (fmap translateExpr args)
+  B.Ref      lval -> maybe n (F.select n) is
     where
       (n, is) = translateLValue lval
 

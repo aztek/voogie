@@ -1,6 +1,6 @@
 module Voogie.Boogie where
 
-import Data.List.NonEmpty
+import Data.List.NonEmpty (NonEmpty)
 
 import Voogie.Theory
 import qualified Voogie.FOOL as F

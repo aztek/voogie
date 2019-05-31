@@ -3,8 +3,9 @@ module Voogie.FOOL.Parse (
   formula
 ) where
 
-import Text.Parsec
-import Text.Parsec.Expr
+import Control.Applicative ((<|>), many)
+
+import Text.Parsec.Expr (buildExpressionParser)
 
 import Voogie.Theory
 import Voogie.Parse

@@ -9,7 +9,7 @@ module Voogie.FOOL (
 
 import Data.List.NonEmpty (NonEmpty)
 #if __GLASGOW_HASKELL__ < 804
-import Data.Semigroup
+import Data.Semigroup (Semigroup(..))
 #endif
 
 import Voogie.FOOL.Tuple (Tuple)

@@ -4,7 +4,7 @@ module Voogie.FOOL.Smart (
   Problem(..), appendTheory, appendTheories
 ) where
 
-import qualified Data.List.NonEmpty as NE
+import qualified Data.List.NonEmpty as NE (toList)
 import Data.List.NonEmpty (NonEmpty)
 
 import Voogie.Theory

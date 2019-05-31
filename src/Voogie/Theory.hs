@@ -2,7 +2,7 @@ module Voogie.Theory where
 
 import Data.List.NonEmpty (NonEmpty((:|)))
 
-import qualified Voogie.FOOL.Tuple as Tuple
+import qualified Voogie.FOOL.Tuple as Tuple (nonUnit)
 import Voogie.FOOL.Tuple (Tuple)
 
 type Name = String

@@ -1,6 +1,6 @@
 module Voogie.Boogie.BoogiePretty() where
 
-import qualified Data.List.NonEmpty as NE
+import qualified Data.List.NonEmpty as NE (nonEmpty, toList, unzip)
 
 import Voogie.Theory
 import Voogie.Boogie

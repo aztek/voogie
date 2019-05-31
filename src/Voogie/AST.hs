@@ -1,6 +1,6 @@
 module Voogie.AST where
 
-import Text.Parsec.Pos
+import Text.Parsec.Pos (SourcePos)
 
 data AST a = AST {
   position :: (SourcePos, SourcePos),

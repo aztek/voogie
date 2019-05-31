@@ -24,15 +24,16 @@ module Voogie.Parse (
   quantifier
 ) where
 
+import Control.Applicative ((<|>))
 import Data.Functor (($>))
 import Data.Text (Text)
-import qualified Data.List.NonEmpty as NE
+import qualified Data.List.NonEmpty as NE (fromList)
 import Data.List.NonEmpty (NonEmpty)
-import Data.Foldable
+import Data.Foldable (asum)
 
-import Text.Parsec.Char
-import Text.Parsec.Prim
-import Text.Parsec.Expr
+import Text.Parsec.Char (alphaNum, letter, oneOf)
+import Text.Parsec.Prim (Parsec, getPosition)
+import Text.Parsec.Expr (Operator(..), Assoc(..))
 import qualified Text.Parsec.Token as Token
 
 import Voogie.AST

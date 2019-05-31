@@ -4,7 +4,13 @@ module Voogie.CmdArgs (
   Action(..), CmdArgs(..), cmdArgsParserInfo
 ) where
 
-import Options.Applicative
+import Control.Applicative ((<|>))
+
+import Options.Applicative (
+    Parser, ParserInfo, ParseError(..),
+    header, fullDesc, long, short, info, helper, help, hidden, switch, value,
+    maybeReader, metavar, (<**>), option, abortOption, strArgument, flag'
+  )
 
 #if __GLASGOW_HASKELL__ < 804
 import Data.Semigroup ((<>))

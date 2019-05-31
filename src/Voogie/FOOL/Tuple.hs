@@ -1,7 +1,7 @@
 module Voogie.FOOL.Tuple where
 
-import qualified Data.List as L
-import qualified Data.List.NonEmpty as NE
+import qualified Data.List as L (intercalate)
+import qualified Data.List.NonEmpty as NE (toList, cons, nonEmpty, NonEmpty(..))
 import Data.List.NonEmpty (NonEmpty)
 
 data Tuple a = a :| NonEmpty a

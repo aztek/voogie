@@ -8,8 +8,8 @@ import System.IO.Error (tryIOError)
 import System.Posix.Terminal (queryTerminal)
 import System.Posix.IO (stdOutput, stdError)
 
-import Data.Maybe
-import Data.Text
+import Data.Maybe (fromMaybe)
+import Data.Text (Text)
 import qualified Data.Text.IO as TIO
 
 import Voogie.Error

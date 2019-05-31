@@ -3,7 +3,7 @@ module Voogie.Boogie.Smart (
   TopLevel, Statement, Assignment, Property, Expression, LValue, Main, Boogie
 ) where
 
-import qualified Data.List.NonEmpty as NE
+import qualified Data.List.NonEmpty as NE (nonEmpty)
 import Data.List.NonEmpty (NonEmpty)
 
 import Voogie.Boogie

@@ -3,7 +3,7 @@ module Voogie.FOOL.TypeSafe (
   Var, Identifier, Definition(..), Binding(..), Term, Formula
 ) where
 
-import qualified Data.List.NonEmpty as NE
+import qualified Data.List.NonEmpty as NE (zipWith)
 import Data.List.NonEmpty (NonEmpty((:|)))
 
 import Voogie.Theory
@@ -11,7 +11,7 @@ import Voogie.Theory
 import Voogie.FOOL
 import Voogie.FOOL.BoogiePretty
 
-import Text.PrettyPrint.ANSI.Leijen
+import Text.PrettyPrint.ANSI.Leijen (displayS, renderCompact)
 
 typeSafeApplication :: Identifier -> NonEmpty Term -> Term
 typeSafeApplication f ts

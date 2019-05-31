@@ -1,8 +1,8 @@
 module Voogie.NonEmpty where
 
-import qualified Data.List as L
+import qualified Data.List as L (intercalate)
 
-import qualified Data.List.NonEmpty as NE
+import qualified Data.List.NonEmpty as NE (toList, zipWith)
 import Data.List.NonEmpty (NonEmpty((:|)))
 
 intercalate :: [a] -> NonEmpty [a] -> [a]

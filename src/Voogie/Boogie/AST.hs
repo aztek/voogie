@@ -6,7 +6,7 @@ import Voogie.AST
 import Voogie.Theory
 import qualified Voogie.FOOL.AST as F
 
-import Text.PrettyPrint.ANSI.Leijen hiding ((<$>))
+import Text.PrettyPrint.ANSI.Leijen (Pretty(pretty), empty)
 
 type Identifier = AST String
 

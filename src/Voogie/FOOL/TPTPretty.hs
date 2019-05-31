@@ -1,8 +1,9 @@
 module Voogie.FOOL.TPTPretty() where
 
-import Data.Char
-import qualified Data.List.NonEmpty as NE
-import Data.List.NonEmpty
+import Data.Char (toUpper, toLower)
+import qualified Data.List.NonEmpty as NE (nonEmpty)
+import Data.List.NonEmpty (NonEmpty(..))
+
 import qualified Voogie.FOOL.Tuple as Tuple
 import Voogie.FOOL
 import Voogie.Theory

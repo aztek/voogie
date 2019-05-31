@@ -5,13 +5,13 @@ module Voogie.FOOL.ArrayTheory (
   theory
 ) where
 
-import qualified Voogie.NonEmpty as VNE
+import qualified Voogie.NonEmpty as VNE (one, two, three, four)
 
 import Voogie.Theory
 import Voogie.FOOL
 import Voogie.FOOL.Smart
 
-import Text.PrettyPrint.ANSI.Leijen
+import Text.PrettyPrint.ANSI.Leijen (pretty, displayS, renderCompact)
 
 type Instantiation = (Type, Type)
 

@@ -1,12 +1,13 @@
 module Voogie.Boogie.Parse where
 
-import Control.Monad
-import Data.Maybe
+import Control.Applicative ((<|>), many)
+import Control.Monad (guard)
+import Data.Maybe (fromMaybe)
 import Data.Text (Text)
-import qualified Data.List.NonEmpty as NE
+import qualified Data.List.NonEmpty as NE (toList, zip)
 
-import Text.Parsec
-import Text.Parsec.Expr
+import Text.Parsec (SourceName, try, parse, optionMaybe)
+import Text.Parsec.Expr (buildExpressionParser)
 
 import Voogie.Error
 import Voogie.Theory
