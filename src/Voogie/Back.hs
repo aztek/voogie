@@ -87,28 +87,31 @@ translateLValue (B.LValue n is) = (n', is')
     is' = fmap translateExpr . sconcat <$> NE.nonEmpty is
 
 eliminateArrayTheory :: F.Problem -> F.Problem
-eliminateArrayTheory problem = F.appendTheory problem' theories
+eliminateArrayTheory problem = F.appendTheories problem' theories
   where
-    theories = mconcat . fmap AT.theory $ L.nub instantiations
+    theories = fmap AT.theory (L.nub instantiations)
 
     (problem', instantiations) =
-      runWriter $ rewriteProblem termRewriter typeRewriter problem
+      runWriter $ traverseProblem (rewriteTerm termF typeF) problem
 
-    termRewriter :: Rewriter [AT.Instantiation] F.Term
-    termRewriter = \case
-      F.Select a i  -> application AT.selectSymbol a [i]
-      F.Store a i v -> application AT.storeSymbol  a [i, v]
+    termF :: F.Term -> Maybe (Writer [AT.Instantiation] F.Term)
+    termF = \case
+      F.Select a i   -> application AT.selectSymbol a [i]
+      F.Store  a i v -> application AT.storeSymbol  a [i, v]
       _ -> Nothing
 
-    application s f as = app <$> accumulateInstantiations (typeOf f)
+    application :: (AT.Instantiation -> F.Identifier) -> F.Term -> [F.Term]
+                -> Maybe (Writer [AT.Instantiation] F.Term)
+    application f a as = app <$> accumulate (typeOf a)
       where
-        app t = F.application . s <$> t <*> traverse (rewriteTerm termRewriter typeRewriter) (f :| as)
+        app :: Writer [AT.Instantiation] AT.Instantiation -> Writer [AT.Instantiation] F.Term
+        app t = F.application . f <$> t <*> traverse (rewriteTerm termF typeF) (a :| as)
 
-    typeRewriter :: Rewriter [AT.Instantiation] Type
-    typeRewriter = fmap (fmap AT.arrayType) . accumulateInstantiations
+    typeF :: Type -> Maybe (Writer [AT.Instantiation] Type)
+    typeF = fmap (fmap AT.arrayType) . accumulate
 
-    accumulateInstantiations :: Type -> Maybe (Writer [AT.Instantiation] AT.Instantiation)
-    accumulateInstantiations = \case
+    accumulate :: Type -> Maybe (Writer [AT.Instantiation] AT.Instantiation)
+    accumulate = \case
       Array (t :| ts) s -> Just . mapWriter (\(i, is) -> (i, i:is))
-                         $ traverse (rewriteType typeRewriter) (t, array ts s)
+                         $ traverse (rewriteType typeF) (t, array ts s)
       _ -> Nothing

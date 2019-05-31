@@ -4,7 +4,7 @@ module Voogie.FOOL (
   Var(..), VarList, Identifier,
   Definition(..), Binding(..), Term(..),
   Formula, Conjunction(..),
-  Theory(..), Problem(..), appendTheory
+  Theory(..), Problem(..), appendTheory, appendTheories
 ) where
 
 import Data.List.NonEmpty (NonEmpty)
@@ -110,3 +110,6 @@ data Problem = Problem {
 appendTheory :: Problem -> Theory -> Problem
 appendTheory (Problem ts ss as c) th = Problem ts' ss' as' c
   where Theory ts' ss' as' = th <> Theory ts ss as
+
+appendTheories :: Problem -> [Theory] -> Problem
+appendTheories p = appendTheory p . mconcat
