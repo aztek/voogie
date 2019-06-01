@@ -79,8 +79,10 @@ errorRange = \case
 
 data ErrorReport = ErrorReport (Maybe Text) Error
 
+text' :: Text -> Doc
 text' = text . Text.unpack
 
+errorText :: Text -> Doc
 errorText = bold . red . text'
 
 instance Pretty ErrorReport where

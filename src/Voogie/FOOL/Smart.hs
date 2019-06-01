@@ -24,29 +24,41 @@ tupleD :: NonEmpty Identifier -> Definition
 tupleD = either ConstantSymbol TupleD . nonUnit
 
 -- Term
+integerConstant :: Integer -> Term
 integerConstant = IntegerConstant
+
+booleanConstant :: Bool -> Term
 booleanConstant = BooleanConstant
 
 constant :: Identifier -> Term
 constant = Constant . fmap name
 
+variable :: Typed Var -> Term
 variable = Variable
 
 application :: Identifier -> NonEmpty Term -> Term
 application = typeSafeApplication <$> fmap name
 
+binary :: BinaryOp -> Term -> Term -> Term
 binary = Binary
 
 infixl 5 ==>
 (==>) :: Formula -> Formula -> Formula
 f ==> g = binary Imply f g
 
+unary :: UnaryOp -> Term -> Term
 unary = Unary
 
+quantify :: Quantifier -> VarList -> Term -> Term
 quantify = Quantify
+
+forall :: VarList -> Term -> Term
 forall = quantify Forall
+
+exists :: VarList -> Term -> Term
 exists = quantify Exists
 
+equals :: Sign -> Term -> Term -> Term
 equals = Equals
 
 infixl 6 ===
@@ -70,6 +82,7 @@ let_ b@(Binding d s) t
     trivialDefinition (TupleD t) (TupleLiteral t') = fmap constant t == t'
     trivialDefinition _ _ = False
 
+if_ :: Term -> Term -> Term -> Term
 if_ = If
 
 select :: Foldable f => Term -> f Term -> Term

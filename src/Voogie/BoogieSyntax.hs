@@ -78,6 +78,7 @@ keywords = [
   kwdModifies
   ]
 
+kwdAssert, kwdAssume, kwdVar, kwdIf, kwdThen, kwdElse :: Name
 kwdAssert = "assert"
 kwdAssume = "assume"
 kwdVar    = "var"
@@ -85,6 +86,7 @@ kwdIf     = "if"
 kwdThen   = "then"
 kwdElse   = "else"
 
+kwdProcedure, kwdMain, kwdRequires, kwdEnsures, kwdReturns, kwdModifies :: Name
 kwdProcedure = "procedure"
 kwdMain      = "main"
 kwdRequires  = "requires"
@@ -99,6 +101,7 @@ operatorNames = [
   opQsep
   ]
 
+opAssign, opTyped, opQsep :: Name
 opAssign = ":="
 opTyped = ":"
 opQsep = "::"
@@ -109,5 +112,6 @@ typeNames = [
   typeBoolean
   ]
 
+typeInteger, typeBoolean :: Name
 typeInteger = "int"
 typeBoolean = "bool"

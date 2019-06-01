@@ -26,8 +26,11 @@ funapp2 f a b = funapp f (VNE.two a b)
 funapp3 :: Doc -> Doc -> Doc -> Doc -> Doc
 funapp3 f a b c = funapp f (VNE.three a b c)
 
+keyword, operator, builtin, punctuation :: String -> Doc
 keyword = blue . text
 operator = text
 builtin = bold . text
-number = green . integer
 punctuation = text
+
+number :: Integer -> Doc
+number = green . integer

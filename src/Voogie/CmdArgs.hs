@@ -22,6 +22,7 @@ import Data.Version (showVersion)
 data Action = Parse | Check | Translate
   deriving (Eq, Show, Enum, Bounded)
 
+actions :: [(String, Action)]
 actions = [("parse", Parse), ("check", Check), ("translate", Translate)]
 
 data CmdArgs = CmdArgs

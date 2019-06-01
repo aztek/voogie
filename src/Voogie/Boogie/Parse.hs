@@ -4,26 +4,35 @@ import Control.Applicative ((<|>), many)
 import Control.Monad (guard)
 import Data.Maybe (fromMaybe)
 import Data.Text (Text)
+import Data.List.NonEmpty (NonEmpty)
 import qualified Data.List.NonEmpty as NE (toList, zip)
 
 import Text.Parsec (SourceName, try, parse, optionMaybe)
-import Text.Parsec.Expr (buildExpressionParser)
+import Text.Parsec.Expr (Assoc, buildExpressionParser)
 
+import Voogie.AST (AST)
 import Voogie.Error
 import Voogie.Theory
 import Voogie.BoogieSyntax
 import Voogie.Boogie.AST
 
 import Voogie.Parse
+import Voogie.FOOL.AST (Formula)
 import qualified Voogie.FOOL.Parse as F
 
 expr :: Parser Expr
 expr = buildExpressionParser operators term
 
+unary :: UnaryOp -> Operator Expr
 unary  = prefix <$> nameOf <*> Unary
+
+binary :: BinaryOp -> Assoc -> Operator Expr
 binary = infix' <$> nameOf <*> Binary
+
+equals :: Sign -> Assoc -> Operator Expr
 equals = infix' <$> nameOf <*> Equals
 
+operators :: [[Operator Expr]]
 operators = unaryOperators ++ binaryOperators
   where
     unaryOperators = fmap (\op -> unary <$> [op]) [minBound..]
@@ -37,13 +46,15 @@ operators = unaryOperators ++ binaryOperators
         assocLeft $ binary <$> [Iff]
       ]
 
+term :: Parser Expr
 term =  parens expr
     <|> ast (BoolConst <$> boolean)
     <|> ast (IntConst <$> integer)
     <|> ast (LVal <$> lval)
-    <|> ast ternary
+    <|> ternary
 
-ternary =  Ternary
+ternary :: Parser Expr
+ternary =  ast $ Ternary
        <$> (reserved kwdIf   *> expr)
        <*> (reserved kwdThen *> expr)
        <*> (reserved kwdElse *> expr)
@@ -56,20 +67,24 @@ stmts =  braces (many stmt)
      <|> (:[]) <$> stmt
 
 stmt :: Parser Stmt
-stmt = ast (assignStmt <|> ifStmt)
+stmt = assignStmt <|> ifStmt
 
-assignStmt = atomicStmt $ do
+assignStmt :: Parser Stmt
+assignStmt = ast . atomicStmt $ do
   lvals <- commaSep1 lval
   reserved opAssign
   rvals <- commaSep1 expr
   guard (length lvals == length rvals)
   return $ Assign (NE.zip lvals rvals)
 
-ifStmt = reserved kwdIf >> If <$> parens expr <*> stmts <*> elseStmts
-elseStmts = fromMaybe [] <$> optionMaybe (reserved kwdElse *> stmts)
+ifStmt :: Parser Stmt
+ifStmt = ast $ reserved kwdIf >> If <$> parens expr <*> stmts <*> elseStmts
+  where elseStmts = fromMaybe [] <$> optionMaybe (reserved kwdElse *> stmts)
 
+atomicStmt :: Parser a -> Parser a
 atomicStmt p = p <* semi
 
+keyword :: String -> Parser a -> Parser a
 keyword k p = atomicStmt (reserved k *> p)
 
 decl :: Parser Decl
@@ -88,17 +103,26 @@ main = do
     return (ds, ss)
   return (Main (maybe [] NE.toList ms) pre returns ds ss post)
 
+returns :: Parser Returns
 returns = reserved kwdReturns >> parens (Returns <$> commaSep1 (typed identifier))
+
+modifies :: Parser (NonEmpty (AST String))
 modifies = keyword kwdModifies (commaSep1 identifier)
 
-precondition  = keyword kwdRequires F.formula
-postcondition = keyword kwdEnsures  F.formula
+precondition :: Parser Formula
+precondition = keyword kwdRequires F.formula
 
+postcondition :: Parser Formula
+postcondition = keyword kwdEnsures F.formula
+
+property :: Parser Prop
 property =  keyword kwdAssume (Assume <$> F.formula)
         <|> keyword kwdAssert (Assert <$> F.formula)
 
+topLevel :: Parser (Either Stmt Prop)
 topLevel = Left <$> stmt <|> Right <$> property
 
+boogie :: Parser Boogie
 boogie = whiteSpace >> Boogie <$> many (try decl) <*> main
 
 rewrapParsingError :: Parser a -> SourceName -> Text -> Result a

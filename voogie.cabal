@@ -67,7 +67,7 @@ executable voogie
     Voogie.TPTPretty
     Voogie.TPTPSyntax
   ghc-options:
-    -Wall -fno-warn-missing-signatures -threaded
+    -Wall -threaded
   if flag(Werror)
     ghc-options: -Werror
   build-depends:

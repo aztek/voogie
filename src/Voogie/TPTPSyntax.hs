@@ -72,11 +72,13 @@ keywords = [
   , kwdTypeDecl
   ]
 
+kwdTtf, kwdType, kwdAxiom, kwdConjecture :: Name
 kwdTtf = "ttf"
 kwdType = "type"
 kwdAxiom = "axiom"
 kwdConjecture = "conjecture"
 
+kwdIf, kwdLet, kwdSelect, kwdStore :: Name
 kwdIf = "$ite"
 kwdLet = "$let"
 kwdSelect = "$select"
@@ -85,6 +87,7 @@ kwdStore = "$store"
 opAssign :: Name
 opAssign = ":="
 
+kwdTypeDecl :: Name
 kwdTypeDecl = "$tType"
 
 typeNames :: [Name]
@@ -94,6 +97,7 @@ typeNames = [
   , arrayName
   ]
 
+intName, boolName, arrayName :: Name
 intName = "$int"
 boolName = "$o"
 arrayName = "$array"

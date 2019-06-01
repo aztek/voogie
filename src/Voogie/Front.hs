@@ -115,6 +115,8 @@ infix 3 <::>
        => A.AST (t Result a) -> Type -> t Result a
 ast <::> t = t `typedM` ast >>= lift
 
+guardType :: (Pretty a, TypeOf a, MonadTrans t, Monad (t Result))
+          => (b -> t Result a) -> A.AST b -> Type -> t Result a
 guardType f a t = f <$> a <::> t
 
 analyzeTopLevel :: AST.TopLevel -> Analyze (Maybe B.TopLevel)

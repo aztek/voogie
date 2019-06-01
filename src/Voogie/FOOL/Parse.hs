@@ -5,7 +5,7 @@ module Voogie.FOOL.Parse (
 
 import Control.Applicative ((<|>), many)
 
-import Text.Parsec.Expr (buildExpressionParser)
+import Text.Parsec.Expr (Assoc, buildExpressionParser)
 
 import Voogie.Theory
 import Voogie.Parse
@@ -16,10 +16,16 @@ import Voogie.BoogieSyntax
 term :: Parser Term
 term = buildExpressionParser operators arg
 
-unary  = prefix <$> nameOf <*> Unary
+unary :: UnaryOp -> Operator Term
+unary = prefix <$> nameOf <*> Unary
+
+binary :: BinaryOp -> Assoc -> Operator Term
 binary = infix' <$> nameOf <*> Binary
+
+equals :: Sign -> Assoc -> Operator Term
 equals = infix' <$> nameOf <*> Equals
 
+operators :: [[Operator Term]]
 operators = unaryOperators ++ binaryOperators
   where
     unaryOperators = fmap (\op -> unary <$> [op]) [minBound..]
@@ -33,21 +39,25 @@ operators = unaryOperators ++ binaryOperators
         assocLeft $ binary <$> [Iff]
       ]
 
+arg :: Parser Term
 arg =  parens term
-   <|> ast quantified
+   <|> quantified
    <|> ast (BoolConst <$> boolean)
    <|> ast (IntConst <$> integer)
-   <|> ast ref
-   <|> ast ternary
+   <|> ref
+   <|> ternary
 
-ref = Ref <$> identifier <*> many (brackets $ commaSep1 term)
+ref :: Parser Term
+ref = ast $ Ref <$> identifier <*> many (brackets $ commaSep1 term)
 
-ternary =  Ternary
+ternary :: Parser Term
+ternary =  ast $ Ternary
        <$> (reserved kwdIf   *> term)
        <*> (reserved kwdThen *> term)
        <*> (reserved kwdElse *> term)
 
-quantified =  Quantified
+quantified :: Parser Formula
+quantified =  ast $ Quantified
           <$> quantifier
           <*> commaSep1 (typed $ commaSep1 identifier) <* reserved opQsep
           <*> term
