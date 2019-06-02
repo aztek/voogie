@@ -36,13 +36,13 @@ newtype TPTP = TPTP [Unit]
   deriving (Show, Eq)
 
 toTPTP :: Problem -> TPTP
-toTPTP (Problem types symbols axioms conjecture) = TPTP units
+toTPTP (Problem ts ss as c) = TPTP units
   where
-    units = tptpTypes ++ tptpSymbols ++ tptpAxioms ++ [tptpConjecture conjecture]
+    units = tptpTypes ++ tptpSymbols ++ tptpAxioms ++ [tptpConjecture c]
 
-    tptpTypes   = tptpType   <$> types
-    tptpSymbols = tptpSymbol <$> symbols
-    tptpAxioms  = tptpAxiom  <$> zip [(1::Integer)..] axioms
+    tptpTypes   = tptpType   <$> ts
+    tptpSymbols = tptpSymbol <$> ss
+    tptpAxioms  = tptpAxiom  <$> zip [(1::Integer)..] as
 
     tptpType t = TypeDeclaration t t
     tptpSymbol n = SymbolDeclaration (valueOf n) n

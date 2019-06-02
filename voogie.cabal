@@ -84,12 +84,12 @@ executable voogie
   if impl(ghc < 8)
     ghc-options:
       -fwarn-incomplete-record-updates -fwarn-incomplete-uni-patterns
-      -fno-warn-name-shadowing -fno-warn-orphans
+      -fno-warn-orphans
     build-depends: semigroups >= 0.18
   if impl(ghc >= 8)
     ghc-options:
       -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns
-      -Wredundant-constraints -Wno-name-shadowing -Wno-orphans
+      -Wredundant-constraints -Wno-orphans
     default-extensions: Safe
 
 test-suite test-idempotent-parsing-pretty-printing

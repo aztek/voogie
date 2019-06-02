@@ -9,16 +9,16 @@ import qualified Voogie.NonEmpty as VNE (one, two, three, four)
 
 import Voogie.Theory
 import Voogie.FOOL
-import Voogie.FOOL.Smart
+import Voogie.FOOL.Smart (application, variable, var, forall, (===), (=/=), (==>))
 
 import Text.PrettyPrint.ANSI.Leijen (pretty, displayS, renderCompact)
 
 type Instantiation = (Type, Type)
 
 instantiationName :: Instantiation -> Name
-instantiationName (tau, sigma) = print tau ++ print sigma
+instantiationName (tau, sigma) = printType tau ++ printType sigma
   where
-    print t = showChar '_' . displayS (renderCompact $ pretty t) $ ""
+    printType t = showChar '_' . displayS (renderCompact $ pretty t) $ ""
 
 arrayTypeName :: Instantiation -> Name
 arrayTypeName i = "array" ++ instantiationName i
@@ -69,5 +69,5 @@ theory t@(tau, sigma) =
     i = variable i'
     j = variable j'
 
-    select a i = application (selectSymbol t) (VNE.two a i)
-    store a i v = application (storeSymbol t) (VNE.three a i v)
+    select arr index = application (selectSymbol t) (VNE.two arr index)
+    store  arr index val = application (storeSymbol t) (VNE.three arr index val)

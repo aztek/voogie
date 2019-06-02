@@ -35,8 +35,8 @@ data Error where
 
 instance Pretty Error where
   pretty = \case
-    InputOutputError ioError ->
-      text (show ioError)
+    InputOutputError err ->
+      text (show err)
 
     ParsingError err ->
          text "failed to parse"
@@ -86,16 +86,16 @@ errorText :: Text -> Doc
 errorText = bold . red . text'
 
 instance Pretty ErrorReport where
-  pretty (ErrorReport contents error) =
-    bold pos <> errorText "error:" <+> pretty error <> hardline <> errorLine
+  pretty (ErrorReport contents err) =
+    bold pos <> errorText "error:" <+> pretty err <> hardline <> errorLine
     where
-      pos = case errorRange error of
+      pos = case errorRange err of
         Just (begin, _) -> pretty begin <> colon <> space
         _ -> empty
 
-      errorLine = case (contents, errorRange error) of
-        (Just c, Just range@(begin, _)) -> prettyErrorLine line range <> hardline
-          where line = Text.lines c !! (sourceLine begin - 1)
+      errorLine = case (contents, errorRange err) of
+        (Just c, Just range@(begin, _)) -> prettyErrorLine ln range <> hardline
+          where ln = Text.lines c !! (sourceLine begin - 1)
         _ -> empty
 
 prettyErrorLine :: Text -> ErrorRange -> Doc
@@ -121,8 +121,8 @@ prettyErrorLine errorLine (begin, end) =
                <> if sourceLine end /= sourceLine begin then "..." else ""
 
 instance Pretty SourcePos where
-  pretty pos = text $ source ++ ":" ++ line ++ ":" ++ column
+  pretty pos = text $ source ++ ":" ++ row ++ ":" ++ col
     where
       source = sourceName pos
-      line = show (sourceLine pos)
-      column = show (sourceColumn pos)
+      row = show (sourceLine pos)
+      col = show (sourceColumn pos)

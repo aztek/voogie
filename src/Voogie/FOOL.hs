@@ -77,7 +77,7 @@ newtype Conjunction = Conjunction { getConjunction :: Formula }
   deriving (Eq, Show)
 
 instance Semigroup Conjunction where
-  Conjunction f <> Conjunction g = Conjunction (binaryAnd f g)
+  Conjunction x <> Conjunction y = Conjunction (binaryAnd x y)
     where
       binaryAnd :: Formula -> Formula -> Formula
       binaryAnd f (BooleanConstant True) = f

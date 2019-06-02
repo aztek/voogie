@@ -90,10 +90,10 @@ instance Pretty Term where
     Quantify q vs t -> pretty q <> tuple (pretty <$> vs)
                                 <> punctuation ":" <+> pretty'' t
       where
-        pretty'' t = case t of
-          Binary op _ _ | not (isInfix op) -> pretty t
-          Unary op _ | not (isPrefix op) -> pretty t
-          _ -> pretty' t
+        pretty'' f = case f of
+          Binary op _ _ | not (isInfix op) -> pretty f
+          Unary op _ | not (isPrefix op) -> pretty f
+          _ -> pretty' f
 
     Equals s a b -> pretty' a <+> pretty s <+> pretty' b
 

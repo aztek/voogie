@@ -76,11 +76,11 @@ let_ :: Binding -> Term -> Term
 let_ b@(Binding d s) t
   | trivialDefinition d t = s
   | otherwise = Let b t
-  where
-    trivialDefinition :: Definition -> Term -> Bool
-    trivialDefinition (ConstantSymbol c) (Constant c') = c == c'
-    trivialDefinition (TupleD t) (TupleLiteral t') = fmap constant t == t'
-    trivialDefinition _ _ = False
+
+trivialDefinition :: Definition -> Term -> Bool
+trivialDefinition (ConstantSymbol c) (Constant c') = c == c'
+trivialDefinition (TupleD t) (TupleLiteral t') = fmap constant t == t'
+trivialDefinition _ _ = False
 
 if_ :: Term -> Term -> Term -> Term
 if_ = If

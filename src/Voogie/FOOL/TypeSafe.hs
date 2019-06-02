@@ -24,20 +24,20 @@ typeSafeApplication f ts
     application = Application f ts
 
 typeSafeStore :: Term -> Term -> Term -> Term
-typeSafeStore array index element
-  | a@(Array (i :| _) _) <- typeOf array
+typeSafeStore arr index element
+  | a@(Array (i :| _) _) <- typeOf arr
   , typeOf index == i
   , typeOf element == arrayArgument a = store
   | otherwise = error $ displayS (renderCompact $ pretty store)
                                  "ill-typed expression "
   where
-    store = Store array index element
+    store = Store arr index element
 
 typeSafeSelect :: Term -> Term -> Term
-typeSafeSelect array index
-  | Array (i :| _) _ <- typeOf array
+typeSafeSelect arr index
+  | Array (i :| _) _ <- typeOf arr
   , typeOf index == i = select
   | otherwise = error $ displayS (renderCompact $ pretty select)
                                  "ill-typed expression "
   where
-    select = Select array index
+    select = Select arr index

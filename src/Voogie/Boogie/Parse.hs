@@ -93,7 +93,7 @@ decl = keyword kwdVar $ Declare <$> typed (commaSep1 identifier)
 main :: Parser Main
 main = do
   sequence_ [reserved kwdProcedure, reserved kwdMain, parens $ return ()]
-  returns <- optionMaybe returns
+  rs <- optionMaybe returns
   ms <- optionMaybe modifies
   pre  <- many (try precondition)
   post <- many (try postcondition)
@@ -101,7 +101,7 @@ main = do
     ds <- many (try decl)
     ss <- many topLevel
     return (ds, ss)
-  return (Main (maybe [] NE.toList ms) pre returns ds ss post)
+  return (Main (maybe [] NE.toList ms) pre rs ds ss post)
 
 returns :: Parser Returns
 returns = reserved kwdReturns >> parens (Returns <$> commaSep1 (typed identifier))

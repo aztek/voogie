@@ -19,35 +19,39 @@ import Data.Semigroup ((<>))
 import Paths_voogie (version)
 import Data.Version (showVersion)
 
-data Action = Parse | Check | Translate
-  deriving (Eq, Show, Enum, Bounded)
+data Action
+  = Parse
+  | Check
+  | Translate
+  deriving (Show, Eq, Ord, Enum, Bounded)
 
 actions :: [(String, Action)]
 actions = [("parse", Parse), ("check", Check), ("translate", Translate)]
 
-data CmdArgs = CmdArgs
-  { filePath :: Maybe FilePath
-  , action :: Action
-  , noArrayTheory :: Bool
-  }
+data CmdArgs = CmdArgs {
+  filePath      :: Maybe FilePath,
+  action        :: Action,
+  noArrayTheory :: Bool
+} deriving (Show, Eq, Ord)
 
 parser :: Parser CmdArgs
-parser = CmdArgs
-  <$> (filePath <|> stdIn)
-  <*> action
-  <*> noArrayTheory
+parser =  CmdArgs
+      <$> filePathOption
+      <*> actionOption
+      <*> noArrayTheoryOption
   where
-    filePath = Just <$> strArgument (metavar "FILE")
+    filePathOption = file <|> stdIn
+    file = Just <$> strArgument (metavar "FILE")
     stdIn = flag' Nothing
       $ long "stdin"
      <> help "Read from the standart input rather than a file"
-    action = option (maybeReader $ \s -> lookup s actions)
+    actionOption = option (maybeReader $ \s -> lookup s actions)
       $ long "action"
      <> metavar "ACTION"
      <> value Translate
      <> help ("Action to perform, can be one of the following: " ++
               "parse, check, translate (default)")
-    noArrayTheory = switch
+    noArrayTheoryOption = switch
       $ long "no_array_theory"
      <> help "Do not use polymorhic theory of arrays"
 

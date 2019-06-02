@@ -55,11 +55,9 @@ localM :: Monad m => ReaderT r m r -> ReaderT r m a -> ReaderT r m a
 localM m rma = do { r <- m; local (const r) rma }
 
 lookupEnv :: (Ord a, Named a) => A.AST a -> AnalyzeE a (A.AST (Typed a))
-lookupEnv = liftMT . lookup
-  where
-    lookup ast (Env vs)
-      | Just t <- Map.lookup (A.astValue ast) vs = Right (Typed t <$> ast)
-      | otherwise = Left (UndefinedVariable ast)
+lookupEnv = liftMT . \ast (Env vs) -> case Map.lookup (A.astValue ast) vs of
+  Just  t -> Right (Typed t <$> ast)
+  Nothing -> Left  (UndefinedVariable ast)
 
 extendEnv :: (Ord a, Named a) => Typed (A.AST a) -> AnalyzeE a (Env a)
 extendEnv = liftMT . extend

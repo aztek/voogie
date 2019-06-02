@@ -9,10 +9,10 @@ traverseProblem :: Applicative f
                 => (Term -> f Term)
                 -> (Type -> f Type)
                 -> Problem -> f Problem
-traverseProblem termF typeF (Problem types symbols axioms conjecture) =
-  Problem types <$> traverse (traverseTyped typeF) symbols
-                <*> traverse termF axioms
-                <*> termF conjecture
+traverseProblem termF typeF (Problem ts ss as c) =
+  Problem ts <$> traverse (traverseTyped typeF) ss
+             <*> traverse termF as
+             <*> termF c
 
 traverseType :: Applicative f
              => (Type -> f Type)

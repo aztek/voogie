@@ -85,17 +85,17 @@ instance Pretty TopLevel where
   pretty = either pretty pretty
 
 instance Pretty Main where
-  pretty (Main modifies requires contents ensures) =
+  pretty (Main ms rs c es) =
        keyword kwdProcedure <+> funapp1 (text kwdMain) empty
     <> nested (prettyModifies : prettyPre ++ prettyPost)
-    <> block contents
+    <> block c
     <> line
     where
-      prettyModifies = case NE.nonEmpty modifies of
+      prettyModifies = case NE.nonEmpty ms of
         Just m -> marked kwdModifies (commaSep (pretty <$> m))
         Nothing -> empty
-      prettyPre = marked kwdRequires . pretty <$> requires
-      prettyPost = marked kwdEnsures . pretty <$> ensures
+      prettyPre = marked kwdRequires . pretty <$> rs
+      prettyPost = marked kwdEnsures . pretty <$> es
 
 instance Pretty Boogie where
   pretty (Boogie vars main) = prettyVars <> line <> pretty main
