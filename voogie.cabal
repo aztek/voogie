@@ -55,7 +55,7 @@ executable voogie
     Voogie.FOOL.TPTPretty
     Voogie.FOOL.Parse
     Voogie.FOOL.BoogiePretty
-    Voogie.FOOL.Rewrite
+    Voogie.FOOL.Traverse
     Voogie.FOOL.Smart
     Voogie.Front
     Voogie.NonEmpty
@@ -137,7 +137,7 @@ test-suite test-quickcheck-back
     Voogie.FOOL
     Voogie.FOOL.ArrayTheory
     Voogie.FOOL.BoogiePretty
-    Voogie.FOOL.Rewrite
+    Voogie.FOOL.Traverse
     Voogie.FOOL.Smart
     Voogie.FOOL.Tuple
     Voogie.FOOL.TypeSafe

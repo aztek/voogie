@@ -1,6 +1,6 @@
 {-# LANGUAGE LambdaCase #-}
 
-module Voogie.FOOL.Rewrite where
+module Voogie.FOOL.Traverse where
 
 import Voogie.Theory
 import Voogie.FOOL

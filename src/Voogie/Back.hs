@@ -18,7 +18,7 @@ import qualified Voogie.Boogie as B
 import Voogie.Boogie.BoogiePretty()
 
 import qualified Voogie.FOOL.ArrayTheory as AT
-import Voogie.FOOL.Rewrite
+import Voogie.FOOL.Traverse
 
 data TranslationOptions = TranslationOptions {
   useArrayTheory :: Bool
