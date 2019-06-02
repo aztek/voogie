@@ -15,22 +15,24 @@ import Voogie.TPTPSyntax
 import Text.PrettyPrint.ANSI.Leijen hiding ((<$>))
 
 instance Pretty BinaryOp where
-  pretty op = if isInfix op then operator op' else builtin op'
-    where op' = nameOf op
+  pretty op
+    | isInfix op = operator (nameOf op)
+    | otherwise  = builtin  (nameOf op)
 
 instance Pretty UnaryOp where
-  pretty op = if isPrefix op then operator op' else builtin op'
-    where op' = nameOf op
+  pretty op
+    | isPrefix op = operator (nameOf op)
+    | otherwise   = builtin  (nameOf op)
 
 instance Pretty Type where
   pretty = \case
-    Boolean -> builtin boolName
-    Integer -> builtin intName
-    Array i t -> foldr (funapp2 $ builtin arrayName) (pretty t) (pretty <$> i)
-    TupleType ts -> tuple (Tuple.toNonEmpty (pretty <$> ts))
-    Functional ts t -> ts' <+> operator ">" <+> pretty t
-      where ts' = sepBy (space <> operator "*" <> space) (pretty <$> ts)
-    Custom n -> text n
+    Boolean         -> builtin boolName
+    Integer         -> builtin intName
+    Custom        n -> text n
+    Array       i t -> foldr (funapp2 $ builtin arrayName) (pretty t) (pretty <$> i)
+    TupleType    ts -> tuple (Tuple.toNonEmpty (pretty <$> ts))
+    Functional ts t -> sepBy (space <> operator "*" <> space) (pretty <$> ts)
+                   <+> operator ">" <+> pretty t
 
 instance Pretty Var where
   pretty (Var n)
@@ -48,8 +50,8 @@ prettyIdentifier i
 instance Pretty Definition where
   pretty = \case
     ConstantSymbol c -> prettyIdentifier c
-    Function c vs -> funapp (prettyIdentifier c) (pretty <$> vs)
-    TupleD es -> tuple (Tuple.toNonEmpty (prettyIdentifier <$> es))
+    Function    c vs -> funapp (prettyIdentifier c) (pretty <$> vs)
+    TupleD        es -> tuple (Tuple.toNonEmpty (prettyIdentifier <$> es))
 
 instance Pretty Binding where
   pretty (Binding d t) = pretty d <+> operator opAssign <+> pretty t
@@ -60,60 +62,55 @@ instance Pretty Quantifier where
 instance Pretty Sign where
   pretty = operator . nameOf
 
+isUnitary :: Term -> Bool
+isUnitary = \case
+  Binary op _ _ | isInfix  op -> False
+  Unary  op _   | isPrefix op -> False
+  Equals{}   -> False
+  Quantify{} -> False
+  _          -> True
+
 pretty' :: Term -> Doc
-pretty' t = case t of
-  Binary op _ _ | isInfix op -> parens (pretty t)
-  Unary op _ | isPrefix op -> parens (pretty t)
-  Equals{} -> parens (pretty t)
-  Quantify{} -> parens (pretty t)
-  _ -> pretty t
+pretty' t
+  | isUnitary t = pretty t
+  | otherwise   = parens (pretty t)
 
 instance Pretty Term where
   pretty = \case
     IntegerConstant n -> number n
     BooleanConstant b -> builtin (nameOf b)
+    Variable        v -> pretty (valueOf v)
+    Constant        f -> prettyIdentifier f
+    Equals      s a b -> pretty' a <+> pretty s <+> pretty' b
+    Application  f as -> funapp (prettyIdentifier f) (pretty <$> as)
+    Select        a i -> funapp2 (builtin kwdSelect) (pretty a) (pretty i)
+    Store       a i e -> funapp3 (builtin kwdStore)  (pretty a) (pretty i) (pretty e)
+    If          c a b -> funapp3 (builtin kwdIf) (pretty c) (line <> pretty a) (line <> pretty b)
+    Quantify   q vs t -> pretty q <> tuple (pretty <$> vs) <> punctuation ":" <+> pretty' t
+    TupleLiteral   ts -> tuple (Tuple.toNonEmpty (pretty <$> ts))
 
-    Variable (Typed _ v) -> pretty v
-    Constant f -> prettyIdentifier f
-    Application f as -> funapp (prettyIdentifier f) (pretty <$> as)
+    Unary op a
+      | isPrefix   op -> pretty op <> pretty' a
+      | otherwise     -> funapp1 (pretty op) (pretty' a)
 
-    Unary op a | isPrefix op -> pretty op <> pretty' a
-               | otherwise   -> funapp1 (pretty op) (pretty' a)
-
-    Binary op a b | isInfix op -> pretty'' a <+> pretty op <+> pretty'' b
-                  | otherwise  -> funapp2 (pretty op) (pretty' a) (pretty' b)
+    Binary op a b
+      | isInfix    op -> pretty'' a <+> pretty op <+> pretty'' b
+      | otherwise     -> funapp2 (pretty op) (pretty' a) (pretty' b)
       where
         pretty'' t = case t of
           Binary op' _ _ | op == op' && isAssociative op -> pretty t
           _ -> pretty' t
-
-    Quantify q vs t -> pretty q <> tuple (pretty <$> vs)
-                                <> punctuation ":" <+> pretty'' t
-      where
-        pretty'' f = case f of
-          Binary op _ _ | not (isInfix op) -> pretty f
-          Unary op _ | not (isPrefix op) -> pretty f
-          _ -> pretty' f
-
-    Equals s a b -> pretty' a <+> pretty s <+> pretty' b
 
     Let b@(Binding d _) t -> builtin kwdLet <> parens args
       where
         args = case t of
           Let{} -> align definition <> line <> pretty t
           _     -> align (definition <> line <> pretty t)
-        definition = typeSignature <> comma <> line <> pretty b <> comma
-        typeSignature = case d of
-          ConstantSymbol c -> pretty c
-          Function c _ -> pretty c
-          TupleD es -> tuple (Tuple.toNonEmpty (pretty <$> es))
 
-    If c a b -> funapp3 (builtin kwdIf)
-                        (pretty c)
-                        (line <> pretty a)
-                        (line <> pretty b)
+        definition = prettySignature d <> comma <> line <> pretty b <> comma
 
-    Select a i   -> funapp2 (builtin kwdSelect) (pretty a) (pretty i)
-    Store  a i e -> funapp3 (builtin kwdStore)  (pretty a) (pretty i) (pretty e)
-
-    TupleLiteral ts -> tuple (Tuple.toNonEmpty (pretty <$> ts))
+prettySignature :: Definition -> Doc
+prettySignature = \case
+  ConstantSymbol c -> pretty c
+  Function     c _ -> pretty c
+  TupleD        es -> tuple (Tuple.toNonEmpty (pretty <$> es))
