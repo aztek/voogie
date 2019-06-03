@@ -5,7 +5,7 @@ import Data.List.NonEmpty (NonEmpty)
 import Voogie.AST
 import Voogie.Theory
 
-type Identifier = AST String
+type Identifier = AST Name
 
 type VarList = NonEmpty (Typed (NonEmpty Identifier))
 

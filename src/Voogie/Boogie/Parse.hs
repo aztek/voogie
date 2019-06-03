@@ -84,7 +84,7 @@ ifStmt = ast $ reserved kwdIf >> If <$> parens expr <*> stmts <*> elseStmts
 atomicStmt :: Parser a -> Parser a
 atomicStmt p = p <* semi
 
-keyword :: String -> Parser a -> Parser a
+keyword :: Name -> Parser a -> Parser a
 keyword k p = atomicStmt (reserved k *> p)
 
 decl :: Parser Decl
@@ -106,7 +106,7 @@ main = do
 returns :: Parser Returns
 returns = reserved kwdReturns >> parens (Returns <$> commaSep1 (typed identifier))
 
-modifies :: Parser (NonEmpty (AST String))
+modifies :: Parser (NonEmpty (AST Name))
 modifies = keyword kwdModifies (commaSep1 identifier)
 
 precondition :: Parser Formula

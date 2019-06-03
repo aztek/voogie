@@ -75,13 +75,13 @@ language = Token.LanguageDef {
 lexer :: Token.GenTokenParser Text u Identity
 lexer = Token.makeTokenParser language
 
-identifier :: Parser (AST String)
+identifier :: Parser (AST Name)
 identifier = ast $ Token.identifier lexer
 
-reserved :: String -> Parser ()
+reserved :: Name -> Parser ()
 reserved = Token.reserved lexer
 
-reservedOp :: String -> Parser (AST ())
+reservedOp :: Name -> Parser (AST ())
 reservedOp = ast . Token.reservedOp lexer
 
 parens :: Parser a -> Parser a
@@ -90,7 +90,7 @@ parens = Token.parens lexer
 integer :: Parser Integer
 integer = Token.integer lexer
 
-semi :: Parser String
+semi :: Parser Name
 semi = Token.semi lexer
 
 whiteSpace :: Parser ()
@@ -108,13 +108,13 @@ commaSep1 p = NE.fromList <$> Token.commaSep1 lexer p
 (<+>) :: AST a -> AST b -> (SourcePos, SourcePos)
 AST (a, _) _ <+> AST (_, b) _ = (a, b)
 
-infix' :: String -> (AST a -> AST a -> a) -> Assoc -> Operator (AST a)
+infix' :: Name -> (AST a -> AST a -> a) -> Assoc -> Operator (AST a)
 infix' n f = E.Infix . fmap (\_ a b -> AST (a <+> b) (f a b)) $ reservedOp n
 
-prefix :: String -> (AST a -> a) -> Operator (AST a)
+prefix :: Name -> (AST a -> a) -> Operator (AST a)
 prefix n f = E.Prefix . fmap (\op x -> AST (op <+> x) (f x)) $ reservedOp n
 
-postfix :: String -> (AST a -> a) -> Operator (AST a)
+postfix :: Name -> (AST a -> a) -> Operator (AST a)
 postfix n f = E.Postfix . fmap (\op x -> AST (x <+> op) (f x)) $ reservedOp n
 
 assocLeft :: [Assoc -> b] -> [b]
@@ -130,7 +130,7 @@ ast p = do
   end <- getPosition
   return $ AST (begin, end) a
 
-constant :: String -> b -> Parser b
+constant :: Name -> b -> Parser b
 constant name fun = reserved name $> fun
 
 typ :: Parser Type

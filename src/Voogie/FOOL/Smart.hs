@@ -13,10 +13,10 @@ import Voogie.FOOL
 import Voogie.FOOL.Tuple (nonUnit)
 import Voogie.FOOL.TypeSafe
 
-var :: String -> Var
+var :: Name -> Var
 var = Var
 
-name :: String -> Name
+name :: Name -> Name
 name = id
 
 -- Definition

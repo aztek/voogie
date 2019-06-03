@@ -50,7 +50,7 @@ instance Pretty Expression where
 atomic :: [Doc] -> Doc
 atomic ds = hsep ds <> punctuation ";"
 
-marked :: String -> Doc -> Doc
+marked :: Name -> Doc -> Doc
 marked k d = atomic [keyword k, d]
 
 nested :: [Doc] -> Doc

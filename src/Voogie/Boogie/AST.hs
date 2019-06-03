@@ -8,7 +8,7 @@ import qualified Voogie.FOOL.AST as F
 
 import Text.PrettyPrint.ANSI.Leijen (Pretty(pretty), empty)
 
-type Identifier = AST String
+type Identifier = AST Name
 
 data LVal = Ref Identifier [NonEmpty Expr]
   deriving (Show, Eq)
