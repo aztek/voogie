@@ -12,9 +12,9 @@ import Data.Maybe
 import Test.QuickCheck as QC
 
 import Voogie.Boogie
-import qualified Voogie.FOOL.Tuple as Tuple
-import Voogie.FOOL.Tuple (Tuple)
 import Voogie.Theory
+import Voogie.Tuple (Tuple)
+import qualified Voogie.Tuple as Tuple
 
 instance Arbitrary Quantifier where
   arbitrary = elements [minBound..maxBound]

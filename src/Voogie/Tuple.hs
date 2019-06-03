@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveFunctor, DeriveFoldable, DeriveTraversable #-}
 
-module Voogie.FOOL.Tuple where
+module Voogie.Tuple where
 
 import qualified Data.List as L (intercalate)
 import qualified Data.List.NonEmpty as NE (toList, cons, nonEmpty, NonEmpty(..))

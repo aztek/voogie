@@ -50,7 +50,6 @@ executable voogie
     Voogie.FOOL
     Voogie.FOOL.ArrayTheory
     Voogie.FOOL.AST
-    Voogie.FOOL.Tuple
     Voogie.FOOL.TypeSafe
     Voogie.FOOL.TPTPretty
     Voogie.FOOL.Parse
@@ -66,6 +65,7 @@ executable voogie
     Voogie.TPTP
     Voogie.TPTPretty
     Voogie.TPTPSyntax
+    Voogie.Tuple
   ghc-options:
     -Wall -threaded
   if flag(Werror)
@@ -111,9 +111,9 @@ test-suite test-quickcheck-generators
   other-modules:
     Voogie.Boogie
     Voogie.FOOL
-    Voogie.FOOL.Tuple
     Voogie.NonEmpty
     Voogie.Theory
+    Voogie.Tuple
   build-depends:
     base,
     QuickCheck
@@ -139,11 +139,11 @@ test-suite test-quickcheck-back
     Voogie.FOOL.BoogiePretty
     Voogie.FOOL.Traverse
     Voogie.FOOL.Smart
-    Voogie.FOOL.Tuple
     Voogie.FOOL.TypeSafe
     Voogie.NonEmpty
     Voogie.Pretty
     Voogie.Theory
+    Voogie.Tuple
   build-depends:
     base,
     mtl,

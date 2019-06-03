@@ -13,8 +13,8 @@ import Data.List.NonEmpty (NonEmpty)
 import Data.Semigroup (Semigroup(..))
 #endif
 
-import Voogie.FOOL.Tuple (Tuple)
 import Voogie.Theory
+import Voogie.Tuple (Tuple)
 
 newtype Var = Var Name
   deriving (Show, Eq, Ord)

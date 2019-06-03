@@ -8,11 +8,11 @@ import Data.Char (toUpper, toLower)
 import qualified Data.List.NonEmpty as NE (nonEmpty)
 import Data.List.NonEmpty (NonEmpty(..))
 
-import qualified Voogie.FOOL.Tuple as Tuple
 import Voogie.FOOL
 import Voogie.Pretty
 import Voogie.Theory
 import Voogie.TPTPSyntax
+import qualified Voogie.Tuple as Tuple
 
 instance Pretty BinaryOp where
   pretty op

@@ -8,9 +8,9 @@ import qualified Data.List.NonEmpty as NE (toList)
 import Data.List.NonEmpty (NonEmpty)
 
 import Voogie.FOOL
-import Voogie.FOOL.Tuple (nonUnit)
 import Voogie.FOOL.TypeSafe
 import Voogie.Theory
+import Voogie.Tuple (nonUnit)
 
 var :: Name -> Var
 var = Var
