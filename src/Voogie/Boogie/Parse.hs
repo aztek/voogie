@@ -10,7 +10,6 @@ import Data.Text (Text)
 import Text.Parsec (SourceName, try, parse, optionMaybe)
 import Text.Parsec.Expr (Assoc, buildExpressionParser)
 
-import Voogie.AST (AST)
 import Voogie.Boogie.AST
 import Voogie.Error
 import Voogie.FOOL.AST (Formula)
@@ -104,7 +103,7 @@ main = do
 returns :: Parser Returns
 returns = reserved kwdReturns >> parens (Returns <$> commaSep1 (typed identifier))
 
-modifies :: Parser (NonEmpty (AST Name))
+modifies :: Parser (NonEmpty Identifier)
 modifies = keyword kwdModifies (commaSep1 identifier)
 
 precondition :: Parser Formula
