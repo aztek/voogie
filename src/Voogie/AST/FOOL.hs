@@ -1,4 +1,4 @@
-module Voogie.FOOL.AST where
+module Voogie.AST.FOOL where
 
 import Data.List.NonEmpty (NonEmpty)
 

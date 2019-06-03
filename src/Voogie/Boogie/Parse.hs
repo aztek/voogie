@@ -10,9 +10,9 @@ import Data.Text (Text)
 import Text.Parsec (SourceName, try, parse, optionMaybe)
 import Text.Parsec.Expr (Assoc, buildExpressionParser)
 
-import Voogie.Boogie.AST
+import Voogie.AST.Boogie
+import Voogie.AST.FOOL (Formula)
 import Voogie.Error
-import Voogie.FOOL.AST (Formula)
 import qualified Voogie.FOOL.Parse as F
 import Voogie.Parse
 import Voogie.Theory

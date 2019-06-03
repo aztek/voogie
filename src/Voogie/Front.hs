@@ -20,11 +20,11 @@ import Data.Semigroup (Semigroup(..))
 #endif
 
 import qualified Voogie.AST as A
+import qualified Voogie.AST.Boogie as AST
+import qualified Voogie.AST.FOOL as F.AST
 import Voogie.Boogie (Boogie)
-import qualified Voogie.Boogie.AST as AST
 import qualified Voogie.Boogie.Smart as B
 import Voogie.Error
-import qualified Voogie.FOOL.AST as F.AST
 import qualified Voogie.FOOL.Smart as F
 import Voogie.Pretty.Boogie.Boogie
 import Voogie.Theory

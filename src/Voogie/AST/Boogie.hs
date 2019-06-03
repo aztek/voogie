@@ -1,10 +1,10 @@
-module Voogie.Boogie.AST where
+module Voogie.AST.Boogie where
 
 import Data.List.NonEmpty (NonEmpty)
 
 import Voogie.AST
+import qualified Voogie.AST.FOOL as F
 import Voogie.Pretty.Boogie (Pretty(pretty), empty)
-import qualified Voogie.FOOL.AST as F
 import Voogie.Theory
 
 type Identifier = AST Name

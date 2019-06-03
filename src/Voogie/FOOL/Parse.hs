@@ -7,7 +7,7 @@ import Control.Applicative ((<|>), many)
 
 import Text.Parsec.Expr (Assoc, buildExpressionParser)
 
-import Voogie.FOOL.AST
+import Voogie.AST.FOOL
 import Voogie.Parse
 import Voogie.Theory
 

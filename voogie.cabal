@@ -38,17 +38,17 @@ executable voogie
   other-modules:
     Paths_voogie
     Voogie.AST
+    Voogie.AST.Boogie
+    Voogie.AST.FOOL
     Voogie.Back
     Voogie.Boogie
     Voogie.BoogieSyntax
-    Voogie.Boogie.AST
     Voogie.Boogie.Parse
     Voogie.Boogie.Smart
     Voogie.CmdArgs
     Voogie.Error
     Voogie.FOOL
     Voogie.FOOL.ArrayTheory
-    Voogie.FOOL.AST
     Voogie.FOOL.TypeSafe
     Voogie.FOOL.Parse
     Voogie.FOOL.Traverse
@@ -56,14 +56,12 @@ executable voogie
     Voogie.Front
     Voogie.NonEmpty
     Voogie.Parse
-
     Voogie.Pretty
     Voogie.Pretty.Boogie
     Voogie.Pretty.Boogie.Boogie
     Voogie.Pretty.Boogie.FOOL
     Voogie.Pretty.TPTP
     Voogie.Pretty.TPTP.FOOL
-
     Voogie.Theory
     Voogie.TPTP
     Voogie.TPTPSyntax
