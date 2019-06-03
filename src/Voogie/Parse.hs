@@ -27,23 +27,23 @@ module Voogie.Parse (
 ) where
 
 import Control.Applicative ((<|>))
+import Data.Foldable (asum)
 import Data.Functor (($>))
 import Data.Functor.Identity (Identity)
-import Data.Text (Text)
 import qualified Data.List.NonEmpty as NE (fromList)
 import Data.List.NonEmpty (NonEmpty)
-import Data.Foldable (asum)
+import Data.Text (Text)
 
 import Text.Parsec.Char (alphaNum, letter, oneOf)
-import Text.Parsec.Pos (SourcePos)
-import Text.Parsec.Prim (Parsec, getPosition)
 import Text.Parsec.Expr (Assoc(..))
 import qualified Text.Parsec.Expr as E (Operator(..))
+import Text.Parsec.Pos (SourcePos)
+import Text.Parsec.Prim (Parsec, getPosition)
 import qualified Text.Parsec.Token as Token
 
 import Voogie.AST
-import Voogie.Theory
 import Voogie.BoogieSyntax
+import Voogie.Theory
 
 type Parser = Parsec Text ()
 type Operator = E.Operator Text () Identity

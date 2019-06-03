@@ -10,8 +10,8 @@ import Data.List.NonEmpty (NonEmpty(..))
 
 import qualified Voogie.FOOL.Tuple as Tuple
 import Voogie.FOOL
-import Voogie.Theory
 import Voogie.Pretty
+import Voogie.Theory
 import Voogie.TPTPSyntax
 
 instance Pretty BinaryOp where

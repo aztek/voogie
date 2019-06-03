@@ -1,5 +1,9 @@
 module Main (main) where
 
+import Data.Maybe (fromMaybe)
+import Data.Text (Text)
+import qualified Data.Text.IO as TIO
+
 import Options.Applicative (execParser)
 
 import System.Exit (exitSuccess, exitFailure)
@@ -8,15 +12,11 @@ import System.IO.Error (tryIOError)
 import System.Posix.Terminal (queryTerminal)
 import System.Posix.IO (stdOutput, stdError)
 
-import Data.Maybe (fromMaybe)
-import Data.Text (Text)
-import qualified Data.Text.IO as TIO
-
-import Voogie.Error
 import Voogie.CmdArgs
-import Voogie.Boogie.Parse (parseBoogie)
-import Voogie.Front
 import Voogie.Back
+import Voogie.Boogie.Parse (parseBoogie)
+import Voogie.Error
+import Voogie.Front
 import Voogie.TPTP
 import Voogie.TPTPretty
 

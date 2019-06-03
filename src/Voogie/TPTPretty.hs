@@ -4,12 +4,10 @@ module Voogie.TPTPretty (
   module Voogie.FOOL.TPTPretty
 ) where
 
+import Voogie.FOOL.TPTPretty
 import Voogie.Theory
-
 import Voogie.TPTP
 import Voogie.TPTPSyntax
-
-import Voogie.FOOL.TPTPretty
 
 instance Pretty InputType where
   pretty = keyword . \case

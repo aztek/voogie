@@ -7,10 +7,10 @@ module Voogie.FOOL.ArrayTheory (
 
 import qualified Voogie.NonEmpty as VNE (one, two, three, four)
 
-import Voogie.Theory
 import Voogie.FOOL
 import Voogie.FOOL.Smart (application, variable, var, forall, (===), (=/=), (==>))
 import Voogie.Pretty (pretty, displayS, renderCompact)
+import Voogie.Theory
 
 type Instantiation = (Type, Type)
 

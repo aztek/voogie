@@ -7,9 +7,9 @@ import Control.Applicative ((<|>), many)
 
 import Text.Parsec.Expr (Assoc, buildExpressionParser)
 
-import Voogie.Theory
-import Voogie.Parse
 import Voogie.FOOL.AST
+import Voogie.Parse
+import Voogie.Theory
 
 term :: Parser Term
 term = buildExpressionParser operators arg

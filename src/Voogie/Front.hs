@@ -8,34 +8,26 @@ module Voogie.Front (analyze) where
 import Control.Monad (foldM)
 import Control.Monad.Extra (mapMaybeM)
 import Control.Monad.Reader (MonadTrans, lift, ReaderT(..), withReaderT, ask, local)
+import Data.Bifunctor (first)
+import qualified Data.List.NonEmpty as NE (toList)
+import Data.List.NonEmpty (NonEmpty)
+import qualified Voogie.NonEmpty as VNE (zipWithM)
+import qualified Data.Map as Map (empty, insert, lookup, toList)
+import Data.Map (Map)
 import Data.Maybe (catMaybes)
 #if __GLASGOW_HASKELL__ < 804
 import Data.Semigroup (Semigroup(..))
 #endif
 
-import Data.Bifunctor (first)
-import qualified Data.List.NonEmpty as NE (toList)
-import Data.List.NonEmpty (NonEmpty)
-import qualified Voogie.NonEmpty as VNE (zipWithM)
-
-import qualified Data.Map as Map (empty, insert, lookup, toList)
-import Data.Map (Map)
-
-import Voogie.Error
-import Voogie.Theory
-import Voogie.BoogiePretty()
-import Voogie.Pretty (Pretty)
-
 import qualified Voogie.AST as A
-
 import Voogie.Boogie (Boogie)
-import qualified Voogie.Boogie.Smart as B
 import qualified Voogie.Boogie.AST as AST
-import Voogie.Boogie.BoogiePretty()
-
-import qualified Voogie.FOOL.Smart as F
+import qualified Voogie.Boogie.Smart as B
+import Voogie.Boogie.BoogiePretty
+import Voogie.Error
 import qualified Voogie.FOOL.AST as F.AST
-import Voogie.FOOL.BoogiePretty()
+import qualified Voogie.FOOL.Smart as F
+import Voogie.Theory
 
 newtype Env a = Env (Map a Type)
 

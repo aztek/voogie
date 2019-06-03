@@ -2,22 +2,21 @@ module Voogie.Boogie.Parse where
 
 import Control.Applicative ((<|>), many)
 import Control.Monad (guard)
-import Data.Maybe (fromMaybe)
-import Data.Text (Text)
 import Data.List.NonEmpty (NonEmpty)
 import qualified Data.List.NonEmpty as NE (toList, zip)
+import Data.Maybe (fromMaybe)
+import Data.Text (Text)
 
 import Text.Parsec (SourceName, try, parse, optionMaybe)
 import Text.Parsec.Expr (Assoc, buildExpressionParser)
 
 import Voogie.AST (AST)
-import Voogie.Error
-import Voogie.Theory
 import Voogie.Boogie.AST
-
-import Voogie.Parse
+import Voogie.Error
 import Voogie.FOOL.AST (Formula)
 import qualified Voogie.FOOL.Parse as F
+import Voogie.Parse
+import Voogie.Theory
 
 expr :: Parser Expr
 expr = buildExpressionParser operators term

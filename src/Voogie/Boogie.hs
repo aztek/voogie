@@ -4,8 +4,8 @@ module Voogie.Boogie where
 
 import Data.List.NonEmpty (NonEmpty)
 
-import Voogie.Theory
 import qualified Voogie.FOOL as F
+import Voogie.Theory
 
 type Var = Typed Name
 type Function = Typed Name

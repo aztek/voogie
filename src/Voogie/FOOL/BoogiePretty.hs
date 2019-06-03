@@ -4,9 +4,9 @@ module Voogie.FOOL.BoogiePretty (
   module Voogie.BoogiePretty
 ) where
 
-import Voogie.Theory
-import Voogie.FOOL
 import Voogie.BoogiePretty
+import Voogie.FOOL
+import Voogie.Theory
 
 instance Pretty a => Pretty (Typed a) where
   pretty = pretty . valueOf

@@ -7,9 +7,9 @@ module Voogie.BoogiePretty (
   boolean
 ) where
 
-import Voogie.Theory
-import Voogie.Pretty
 import Voogie.BoogieSyntax
+import Voogie.Pretty
+import Voogie.Theory
 
 instance Pretty Type where
   pretty = \case

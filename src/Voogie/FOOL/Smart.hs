@@ -7,11 +7,10 @@ module Voogie.FOOL.Smart (
 import qualified Data.List.NonEmpty as NE (toList)
 import Data.List.NonEmpty (NonEmpty)
 
-import Voogie.Theory
-
 import Voogie.FOOL
 import Voogie.FOOL.Tuple (nonUnit)
 import Voogie.FOOL.TypeSafe
+import Voogie.Theory
 
 var :: Name -> Var
 var = Var

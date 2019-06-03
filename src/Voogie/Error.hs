@@ -10,13 +10,13 @@ import Data.Bifunctor (bimap)
 import Data.Text (Text)
 import qualified Data.Text as Text (pack, unpack, lines, replicate, length, splitAt)
 
-import Voogie.Theory
+import Text.Parsec.Error (ParseError, errorPos, errorMessages, showErrorMessages)
+import Text.Parsec.Pos (SourcePos, sourceName, sourceLine, sourceColumn)
+
 import Voogie.AST
 import Voogie.BoogiePretty()
 import Voogie.Pretty
-
-import Text.Parsec.Pos (SourcePos, sourceName, sourceLine, sourceColumn)
-import Text.Parsec.Error (ParseError, errorPos, errorMessages, showErrorMessages)
+import Voogie.Theory
 
 type Result = Either Error
 

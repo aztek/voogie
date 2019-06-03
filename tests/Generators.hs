@@ -3,19 +3,18 @@
 
 module Generators where
 
-import Test.QuickCheck as QC
-
-import Data.Maybe
+import Control.Monad
 import Data.List as L
 import Data.List.NonEmpty as NE
 import Data.List.NonEmpty (NonEmpty)
-import Control.Monad
+import Data.Maybe
 
+import Test.QuickCheck as QC
+
+import Voogie.Boogie
 import qualified Voogie.FOOL.Tuple as Tuple
 import Voogie.FOOL.Tuple (Tuple)
-
 import Voogie.Theory
-import Voogie.Boogie
 
 instance Arbitrary Quantifier where
   arbitrary = elements [minBound..maxBound]

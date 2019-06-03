@@ -7,10 +7,10 @@ module Voogie.Boogie.BoogiePretty (
 
 import qualified Data.List.NonEmpty as NE (nonEmpty, toList, unzip)
 
-import Voogie.Theory
 import Voogie.Boogie
 import Voogie.BoogiePretty
 import Voogie.FOOL.BoogiePretty()
+import Voogie.Theory
 
 instance Pretty LValue where
   pretty (LValue v is) = pretty v <> hcat (tuple . fmap pretty <$> is)

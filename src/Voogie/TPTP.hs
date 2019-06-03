@@ -2,8 +2,8 @@
 
 module Voogie.TPTP where
 
-import Voogie.Theory
 import Voogie.FOOL
+import Voogie.Theory
 
 data Unit
   = TypeDeclaration Name Name

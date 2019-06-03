@@ -3,21 +3,17 @@
 module Voogie.Back where
 
 import Control.Monad.Writer (Writer, runWriter, tell)
-
 import qualified Data.List as L (nub)
 import qualified Data.List.NonEmpty as NE (nub, cons, nonEmpty)
 import Data.List.NonEmpty (NonEmpty((:|)))
 import qualified Voogie.NonEmpty as VNE (two, three)
-
 import Data.Semigroup (sconcat)
 
 import Voogie.Theory
-import qualified Voogie.FOOL.Smart as F
-
 import qualified Voogie.Boogie as B
 import Voogie.Boogie.BoogiePretty()
-
 import qualified Voogie.FOOL.ArrayTheory as AT
+import qualified Voogie.FOOL.Smart as F
 import Voogie.FOOL.Traverse
 
 data TranslationOptions = TranslationOptions {
