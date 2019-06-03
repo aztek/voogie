@@ -1,4 +1,4 @@
-module Voogie.Boogie.Parse where
+module Voogie.Parse.Boogie where
 
 import Control.Applicative ((<|>), many)
 import Control.Monad (guard)
@@ -13,8 +13,8 @@ import Text.Parsec.Expr (Assoc, buildExpressionParser)
 import Voogie.AST.Boogie
 import Voogie.AST.FOOL (Formula)
 import Voogie.Error
-import qualified Voogie.FOOL.Parse as F
 import Voogie.Parse
+import qualified Voogie.Parse.FOOL as F
 import Voogie.Theory
 
 expr :: Parser Expr

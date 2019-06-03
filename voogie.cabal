@@ -42,7 +42,6 @@ executable voogie
     Voogie.AST.FOOL
     Voogie.Back
     Voogie.Boogie
-    Voogie.Boogie.Parse
     Voogie.Boogie.Smart
     Voogie.Boogie.Syntax
     Voogie.CmdArgs
@@ -50,12 +49,13 @@ executable voogie
     Voogie.FOOL
     Voogie.FOOL.ArrayTheory
     Voogie.FOOL.TypeSafe
-    Voogie.FOOL.Parse
     Voogie.FOOL.Traverse
     Voogie.FOOL.Smart
     Voogie.Front
     Voogie.NonEmpty
     Voogie.Parse
+    Voogie.Parse.Boogie
+    Voogie.Parse.FOOL
     Voogie.Pretty
     Voogie.Pretty.Boogie
     Voogie.Pretty.Boogie.Boogie

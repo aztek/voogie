@@ -14,9 +14,9 @@ import System.Posix.IO (stdOutput, stdError)
 
 import Voogie.CmdArgs
 import Voogie.Back
-import Voogie.Boogie.Parse (parseBoogie)
 import Voogie.Error
 import Voogie.Front
+import Voogie.Parse.Boogie (parseBoogie)
 import Voogie.Pretty.TPTP
 import Voogie.TPTP
 
