@@ -11,7 +11,7 @@ import Data.List.NonEmpty (NonEmpty(..))
 import Voogie.FOOL
 import Voogie.Pretty
 import Voogie.Theory
-import Voogie.TPTPSyntax
+import Voogie.TPTP.Syntax
 import qualified Voogie.Tuple as Tuple
 
 instance Pretty BinaryOp where

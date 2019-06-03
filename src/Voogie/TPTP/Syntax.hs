@@ -1,6 +1,6 @@
 {-# LANGUAGE LambdaCase #-}
 
-module Voogie.TPTPSyntax where
+module Voogie.TPTP.Syntax where
 
 import Voogie.Theory
 

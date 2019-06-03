@@ -42,9 +42,9 @@ executable voogie
     Voogie.AST.FOOL
     Voogie.Back
     Voogie.Boogie
-    Voogie.BoogieSyntax
     Voogie.Boogie.Parse
     Voogie.Boogie.Smart
+    Voogie.Boogie.Syntax
     Voogie.CmdArgs
     Voogie.Error
     Voogie.FOOL
@@ -64,7 +64,7 @@ executable voogie
     Voogie.Pretty.TPTP.FOOL
     Voogie.Theory
     Voogie.TPTP
-    Voogie.TPTPSyntax
+    Voogie.TPTP.Syntax
     Voogie.Tuple
   ghc-options:
     -Wall -threaded
@@ -131,7 +131,7 @@ test-suite test-quickcheck-back
     Generators
     Voogie.Back
     Voogie.Boogie
-    Voogie.BoogieSyntax
+    Voogie.Boogie.Syntax
     Voogie.FOOL
     Voogie.FOOL.ArrayTheory
     Voogie.FOOL.Traverse

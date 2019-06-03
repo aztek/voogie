@@ -7,7 +7,7 @@ module Voogie.Pretty.TPTP (
 import Voogie.Pretty.TPTP.FOOL
 import Voogie.Theory
 import Voogie.TPTP
-import Voogie.TPTPSyntax
+import Voogie.TPTP.Syntax
 
 instance Pretty InputType where
   pretty = keyword . \case

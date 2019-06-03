@@ -2,12 +2,12 @@
 
 module Voogie.Pretty.Boogie (
   module Voogie.Pretty,
-  module Voogie.BoogieSyntax,
+  module Voogie.Boogie.Syntax,
   prettyTyped,
   boolean
 ) where
 
-import Voogie.BoogieSyntax
+import Voogie.Boogie.Syntax
 import Voogie.Pretty
 import Voogie.Theory
 

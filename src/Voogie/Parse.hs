@@ -1,5 +1,5 @@
 module Voogie.Parse (
-  module Voogie.BoogieSyntax,
+  module Voogie.Boogie.Syntax,
   Parser,
   Operator,
   identifier,
@@ -42,7 +42,7 @@ import Text.Parsec.Prim (Parsec, getPosition)
 import qualified Text.Parsec.Token as Token
 
 import Voogie.AST
-import Voogie.BoogieSyntax
+import Voogie.Boogie.Syntax
 import Voogie.Theory
 
 type Parser = Parsec Text ()

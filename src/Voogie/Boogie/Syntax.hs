@@ -1,6 +1,6 @@
 {-# LANGUAGE LambdaCase #-}
 
-module Voogie.BoogieSyntax where
+module Voogie.Boogie.Syntax where
 
 import Data.Function (on)
 
