@@ -14,8 +14,8 @@ import Text.Parsec.Error (ParseError, errorPos, errorMessages, showErrorMessages
 import Text.Parsec.Pos (SourcePos, sourceName, sourceLine, sourceColumn)
 
 import Voogie.AST
-import Voogie.BoogiePretty()
 import Voogie.Pretty
+import Voogie.Pretty.Boogie ()
 import Voogie.Theory
 
 type Result = Either Error

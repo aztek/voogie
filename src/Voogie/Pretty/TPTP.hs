@@ -1,10 +1,10 @@
 {-# LANGUAGE LambdaCase #-}
 
-module Voogie.TPTPretty (
-  module Voogie.FOOL.TPTPretty
+module Voogie.Pretty.TPTP (
+  module Voogie.Pretty.TPTP.FOOL
 ) where
 
-import Voogie.FOOL.TPTPretty
+import Voogie.Pretty.TPTP.FOOL
 import Voogie.Theory
 import Voogie.TPTP
 import Voogie.TPTPSyntax

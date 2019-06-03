@@ -23,10 +23,10 @@ import qualified Voogie.AST as A
 import Voogie.Boogie (Boogie)
 import qualified Voogie.Boogie.AST as AST
 import qualified Voogie.Boogie.Smart as B
-import Voogie.Boogie.BoogiePretty
 import Voogie.Error
 import qualified Voogie.FOOL.AST as F.AST
 import qualified Voogie.FOOL.Smart as F
+import Voogie.Pretty.Boogie.Boogie
 import Voogie.Theory
 
 newtype Env a = Env (Map a Type)

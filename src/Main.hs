@@ -17,8 +17,8 @@ import Voogie.Back
 import Voogie.Boogie.Parse (parseBoogie)
 import Voogie.Error
 import Voogie.Front
+import Voogie.Pretty.TPTP
 import Voogie.TPTP
-import Voogie.TPTPretty
 
 collectOptions :: CmdArgs -> TranslationOptions
 collectOptions cmdArgs = TranslationOptions (not $ noArrayTheory cmdArgs)

@@ -1,6 +1,6 @@
 {-# LANGUAGE LambdaCase #-}
 
-module Voogie.BoogiePretty (
+module Voogie.Pretty.Boogie (
   module Voogie.Pretty,
   module Voogie.BoogieSyntax,
   prettyTyped,

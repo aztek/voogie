@@ -1,11 +1,11 @@
 {-# LANGUAGE LambdaCase #-}
 
-module Voogie.FOOL.BoogiePretty (
-  module Voogie.BoogiePretty
+module Voogie.Pretty.Boogie.FOOL (
+  module Voogie.Pretty.Boogie
 ) where
 
-import Voogie.BoogiePretty
 import Voogie.FOOL
+import Voogie.Pretty.Boogie
 import Voogie.Theory
 
 instance Pretty a => Pretty (Typed a) where

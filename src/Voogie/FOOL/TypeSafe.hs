@@ -7,8 +7,8 @@ import qualified Data.List.NonEmpty as NE (zipWith)
 import Data.List.NonEmpty (NonEmpty((:|)))
 
 import Voogie.FOOL
-import Voogie.FOOL.BoogiePretty (pretty, displayS, renderCompact)
 import Voogie.Theory
+import Voogie.Pretty.Boogie.FOOL (pretty, displayS, renderCompact)
 
 typeSafeApplication :: Identifier -> NonEmpty Term -> Term
 typeSafeApplication f ts

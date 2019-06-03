@@ -43,7 +43,6 @@ executable voogie
     Voogie.BoogieSyntax
     Voogie.Boogie.AST
     Voogie.Boogie.Parse
-    Voogie.Boogie.BoogiePretty
     Voogie.Boogie.Smart
     Voogie.CmdArgs
     Voogie.Error
@@ -51,19 +50,22 @@ executable voogie
     Voogie.FOOL.ArrayTheory
     Voogie.FOOL.AST
     Voogie.FOOL.TypeSafe
-    Voogie.FOOL.TPTPretty
     Voogie.FOOL.Parse
-    Voogie.FOOL.BoogiePretty
     Voogie.FOOL.Traverse
     Voogie.FOOL.Smart
     Voogie.Front
     Voogie.NonEmpty
     Voogie.Parse
+
     Voogie.Pretty
-    Voogie.BoogiePretty
+    Voogie.Pretty.Boogie
+    Voogie.Pretty.Boogie.Boogie
+    Voogie.Pretty.Boogie.FOOL
+    Voogie.Pretty.TPTP
+    Voogie.Pretty.TPTP.FOOL
+
     Voogie.Theory
     Voogie.TPTP
-    Voogie.TPTPretty
     Voogie.TPTPSyntax
     Voogie.Tuple
   ghc-options:
@@ -131,17 +133,17 @@ test-suite test-quickcheck-back
     Generators
     Voogie.Back
     Voogie.Boogie
-    Voogie.Boogie.BoogiePretty
-    Voogie.BoogiePretty
     Voogie.BoogieSyntax
     Voogie.FOOL
     Voogie.FOOL.ArrayTheory
-    Voogie.FOOL.BoogiePretty
     Voogie.FOOL.Traverse
     Voogie.FOOL.Smart
     Voogie.FOOL.TypeSafe
     Voogie.NonEmpty
     Voogie.Pretty
+    Voogie.Pretty.Boogie
+    Voogie.Pretty.Boogie.Boogie
+    Voogie.Pretty.Boogie.FOOL
     Voogie.Theory
     Voogie.Tuple
   build-depends:

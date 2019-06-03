@@ -1,6 +1,6 @@
 {-# LANGUAGE LambdaCase #-}
 
-module Voogie.FOOL.TPTPretty (
+module Voogie.Pretty.TPTP.FOOL (
   module Voogie.Pretty
 ) where
 

@@ -3,7 +3,7 @@ module Voogie.Boogie.AST where
 import Data.List.NonEmpty (NonEmpty)
 
 import Voogie.AST
-import Voogie.BoogiePretty (Pretty(pretty), empty)
+import Voogie.Pretty.Boogie (Pretty(pretty), empty)
 import qualified Voogie.FOOL.AST as F
 import Voogie.Theory
 

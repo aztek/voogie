@@ -1,15 +1,15 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE LambdaCase #-}
 
-module Voogie.Boogie.BoogiePretty (
-  module Voogie.BoogiePretty
+module Voogie.Pretty.Boogie.Boogie (
+  module Voogie.Pretty.Boogie
 ) where
 
 import qualified Data.List.NonEmpty as NE (nonEmpty, toList, unzip)
 
 import Voogie.Boogie
-import Voogie.BoogiePretty
-import Voogie.FOOL.BoogiePretty()
+import Voogie.Pretty.Boogie
+import Voogie.Pretty.Boogie.FOOL ()
 import Voogie.Theory
 
 instance Pretty LValue where
