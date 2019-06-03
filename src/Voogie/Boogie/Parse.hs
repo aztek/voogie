@@ -13,7 +13,6 @@ import Text.Parsec.Expr (Assoc, buildExpressionParser)
 import Voogie.AST (AST)
 import Voogie.Error
 import Voogie.Theory
-import Voogie.BoogieSyntax
 import Voogie.Boogie.AST
 
 import Voogie.Parse

@@ -1,6 +1,8 @@
 {-# LANGUAGE LambdaCase #-}
 
-module Voogie.FOOL.TPTPretty() where
+module Voogie.FOOL.TPTPretty (
+  module Voogie.Pretty
+) where
 
 import Data.Char (toUpper, toLower)
 import qualified Data.List.NonEmpty as NE (nonEmpty)
@@ -11,8 +13,6 @@ import Voogie.FOOL
 import Voogie.Theory
 import Voogie.Pretty
 import Voogie.TPTPSyntax
-
-import Text.PrettyPrint.ANSI.Leijen hiding ((<$>))
 
 instance Pretty BinaryOp where
   pretty op

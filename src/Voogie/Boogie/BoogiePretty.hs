@@ -1,17 +1,16 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE LambdaCase #-}
 
-module Voogie.Boogie.BoogiePretty() where
+module Voogie.Boogie.BoogiePretty (
+  module Voogie.BoogiePretty
+) where
 
 import qualified Data.List.NonEmpty as NE (nonEmpty, toList, unzip)
 
 import Voogie.Theory
 import Voogie.Boogie
-import Voogie.BoogieSyntax
 import Voogie.BoogiePretty
 import Voogie.FOOL.BoogiePretty()
-
-import Text.PrettyPrint.ANSI.Leijen hiding ((<$>))
 
 instance Pretty LValue where
   pretty (LValue v is) = pretty v <> hcat (tuple . fmap pretty <$> is)

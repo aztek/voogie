@@ -1,15 +1,15 @@
 {-# LANGUAGE LambdaCase #-}
 
-module Voogie.BoogiePretty(
+module Voogie.BoogiePretty (
   module Voogie.Pretty,
-  prettyTyped, boolean
+  module Voogie.BoogieSyntax,
+  prettyTyped,
+  boolean
 ) where
 
 import Voogie.Theory
 import Voogie.Pretty
 import Voogie.BoogieSyntax
-
-import Text.PrettyPrint.ANSI.Leijen hiding ((<$>))
 
 instance Pretty Type where
   pretty = \case

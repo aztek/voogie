@@ -5,8 +5,7 @@ import Data.List.NonEmpty (NonEmpty)
 import Voogie.AST
 import Voogie.Theory
 import qualified Voogie.FOOL.AST as F
-
-import Text.PrettyPrint.ANSI.Leijen (Pretty(pretty), empty)
+import Voogie.BoogiePretty (Pretty(pretty), empty)
 
 type Identifier = AST Name
 

@@ -1,16 +1,15 @@
 {-# LANGUAGE LambdaCase #-}
 
-module Voogie.TPTPretty() where
+module Voogie.TPTPretty (
+  module Voogie.FOOL.TPTPretty
+) where
 
 import Voogie.Theory
 
 import Voogie.TPTP
 import Voogie.TPTPSyntax
 
-import Voogie.Pretty
-import Voogie.FOOL.TPTPretty()
-
-import Text.PrettyPrint.ANSI.Leijen hiding ((<$>))
+import Voogie.FOOL.TPTPretty
 
 instance Pretty InputType where
   pretty = keyword . \case

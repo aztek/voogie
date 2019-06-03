@@ -10,8 +10,7 @@ import qualified Voogie.NonEmpty as VNE (one, two, three, four)
 import Voogie.Theory
 import Voogie.FOOL
 import Voogie.FOOL.Smart (application, variable, var, forall, (===), (=/=), (==>))
-
-import Text.PrettyPrint.ANSI.Leijen (pretty, displayS, renderCompact)
+import Voogie.Pretty (pretty, displayS, renderCompact)
 
 type Instantiation = (Type, Type)
 

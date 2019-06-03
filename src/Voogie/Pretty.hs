@@ -1,4 +1,18 @@
-module Voogie.Pretty where
+module Voogie.Pretty (
+  module Text.PrettyPrint.ANSI.Leijen,
+  sepBy,
+  commaSep,
+  tuple,
+  funapp,
+  funapp1,
+  funapp2,
+  funapp3,
+  keyword,
+  operator,
+  builtin,
+  punctuation,
+  number
+) where
 
 import Data.List.NonEmpty (NonEmpty(..))
 import qualified Voogie.NonEmpty as VNE

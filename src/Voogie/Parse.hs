@@ -1,4 +1,5 @@
 module Voogie.Parse (
+  module Voogie.BoogieSyntax,
   Parser,
   Operator,
   identifier,

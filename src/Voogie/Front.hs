@@ -24,6 +24,7 @@ import Data.Map (Map)
 import Voogie.Error
 import Voogie.Theory
 import Voogie.BoogiePretty()
+import Voogie.Pretty (Pretty)
 
 import qualified Voogie.AST as A
 
@@ -35,8 +36,6 @@ import Voogie.Boogie.BoogiePretty()
 import qualified Voogie.FOOL.Smart as F
 import qualified Voogie.FOOL.AST as F.AST
 import Voogie.FOOL.BoogiePretty()
-
-import Text.PrettyPrint.ANSI.Leijen (Pretty)
 
 newtype Env a = Env (Map a Type)
 

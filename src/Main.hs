@@ -18,9 +18,7 @@ import Voogie.Boogie.Parse (parseBoogie)
 import Voogie.Front
 import Voogie.Back
 import Voogie.TPTP
-import Voogie.TPTPretty()
-
-import Text.PrettyPrint.ANSI.Leijen hiding ((<$>))
+import Voogie.TPTPretty
 
 collectOptions :: CmdArgs -> TranslationOptions
 collectOptions cmdArgs = TranslationOptions (not $ noArrayTheory cmdArgs)

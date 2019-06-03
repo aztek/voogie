@@ -1,15 +1,12 @@
 {-# LANGUAGE LambdaCase #-}
 
 module Voogie.FOOL.BoogiePretty (
-  pretty
+  module Voogie.BoogiePretty
 ) where
 
 import Voogie.Theory
 import Voogie.FOOL
-import Voogie.BoogieSyntax
 import Voogie.BoogiePretty
-
-import Text.PrettyPrint.ANSI.Leijen hiding ((<$>))
 
 instance Pretty a => Pretty (Typed a) where
   pretty = pretty . valueOf

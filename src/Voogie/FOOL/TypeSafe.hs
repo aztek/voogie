@@ -9,9 +9,7 @@ import Data.List.NonEmpty (NonEmpty((:|)))
 import Voogie.Theory
 
 import Voogie.FOOL
-import Voogie.FOOL.BoogiePretty
-
-import Text.PrettyPrint.ANSI.Leijen (displayS, renderCompact)
+import Voogie.FOOL.BoogiePretty (pretty, displayS, renderCompact)
 
 typeSafeApplication :: Identifier -> NonEmpty Term -> Term
 typeSafeApplication f ts

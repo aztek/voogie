@@ -11,8 +11,6 @@ import Voogie.Theory
 import Voogie.Parse
 import Voogie.FOOL.AST
 
-import Voogie.BoogieSyntax
-
 term :: Parser Term
 term = buildExpressionParser operators arg
 

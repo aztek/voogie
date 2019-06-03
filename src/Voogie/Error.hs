@@ -13,11 +13,10 @@ import qualified Data.Text as Text (pack, unpack, lines, replicate, length, spli
 import Voogie.Theory
 import Voogie.AST
 import Voogie.BoogiePretty()
+import Voogie.Pretty
 
 import Text.Parsec.Pos (SourcePos, sourceName, sourceLine, sourceColumn)
 import Text.Parsec.Error (ParseError, errorPos, errorMessages, showErrorMessages)
-
-import Text.PrettyPrint.ANSI.Leijen hiding ((<$>))
 
 type Result = Either Error
 
