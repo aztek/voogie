@@ -25,7 +25,7 @@ import Voogie.Boogie (Boogie)
 import qualified Voogie.Boogie.Smart as B
 import Voogie.Error
 import qualified Voogie.FOOL.Smart as F
-import Voogie.Pretty.Boogie.Boogie
+import Voogie.Pretty.Boogie.Boogie (Pretty)
 import Voogie.Theory
 
 newtype Env a = Env (Map a Type)
