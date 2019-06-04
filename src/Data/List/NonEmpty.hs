@@ -5,7 +5,13 @@ module Data.List.NonEmpty (
   module Data.List.NonEmpty
 ) where
 
+#if !MIN_VERSION_base(4, 8, 0)
+import Control.Applicative (Applicative)
+import Data.Traversable (sequenceA)
+#endif
+
 import qualified Data.List as L (intercalate)
+
 #if MIN_VERSION_base(4, 9, 0)
 import "base" Data.List.NonEmpty
 import qualified "base" Data.List.NonEmpty as NE (zipWith)
