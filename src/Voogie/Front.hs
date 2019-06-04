@@ -14,7 +14,7 @@ import qualified Data.List.NonEmpty as NE (toList, zipWithM)
 import Data.Map (Map)
 import qualified Data.Map as Map (empty, insert, lookup, toList)
 import Data.Maybe (catMaybes)
-#if __GLASGOW_HASKELL__ < 804
+#if !MIN_VERSION_base(4, 11, 0)
 import Data.Semigroup (Semigroup(..))
 #endif
 

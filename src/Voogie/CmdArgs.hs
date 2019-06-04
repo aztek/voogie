@@ -12,7 +12,7 @@ import Options.Applicative (
     maybeReader, metavar, (<**>), option, abortOption, strArgument, flag'
   )
 
-#if __GLASGOW_HASKELL__ < 804
+#if !MIN_VERSION_base(4, 11, 0)
 import Data.Semigroup ((<>))
 #endif
 

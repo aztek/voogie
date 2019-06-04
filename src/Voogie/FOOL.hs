@@ -10,7 +10,7 @@ module Voogie.FOOL (
 
 import Data.List.NonEmpty (NonEmpty)
 import Data.List.NonUnit (NonUnit)
-#if __GLASGOW_HASKELL__ < 804
+#if !MIN_VERSION_base(4, 11, 0)
 import Data.Semigroup (Semigroup(..))
 #endif
 
