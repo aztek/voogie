@@ -3,7 +3,6 @@
 module Voogie.FOOL.Traverse where
 
 import Voogie.FOOL
-import Voogie.Theory
 
 traverseProblem :: Applicative f
                 => (Term -> f Term)

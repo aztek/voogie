@@ -8,7 +8,6 @@ import Data.List.NonEmpty (NonEmpty)
 
 import Voogie.Boogie
 import Voogie.FOOL (Formula)
-import Voogie.Theory
 
 lvalue :: Var -> [NonEmpty Expression] -> LValue
 lvalue = LValue

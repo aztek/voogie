@@ -1,6 +1,9 @@
 {-# LANGUAGE LambdaCase #-}
 
-module Voogie.Boogie where
+module Voogie.Boogie (
+  module Voogie.Boogie,
+  module Voogie.Theory
+) where
 
 import Data.List.NonEmpty (NonEmpty)
 

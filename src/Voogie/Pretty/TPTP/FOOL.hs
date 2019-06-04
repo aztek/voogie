@@ -11,7 +11,6 @@ import qualified Data.List.NonUnit as NonUnit
 
 import Voogie.FOOL
 import Voogie.Pretty
-import Voogie.Theory
 import Voogie.TPTP.Syntax
 
 instance Pretty BinaryOp where

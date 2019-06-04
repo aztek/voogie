@@ -10,7 +10,6 @@ import Data.List.NonUnit (nonUnit)
 
 import Voogie.FOOL
 import Voogie.FOOL.TypeSafe
-import Voogie.Theory
 
 var :: Name -> Var
 var = Var

@@ -2,10 +2,19 @@
 {-# LANGUAGE LambdaCase #-}
 
 module Voogie.FOOL (
-  Var(..), VarList, Identifier,
-  Definition(..), Binding(..), Term(..),
-  Formula, Conjunction(..),
-  Theory(..), Problem(..), appendTheory, appendTheories
+  module Voogie.Theory,
+  Var(..),
+  VarList,
+  Identifier,
+  Definition(..),
+  Binding(..),
+  Term(..),
+  Formula,
+  Conjunction(..),
+  Theory(..),
+  Problem(..),
+  appendTheory,
+  appendTheories
 ) where
 
 import Data.List.NonEmpty (NonEmpty)

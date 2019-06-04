@@ -6,7 +6,6 @@ module Voogie.Pretty.Boogie.FOOL (
 
 import Voogie.FOOL
 import Voogie.Pretty.Boogie
-import Voogie.Theory
 
 instance Pretty a => Pretty (Typed a) where
   pretty = pretty . valueOf

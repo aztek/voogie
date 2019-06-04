@@ -10,7 +10,6 @@ import qualified Data.List.NonEmpty as NE (one, two, three, four)
 import Voogie.FOOL
 import Voogie.FOOL.Smart (application, variable, var, forall, (===), (=/=), (==>))
 import Voogie.Pretty (pretty, displayS, renderCompact)
-import Voogie.Theory
 
 type Instantiation = (Type, Type)
 
