@@ -7,12 +7,12 @@ module Voogie.Pretty.TPTP.FOOL (
 import Data.Char (toUpper, toLower)
 import qualified Data.List.NonEmpty as NE (nonEmpty)
 import Data.List.NonEmpty (NonEmpty(..))
+import qualified Data.List.NonUnit as NonUnit
 
 import Voogie.FOOL
 import Voogie.Pretty
 import Voogie.Theory
 import Voogie.TPTP.Syntax
-import qualified Voogie.Tuple as Tuple
 
 instance Pretty BinaryOp where
   pretty op
@@ -30,7 +30,7 @@ instance Pretty Type where
     Integer         -> builtin intName
     Custom        n -> text n
     Array       i t -> foldr (funapp2 $ builtin arrayName) (pretty t) (pretty <$> i)
-    TupleType    ts -> tuple (Tuple.toNonEmpty (pretty <$> ts))
+    TupleType    ts -> tuple (NonUnit.toNonEmpty (pretty <$> ts))
     Functional ts t -> sepBy (space <> operator "*" <> space) (pretty <$> ts)
                    <+> operator ">" <+> pretty t
 
@@ -51,7 +51,7 @@ instance Pretty Definition where
   pretty = \case
     ConstantSymbol c -> prettyIdentifier c
     Function    c vs -> funapp (prettyIdentifier c) (pretty <$> vs)
-    TupleD        es -> tuple (Tuple.toNonEmpty (prettyIdentifier <$> es))
+    TupleD        es -> tuple (NonUnit.toNonEmpty (prettyIdentifier <$> es))
 
 instance Pretty Binding where
   pretty (Binding d t) = pretty d <+> operator opAssign <+> pretty t
@@ -87,7 +87,7 @@ instance Pretty Term where
     Store       a i e -> funapp3 (builtin kwdStore)  (pretty a) (pretty i) (pretty e)
     If          c a b -> funapp3 (builtin kwdIf) (pretty c) (line <> pretty a) (line <> pretty b)
     Quantify   q vs t -> pretty q <> tuple (pretty <$> vs) <> punctuation ":" <+> pretty' t
-    TupleLiteral   ts -> tuple (Tuple.toNonEmpty (pretty <$> ts))
+    TupleLiteral   ts -> tuple (NonUnit.toNonEmpty (pretty <$> ts))
 
     Unary op a
       | isPrefix   op -> pretty op <> pretty' a
@@ -113,4 +113,4 @@ prettySignature :: Definition -> Doc
 prettySignature = \case
   ConstantSymbol c -> pretty c
   Function     c _ -> pretty c
-  TupleD        es -> tuple (Tuple.toNonEmpty (pretty <$> es))
+  TupleD        es -> tuple (NonUnit.toNonEmpty (pretty <$> es))

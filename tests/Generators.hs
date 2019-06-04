@@ -5,16 +5,16 @@ module Generators where
 
 import Control.Monad
 import Data.List as L
-import Data.List.NonEmpty as NE
 import Data.List.NonEmpty (NonEmpty)
+import Data.List.NonEmpty as NE
+import Data.List.NonUnit (NonUnit)
+import qualified Data.List.NonUnit as NonUnit
 import Data.Maybe
 
 import Test.QuickCheck as QC
 
 import Voogie.Boogie
 import Voogie.Theory
-import Voogie.Tuple (Tuple)
-import qualified Voogie.Tuple as Tuple
 
 instance Arbitrary Quantifier where
   arbitrary = elements [minBound..maxBound]
@@ -60,14 +60,14 @@ splitNE n = do
 prop_splitNE :: Positive Int -> QC.Property
 prop_splitNE (Positive n) = forAll (splitNE n) $ \ks -> sum (NE.toList ks) <= n
 
-splitTuple :: Int -> Gen (Tuple Int)
+splitTuple :: Int -> Gen (NonUnit Int)
 splitTuple n = do
   (k, m) <- split n
   ks <- splitNE m
-  return (k Tuple.:| ks)
+  return (k NonUnit.:| ks)
 
 prop_splitTuple :: Positive Int -> QC.Property
-prop_splitTuple (Positive n) = forAll (splitTuple n) $ \ks -> sum (Tuple.toList ks) <= n
+prop_splitTuple (Positive n) = forAll (splitTuple n) $ \ks -> sum (NonUnit.toList ks) <= n
 
 instance Arbitrary Type where
   -- Currently, truly arbitrary types significantly slow down generation of
@@ -77,7 +77,7 @@ instance Arbitrary Type where
 
   shrink = \case
     Array is r -> r : NE.toList is
-    TupleType ts -> Tuple.toList ts
+    TupleType ts -> NonUnit.toList ts
     Functional as r -> r : NE.toList as
     _ -> []
 
@@ -90,7 +90,7 @@ sizedType n = oneof
     atomic = return <$> [Integer, Boolean]
 
     array = do
-      (r Tuple.:| is) <- traverse sizedType =<< splitTuple (n - 1)
+      (r NonUnit.:| is) <- traverse sizedType =<< splitTuple (n - 1)
       return (Array is r)
 
     tupleType = do
@@ -98,7 +98,7 @@ sizedType n = oneof
       return (TupleType ts)
 
     functional = do
-      (r Tuple.:| as) <- traverse sizedType =<< splitTuple (n - 1)
+      (r NonUnit.:| as) <- traverse sizedType =<< splitTuple (n - 1)
       return (Functional as r)
 
     -- custom = do

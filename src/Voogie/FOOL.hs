@@ -9,12 +9,12 @@ module Voogie.FOOL (
 ) where
 
 import Data.List.NonEmpty (NonEmpty)
+import Data.List.NonUnit (NonUnit)
 #if __GLASGOW_HASKELL__ < 804
 import Data.Semigroup (Semigroup(..))
 #endif
 
 import Voogie.Theory
-import Voogie.Tuple (Tuple)
 
 newtype Var = Var Name
   deriving (Show, Eq, Ord)
@@ -27,7 +27,7 @@ type Identifier = Typed Name
 data Definition
   = ConstantSymbol Identifier
   | Function Identifier (NonEmpty (Typed Var))
-  | TupleD (Tuple Identifier)
+  | TupleD (NonUnit Identifier)
   deriving (Show, Eq, Ord)
 
 data Binding = Binding Definition Term
@@ -51,7 +51,7 @@ data Term
   | Select Term Term
   | Store Term Term Term
   -- Tuples
-  | TupleLiteral (Tuple Term)
+  | TupleLiteral (NonUnit Term)
   deriving (Show, Eq, Ord)
 
 type Formula = Term

@@ -37,6 +37,7 @@ executable voogie
   main-is: Main.hs
   other-modules:
     Data.List.NonEmpty
+    Data.List.NonUnit
     Voogie.AST
     Voogie.AST.Boogie
     Voogie.AST.FOOL
@@ -64,7 +65,6 @@ executable voogie
     Voogie.Theory
     Voogie.TPTP
     Voogie.TPTP.Syntax
-    Voogie.Tuple
     Paths_voogie
   ghc-options:
     -Wall -threaded
@@ -110,10 +110,10 @@ test-suite test-quickcheck-generators
     ghc-options: -Werror
   other-modules:
     Data.List.NonEmpty
+    Data.List.NonUnit
     Voogie.Boogie
     Voogie.FOOL
     Voogie.Theory
-    Voogie.Tuple
   build-depends:
     base,
     QuickCheck
@@ -130,6 +130,7 @@ test-suite test-quickcheck-back
   other-modules:
     Generators
     Data.List.NonEmpty
+    Data.List.NonUnit
     Voogie.Back
     Voogie.Boogie
     Voogie.Boogie.Syntax
@@ -143,7 +144,6 @@ test-suite test-quickcheck-back
     Voogie.Pretty.Boogie.Boogie
     Voogie.Pretty.Boogie.FOOL
     Voogie.Theory
-    Voogie.Tuple
   build-depends:
     base,
     mtl,

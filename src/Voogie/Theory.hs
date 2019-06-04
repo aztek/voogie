@@ -5,9 +5,8 @@
 module Voogie.Theory where
 
 import Data.List.NonEmpty (NonEmpty((:|)))
-
-import qualified Voogie.Tuple as Tuple (nonUnit)
-import Voogie.Tuple (Tuple)
+import Data.List.NonUnit (NonUnit)
+import qualified Data.List.NonUnit as NonUnit (nonUnit)
 
 type Name = String
 
@@ -21,7 +20,7 @@ data Type
   = Boolean
   | Integer
   | Array (NonEmpty Type) Type
-  | TupleType (Tuple Type)
+  | TupleType (NonUnit Type)
   | Functional (NonEmpty Type) Type
   | Custom Name
   deriving (Show, Eq, Ord)
@@ -46,7 +45,7 @@ array [] s = s
 array (t:ts) s = Array (t :| ts) s
 
 tupleType :: NonEmpty Type -> Type
-tupleType = either id TupleType . Tuple.nonUnit
+tupleType = either id TupleType . NonUnit.nonUnit
 
 returnType :: Type -> Type
 returnType = \case

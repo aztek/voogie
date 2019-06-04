@@ -4,13 +4,13 @@ module Voogie.FOOL.Smart (
   Problem(..), appendTheory, appendTheories
 ) where
 
-import qualified Data.List.NonEmpty as NE (toList)
 import Data.List.NonEmpty (NonEmpty)
+import qualified Data.List.NonEmpty as NE (toList)
+import Data.List.NonUnit (nonUnit)
 
 import Voogie.FOOL
 import Voogie.FOOL.TypeSafe
 import Voogie.Theory
-import Voogie.Tuple (nonUnit)
 
 var :: Name -> Var
 var = Var
