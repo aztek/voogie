@@ -4,9 +4,8 @@ module Voogie.Back where
 
 import Control.Monad.Writer (Writer, runWriter, tell)
 import qualified Data.List as L (nub)
-import qualified Data.List.NonEmpty as NE (nub, cons, nonEmpty)
 import Data.List.NonEmpty (NonEmpty((:|)))
-import qualified Data.List.NonEmpty as NE (two, three)
+import qualified Data.List.NonEmpty as NE (nub, cons, nonEmpty, two, three)
 import Data.Semigroup (sconcat)
 
 import qualified Voogie.Boogie as B
