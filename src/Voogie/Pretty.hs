@@ -15,7 +15,7 @@ module Voogie.Pretty (
 ) where
 
 import Data.List.NonEmpty (NonEmpty(..))
-import qualified Voogie.NonEmpty as VNE
+import qualified Data.List.NonEmpty as NE (one, two, three)
 
 import Text.PrettyPrint.ANSI.Leijen hiding ((<$>))
 
@@ -34,13 +34,13 @@ funapp :: Doc -> NonEmpty Doc -> Doc
 funapp f as = f <> parens (align (commaSep as))
 
 funapp1 :: Doc -> Doc -> Doc
-funapp1 f a = funapp f (VNE.one a)
+funapp1 f a = funapp f (NE.one a)
 
 funapp2 :: Doc -> Doc -> Doc -> Doc
-funapp2 f a b = funapp f (VNE.two a b)
+funapp2 f a b = funapp f (NE.two a b)
 
 funapp3 :: Doc -> Doc -> Doc -> Doc -> Doc
-funapp3 f a b c = funapp f (VNE.three a b c)
+funapp3 f a b c = funapp f (NE.three a b c)
 
 keyword, operator, builtin, punctuation :: Name -> Doc
 keyword = blue . text

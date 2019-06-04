@@ -9,11 +9,10 @@ import Control.Monad (foldM)
 import Control.Monad.Extra (mapMaybeM)
 import Control.Monad.Reader (MonadTrans, lift, ReaderT(..), withReaderT, ask, local)
 import Data.Bifunctor (first)
-import qualified Data.List.NonEmpty as NE (toList)
 import Data.List.NonEmpty (NonEmpty)
-import qualified Voogie.NonEmpty as VNE (zipWithM)
-import qualified Data.Map as Map (empty, insert, lookup, toList)
+import qualified Data.List.NonEmpty as NE (toList, zipWithM)
 import Data.Map (Map)
+import qualified Data.Map as Map (empty, insert, lookup, toList)
 import Data.Maybe (catMaybes)
 #if __GLASGOW_HASKELL__ < 804
 import Data.Semigroup (Semigroup(..))
@@ -142,7 +141,7 @@ analyzeLValue (AST.Ref ast is) = do
   is' <- lift $ if length is > length ais
                 then Left (ArrayDimensionMismatch (Typed t <$> var))
                 else Right (zip is ais)
-  es <- mapM (uncurry . VNE.zipWithM $ guardType analyzeExpr) is'
+  es <- mapM (uncurry . NE.zipWithM $ guardType analyzeExpr) is'
   return (B.lvalue n es)
 
 analyzeExpr :: AST.Expr' -> Analyze B.Expression
@@ -223,5 +222,5 @@ analyzeName ast = withReaderT fst analyzeVar
 
 analyzeSelect :: A.AST F.Term -> NonEmpty F.AST.Term -> AnalyzeF (A.AST F.Term)
 analyzeSelect ast@(A.AST pos term) as = case typeOf term of
-  Array ts _ -> A.AST pos <$> (F.select term <$> VNE.zipWithM (guardType analyzeTerm) as ts)
+  Array ts _ -> A.AST pos <$> (F.select term <$> NE.zipWithM (guardType analyzeTerm) as ts)
   t -> lift $ Left (NonArraySelect (Typed t <$> ast))

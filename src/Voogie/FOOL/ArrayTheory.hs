@@ -5,7 +5,7 @@ module Voogie.FOOL.ArrayTheory (
   theory
 ) where
 
-import qualified Voogie.NonEmpty as VNE (one, two, three, four)
+import qualified Data.List.NonEmpty as NE (one, two, three, four)
 
 import Voogie.FOOL
 import Voogie.FOOL.Smart (application, variable, var, forall, (===), (=/=), (==>))
@@ -28,12 +28,12 @@ arrayType = Custom . arrayTypeName
 -- select : array(τ, σ) × τ → σ
 selectSymbol :: Instantiation -> Identifier
 selectSymbol i@(tau, sigma) = Typed t ("select" ++ instantiationName i)
-  where t = Functional (VNE.two (arrayType i) tau) sigma
+  where t = Functional (NE.two (arrayType i) tau) sigma
 
 -- store : array(τ, σ) × τ × σ → array(τ, σ)
 storeSymbol :: Instantiation -> Identifier
 storeSymbol i@(tau, sigma) = Typed t ("store" ++ instantiationName i)
-  where t = Functional (VNE.three (arrayType i) tau sigma) (arrayType i)
+  where t = Functional (NE.three (arrayType i) tau sigma) (arrayType i)
 
 theory :: Instantiation -> Theory
 theory t@(tau, sigma) =
@@ -42,18 +42,18 @@ theory t@(tau, sigma) =
   where
     -- (∀ a: array(τ, σ)) (∀ v: σ) (∀ i: τ) (∀ j: τ)
     --   (i = j => select(store(a, i, v), j) = v)
-    readOverWrite1 = forall (VNE.four a' v' i' j')
+    readOverWrite1 = forall (NE.four a' v' i' j')
                             (i === j ==> select (store a i v) j === v)
 
     -- (∀ a: array(τ, σ)) (∀ v: σ) (∀ i: τ) (∀ j: τ)
     --   (i != j => select(store(a, i, v), j) = select(a, j))
-    readOverWrite2 = forall (VNE.four a' v' i' j')
+    readOverWrite2 = forall (NE.four a' v' i' j')
                             (i =/= j ==> select (store a i v) j === select a j)
 
     -- (∀ a: array(τ, σ)) (∀ b: array(τ, σ))
     --   ((∀ i: τ) (select(a, i) = select(b, i)) => a = b)
-    extensionality = forall (VNE.two a' b')
-                            (forall (VNE.one i')
+    extensionality = forall (NE.two a' b')
+                            (forall (NE.one i')
                                     (select a i === select b i) ==> a === b)
 
     a' = Typed (arrayType t) (var "a")
@@ -68,5 +68,5 @@ theory t@(tau, sigma) =
     i = variable i'
     j = variable j'
 
-    select arr index = application (selectSymbol t) (VNE.two arr index)
-    store  arr index val = application (storeSymbol t) (VNE.three arr index val)
+    select arr index = application (selectSymbol t) (NE.two arr index)
+    store  arr index val = application (storeSymbol t) (NE.three arr index val)

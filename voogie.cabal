@@ -36,7 +36,7 @@ executable voogie
   hs-source-dirs: src
   main-is: Main.hs
   other-modules:
-    Paths_voogie
+    Data.List.NonEmpty
     Voogie.AST
     Voogie.AST.Boogie
     Voogie.AST.FOOL
@@ -52,7 +52,6 @@ executable voogie
     Voogie.FOOL.Traverse
     Voogie.FOOL.Smart
     Voogie.Front
-    Voogie.NonEmpty
     Voogie.Parse
     Voogie.Parse.Boogie
     Voogie.Parse.FOOL
@@ -66,6 +65,7 @@ executable voogie
     Voogie.TPTP
     Voogie.TPTP.Syntax
     Voogie.Tuple
+    Paths_voogie
   ghc-options:
     -Wall -threaded
   if flag(Werror)
@@ -109,9 +109,9 @@ test-suite test-quickcheck-generators
   if flag(Werror)
     ghc-options: -Werror
   other-modules:
+    Data.List.NonEmpty
     Voogie.Boogie
     Voogie.FOOL
-    Voogie.NonEmpty
     Voogie.Theory
     Voogie.Tuple
   build-depends:
@@ -129,6 +129,7 @@ test-suite test-quickcheck-back
     -main-is Back
   other-modules:
     Generators
+    Data.List.NonEmpty
     Voogie.Back
     Voogie.Boogie
     Voogie.Boogie.Syntax
@@ -137,7 +138,6 @@ test-suite test-quickcheck-back
     Voogie.FOOL.Traverse
     Voogie.FOOL.Smart
     Voogie.FOOL.TypeSafe
-    Voogie.NonEmpty
     Voogie.Pretty
     Voogie.Pretty.Boogie
     Voogie.Pretty.Boogie.Boogie

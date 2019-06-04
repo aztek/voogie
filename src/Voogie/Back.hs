@@ -6,7 +6,7 @@ import Control.Monad.Writer (Writer, runWriter, tell)
 import qualified Data.List as L (nub)
 import qualified Data.List.NonEmpty as NE (nub, cons, nonEmpty)
 import Data.List.NonEmpty (NonEmpty((:|)))
-import qualified Voogie.NonEmpty as VNE (two, three)
+import qualified Data.List.NonEmpty as NE (two, three)
 import Data.Semigroup (sconcat)
 
 import qualified Voogie.Boogie as B
@@ -103,14 +103,14 @@ eliminateArrayTheory problem = F.appendTheories problem' theories
     select :: F.Term -> F.Term -> Writer [AT.Instantiation] F.Term
     select a i =  F.application
               <$> (AT.selectSymbol <$> inst)
-              <*> traverse eliminateTerm (VNE.two a i)
+              <*> traverse eliminateTerm (NE.two a i)
       where
         inst = instantiation (typeOf i) (arrayArgument (typeOf a))
 
     store :: F.Term -> F.Term -> F.Term -> Writer [AT.Instantiation] F.Term
     store a i v =  F.application
                <$> (AT.storeSymbol <$> inst)
-               <*> traverse eliminateTerm (VNE.three a i v)
+               <*> traverse eliminateTerm (NE.three a i v)
       where
         inst = instantiation (typeOf i) (typeOf v)
 
