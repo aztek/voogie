@@ -1,27 +1,26 @@
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 module Generators where
 
-import Control.Monad
 #if !MIN_VERSION_base(4, 8, 0)
-import Data.Functor ((<$>))
+import Control.Applicative ((<$>), (<*>))
 #endif
-import Data.List as L
+import Control.Monad ((<=<))
 import Data.List.NonEmpty (NonEmpty)
-import Data.List.NonEmpty as NE
+import Data.List.NonEmpty as NE (toList, NonEmpty((:|)))
 import Data.List.NonUnit (NonUnit)
-import qualified Data.List.NonUnit as NonUnit
-import Data.Maybe
+import qualified Data.List.NonUnit as NU (toList, NonUnit((:|)))
 #if !MIN_VERSION_base(4, 8, 0)
 import Data.Traversable (traverse)
 #endif
 
-import Test.QuickCheck as QC
+import Test.QuickCheck hiding (Property)
+import qualified Test.QuickCheck as QC (Property)
 
-import Voogie.Boogie
-import Voogie.Theory
+import Voogie.Boogie hiding (array, tupleType)
 
 instance Arbitrary Quantifier where
   arbitrary = elements [minBound..maxBound]
@@ -71,10 +70,10 @@ splitTuple :: Int -> Gen (NonUnit Int)
 splitTuple n = do
   (k, m) <- split n
   ks <- splitNE m
-  return (k NonUnit.:| ks)
+  return (k NU.:| ks)
 
 prop_splitTuple :: Positive Int -> QC.Property
-prop_splitTuple (Positive n) = forAll (splitTuple n) $ \ks -> sum (NonUnit.toList ks) <= n
+prop_splitTuple (Positive n) = forAll (splitTuple n) $ \ks -> sum (NU.toList ks) <= n
 
 instance Arbitrary Type where
   -- Currently, truly arbitrary types significantly slow down generation of
@@ -83,8 +82,8 @@ instance Arbitrary Type where
   arbitrary = sizedType 0
 
   shrink = \case
-    Array is r -> r : NE.toList is
-    TupleType ts -> NonUnit.toList ts
+    Array is r      -> r : NE.toList is
+    TupleType ts    -> NU.toList ts
     Functional as r -> r : NE.toList as
     _ -> []
 
@@ -97,7 +96,7 @@ sizedType n = oneof
     atomic = return <$> [Integer, Boolean]
 
     array = do
-      (r NonUnit.:| is) <- traverse sizedType =<< splitTuple (n - 1)
+      (r NU.:| is) <- traverse sizedType =<< splitTuple (n - 1)
       return (Array is r)
 
     tupleType = do
@@ -105,7 +104,7 @@ sizedType n = oneof
       return (TupleType ts)
 
     functional = do
-      (r NonUnit.:| as) <- traverse sizedType =<< splitTuple (n - 1)
+      (r NU.:| as) <- traverse sizedType =<< splitTuple (n - 1)
       return (Functional as r)
 
     -- custom = do
@@ -182,10 +181,10 @@ instance Arbitrary Expression where
   arbitrary = sized sizedExpression
 
   shrink = \case
-    Unary _ e -> [e]
-    Binary _ a b -> [a, b]
-    IfElse c a b -> [a, b, c]
-    Equals _ a b -> [a, b]
+    Unary op e    -> e : (Unary op <$> shrink e)
+    Binary op a b -> a : b : (Binary op <$> shrink a <*> shrink b)
+    IfElse c a b  -> a : b : c : (IfElse <$> shrink c <*> shrink a <*> shrink b)
+    Equals s a b  -> a : b : (Equals s <$> shrink a <*> shrink b)
     _ -> []
 
 sizedAssignment :: Int -> Gen Assignment
@@ -206,16 +205,18 @@ sizedStatement n = oneof $ assign : [if_ | n > 1]
       c <- sizedExpression 4 `suchThat` typed Boolean
       f <- arbitrary
       (as, bs) <- split n
-      as <- traverse sizedStatement =<< splitNE as
-      bs <- traverse sizedStatement =<< splitList bs
-      return (If c f as bs)
+      as' <- traverse sizedStatement =<< splitNE as
+      bs' <- traverse sizedStatement =<< splitList bs
+      return (If c f as' bs')
 
 instance Arbitrary Statement where
   arbitrary = sized sizedStatement
 
   shrink = \case
-    If _ _ as bs -> NE.toList as ++ bs
+    If c f as bs -> NE.toList as ++ bs ++ (If c f <$> traverse shrink as <*> shrinkList shrink bs)
     _ -> []
 
 return []
+
+main :: IO Bool
 main = $forAllProperties $ quickCheckWithResult stdArgs{maxSuccess=1000}

@@ -105,7 +105,7 @@ test-suite test-quickcheck-generators
   hs-source-dirs: src, tests
   main-is: Generators.hs
   ghc-options:
-    -main-is Generators
+    -Wall -threaded -main-is Generators
   if flag(Werror)
     ghc-options: -Werror
   other-modules:
@@ -126,7 +126,9 @@ test-suite test-quickcheck-back
   hs-source-dirs: src, tests
   main-is: Back.hs
   ghc-options:
-    -main-is Back
+    -Wall -threaded -main-is Back
+  if flag(Werror)
+    ghc-options: -Werror
   other-modules:
     Generators
     Data.List.NonEmpty
