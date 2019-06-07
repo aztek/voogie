@@ -16,8 +16,11 @@ import qualified Data.List.NonUnit as NU (toList, NonUnit((:|)))
 import Data.Traversable (traverse)
 #endif
 
-import Test.QuickCheck hiding (Property)
 import qualified Test.QuickCheck as QC (Property)
+import Test.QuickCheck (Arbitrary(..), Gen, Positive(..), Args(..),
+                        elements, choose, oneof, sized, suchThat, forAll,
+                        shrinkList, stdArgs,
+                        forAllProperties, quickCheckWithResult)
 
 import Voogie.Boogie hiding (array, tupleType)
 

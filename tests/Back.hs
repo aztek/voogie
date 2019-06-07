@@ -2,7 +2,8 @@
 
 module Back where
 
-import Test.QuickCheck
+import Test.QuickCheck (Property, Args(..), (===),
+                        stdArgs, forAllProperties, quickCheckWithResult)
 
 import Generators ()
 
