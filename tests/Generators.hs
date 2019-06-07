@@ -1,15 +1,22 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 module Generators where
 
 import Control.Monad
+#if !MIN_VERSION_base(4, 8, 0)
+import Data.Functor ((<$>))
+#endif
 import Data.List as L
 import Data.List.NonEmpty (NonEmpty)
 import Data.List.NonEmpty as NE
 import Data.List.NonUnit (NonUnit)
 import qualified Data.List.NonUnit as NonUnit
 import Data.Maybe
+#if !MIN_VERSION_base(4, 8, 0)
+import Data.Traversable (traverse)
+#endif
 
 import Test.QuickCheck as QC
 
