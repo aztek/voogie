@@ -108,6 +108,15 @@ test-suite test-quickcheck-generators
     -Wall -threaded -main-is Generators
   if flag(Werror)
     ghc-options: -Werror
+  if impl(ghc < 8)
+    ghc-options:
+      -fwarn-incomplete-record-updates -fwarn-incomplete-uni-patterns
+      -fno-warn-orphans
+    build-depends: semigroups >= 0.18
+  if impl(ghc >= 8)
+    ghc-options:
+      -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns
+      -Wredundant-constraints -Wno-orphans
   other-modules:
     Data.List.NonEmpty
     Data.List.NonUnit
@@ -129,6 +138,15 @@ test-suite test-quickcheck-back
     -Wall -threaded -main-is Back
   if flag(Werror)
     ghc-options: -Werror
+  if impl(ghc < 8)
+    ghc-options:
+      -fwarn-incomplete-record-updates -fwarn-incomplete-uni-patterns
+      -fno-warn-orphans
+    build-depends: semigroups >= 0.18
+  if impl(ghc >= 8)
+    ghc-options:
+      -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns
+      -Wredundant-constraints -Wno-orphans
   other-modules:
     Generators
     Data.List.NonEmpty
