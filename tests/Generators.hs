@@ -68,14 +68,14 @@ splitNE n = do
 prop_splitNE :: Positive Int -> QC.Property
 prop_splitNE (Positive n) = forAll (splitNE n) $ \ks -> sum (NE.toList ks) <= n
 
-splitTuple :: Int -> Gen (NonUnit Int)
-splitTuple n = do
+splitNU :: Int -> Gen (NonUnit Int)
+splitNU n = do
   (k, m) <- split n
   ks <- splitNE m
   return (k NU.:| ks)
 
-prop_splitTuple :: Positive Int -> QC.Property
-prop_splitTuple (Positive n) = forAll (splitTuple n) $ \ks -> sum (NU.toList ks) <= n
+prop_splitNU :: Positive Int -> QC.Property
+prop_splitNU (Positive n) = forAll (splitNU n) $ \ks -> sum (NU.toList ks) <= n
 
 instance Arbitrary Type where
   -- Currently, truly arbitrary types significantly slow down generation of
@@ -98,15 +98,15 @@ sizedType n = oneof
     atomic = return <$> [Integer, Boolean]
 
     array = do
-      (r NU.:| is) <- traverse sizedType =<< splitTuple (n - 1)
+      (r NU.:| is) <- traverse sizedType =<< splitNU (n - 1)
       return (Array is r)
 
     tupleType = do
-      ts <- traverse sizedType =<< splitTuple (n - 1)
+      ts <- traverse sizedType =<< splitNU (n - 1)
       return (TupleType ts)
 
     functional = do
-      (r NU.:| as) <- traverse sizedType =<< splitTuple (n - 1)
+      (r NU.:| as) <- traverse sizedType =<< splitNU (n - 1)
       return (Functional as r)
 
     -- custom = do
