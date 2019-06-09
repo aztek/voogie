@@ -1,18 +1,12 @@
 {-# LANGUAGE DeriveFunctor, DeriveFoldable, DeriveTraversable #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE CPP #-}
 
 module Voogie.Theory where
 
 import Data.List.NonEmpty (NonEmpty((:|)))
 import Data.List.NonUnit (NonUnit)
 import qualified Data.List.NonUnit as NonUnit (nonUnit)
-
-#if !MIN_VERSION_base(4, 8, 0)
-import Data.Foldable (Foldable)
-import Data.Traversable (Traversable)
-#endif
 
 type Name = String
 

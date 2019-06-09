@@ -17,7 +17,6 @@ build-type: Simple
 extra-source-files: README.md
 cabal-version: >= 1.10
 tested-with:
-  GHC == 7.8.4,
   GHC == 7.10.3,
   GHC == 8.0.2,
   GHC == 8.2.2,
@@ -71,7 +70,7 @@ executable voogie
   if flag(Werror)
     ghc-options: -Werror
   build-depends:
-    base                 >= 4.5    && < 5.0,
+    base                 >= 4.8    && < 5.0,
     containers           >= 0.6.0  && < 0.7,
     extra                >= 1.6    && < 1.7,
     mtl                  >= 2.2    && < 3.0,

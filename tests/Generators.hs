@@ -1,20 +1,13 @@
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 module Generators where
 
-#if !MIN_VERSION_base(4, 8, 0)
-import Control.Applicative ((<$>), (<*>))
-#endif
 import Control.Monad ((<=<))
 import Data.List.NonEmpty (NonEmpty)
 import Data.List.NonEmpty as NE (toList, NonEmpty((:|)))
 import Data.List.NonUnit (NonUnit)
 import qualified Data.List.NonUnit as NU (toList, NonUnit((:|)))
-#if !MIN_VERSION_base(4, 8, 0)
-import Data.Traversable (traverse)
-#endif
 
 import qualified Test.QuickCheck as QC (Property)
 import Test.QuickCheck (Arbitrary(..), Gen, Positive(..), Args(..),
