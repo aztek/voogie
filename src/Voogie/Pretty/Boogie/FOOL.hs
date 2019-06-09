@@ -17,7 +17,7 @@ pretty' :: Term -> Doc
 pretty' t = case t of
   Binary{} -> parens (pretty t)
   Equals{} -> parens (pretty t)
-  If{}     -> parens (pretty t)
+  IfElse{} -> parens (pretty t)
   _ -> pretty t
 
 instance Pretty Term where
@@ -46,9 +46,9 @@ instance Pretty Term where
           LT -> pretty t
           _ -> parens (pretty t)
         pretty'' t = pretty' t
-    If c a b -> keyword kwdIf   <+> pretty c <+>
-                keyword kwdThen <+> pretty a <+>
-                keyword kwdElse <+> pretty b
+    IfElse c a b -> keyword kwdIf   <+> pretty c <+>
+                    keyword kwdThen <+> pretty a <+>
+                    keyword kwdElse <+> pretty b
     Select a i -> pretty a <> brackets (pretty i)
     Store a i v -> pretty a <> brackets (pretty i) <+> operator opAssign <+> pretty v
     t@Let{} -> error $ "Cannot represent let-expression " ++ show t ++

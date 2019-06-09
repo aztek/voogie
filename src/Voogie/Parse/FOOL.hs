@@ -39,26 +39,26 @@ operators = unaryOperators ++ binaryOperators
 
 arg :: Parser Term
 arg =  parens term
-   <|> quantified
-   <|> ast (BoolConst <$> boolean)
-   <|> ast (IntConst <$> integer)
+   <|> quantify
+   <|> ast (BooleanConstant <$> boolean)
+   <|> ast (IntegerConstant <$> integer)
    <|> ref
-   <|> ternary
+   <|> ifElse
 
 ref :: Parser Term
 ref = ast $ Ref <$> identifier <*> many (brackets $ commaSep1 term)
 
-ternary :: Parser Term
-ternary =  ast $ Ternary
-       <$> (reserved kwdIf   *> term)
-       <*> (reserved kwdThen *> term)
-       <*> (reserved kwdElse *> term)
+ifElse :: Parser Term
+ifElse =  ast $ IfElse
+      <$> (reserved kwdIf   *> term)
+      <*> (reserved kwdThen *> term)
+      <*> (reserved kwdElse *> term)
 
-quantified :: Parser Formula
-quantified =  ast $ Quantified
-          <$> quantifier
-          <*> commaSep1 (typed $ commaSep1 identifier) <* reserved opQsep
-          <*> term
+quantify :: Parser Formula
+quantify =  ast $ Quantify
+        <$> quantifier
+        <*> commaSep1 (typed $ commaSep1 identifier) <* reserved opQsep
+        <*> term
 
 formula :: Parser Formula
 formula = term

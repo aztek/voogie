@@ -47,8 +47,8 @@ translateStatement s = F.let_ (F.Binding definition body)
     body = case s of
       B.Assign ass -> F.tupleLiteral (translateAssign <$> ass)
       B.If c flipBranches a b
-        | flipBranches -> F.if_ c' b' a'
-        | otherwise    -> F.if_ c' a' b'
+        | flipBranches -> F.ifElse c' b' a'
+        | otherwise    -> F.ifElse c' a' b'
         where
           c' = translateExpr c
           a' = foldr translateStatement tuple a
@@ -71,7 +71,7 @@ translateExpr = \case
   B.BooleanLiteral b -> F.booleanConstant b
   B.Unary  op   e -> F.unary  op (translateExpr e)
   B.Binary op a b -> F.binary op (translateExpr a) (translateExpr b)
-  B.IfElse  c a b -> F.if_ (translateExpr c) (translateExpr a) (translateExpr b)
+  B.IfElse  c a b -> F.ifElse (translateExpr c) (translateExpr a) (translateExpr b)
   B.Equals  s a b -> F.equals s (translateExpr a) (translateExpr b)
   B.FunApp f args -> F.application f (fmap translateExpr args)
   B.Ref      lval -> maybe n (F.select n) is

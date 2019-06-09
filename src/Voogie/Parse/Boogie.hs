@@ -17,19 +17,19 @@ import Voogie.Parse
 import qualified Voogie.Parse.FOOL as F
 import Voogie.Theory
 
-expr :: Parser Expr
+expr :: Parser Expression
 expr = buildExpressionParser operators term
 
-unary :: UnaryOp -> Operator Expr
+unary :: UnaryOp -> Operator Expression
 unary  = prefix <$> nameOf <*> Unary
 
-binary :: BinaryOp -> Assoc -> Operator Expr
+binary :: BinaryOp -> Assoc -> Operator Expression
 binary = infix' <$> nameOf <*> Binary
 
-equals :: Sign -> Assoc -> Operator Expr
+equals :: Sign -> Assoc -> Operator Expression
 equals = infix' <$> nameOf <*> Equals
 
-operators :: [[Operator Expr]]
+operators :: [[Operator Expression]]
 operators = unaryOperators ++ binaryOperators
   where
     unaryOperators = fmap (\op -> unary <$> [op]) [minBound..]
@@ -43,30 +43,30 @@ operators = unaryOperators ++ binaryOperators
         assocLeft $ binary <$> [Iff]
       ]
 
-term :: Parser Expr
+term :: Parser Expression
 term =  parens expr
-    <|> ast (BoolConst <$> boolean)
-    <|> ast (IntConst <$> integer)
-    <|> ast (LVal <$> lval)
-    <|> ternary
+    <|> ast (BooleanLiteral <$> boolean)
+    <|> ast (IntegerLiteral <$> integer)
+    <|> ast (Ref <$> lval)
+    <|> ifElse
 
-ternary :: Parser Expr
-ternary =  ast $ Ternary
-       <$> (reserved kwdIf   *> expr)
-       <*> (reserved kwdThen *> expr)
-       <*> (reserved kwdElse *> expr)
+ifElse :: Parser Expression
+ifElse =  ast $ IfElse
+      <$> (reserved kwdIf   *> expr)
+      <*> (reserved kwdThen *> expr)
+      <*> (reserved kwdElse *> expr)
 
-lval :: Parser LVal
-lval = Ref <$> identifier <*> many (brackets $ commaSep1 expr)
+lval :: Parser LValue
+lval = LValue <$> identifier <*> many (brackets $ commaSep1 expr)
 
-stmts :: Parser [Stmt]
+stmts :: Parser [Statement]
 stmts =  braces (many stmt)
      <|> (:[]) <$> stmt
 
-stmt :: Parser Stmt
+stmt :: Parser Statement
 stmt = assignStmt <|> ifStmt
 
-assignStmt :: Parser Stmt
+assignStmt :: Parser Statement
 assignStmt = ast . atomicStmt $ do
   lvals <- commaSep1 lval
   reserved opAssign
@@ -74,7 +74,7 @@ assignStmt = ast . atomicStmt $ do
   guard (length lvals == length rvals)
   return $ Assign (NE.zip lvals rvals)
 
-ifStmt :: Parser Stmt
+ifStmt :: Parser Statement
 ifStmt = ast $ reserved kwdIf >> If <$> parens expr <*> stmts <*> elseStmts
   where elseStmts = fromMaybe [] <$> optionMaybe (reserved kwdElse *> stmts)
 
@@ -112,11 +112,11 @@ precondition = keyword kwdRequires F.formula
 postcondition :: Parser Formula
 postcondition = keyword kwdEnsures F.formula
 
-property :: Parser Prop
+property :: Parser Property
 property =  keyword kwdAssume (Assume <$> F.formula)
         <|> keyword kwdAssert (Assert <$> F.formula)
 
-topLevel :: Parser (Either Stmt Prop)
+topLevel :: Parser (Either Statement Property)
 topLevel = Left <$> stmt <|> Right <$> property
 
 boogie :: Parser Boogie

@@ -26,11 +26,11 @@ data Expression
   = IntegerLiteral Integer
   | BooleanLiteral Bool
   | Ref LValue
-  | Unary  UnaryOp    Expression
-  | Binary BinaryOp   Expression Expression
+  | Unary UnaryOp Expression
+  | Binary BinaryOp Expression Expression
   | IfElse Expression Expression Expression
-  | FunApp Function (NonEmpty Expression)
   | Equals Sign Expression Expression
+  | FunApp Function (NonEmpty Expression)
   deriving (Show, Eq)
 
 instance TypeOf Expression where

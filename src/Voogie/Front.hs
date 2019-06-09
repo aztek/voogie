@@ -112,28 +112,28 @@ analyzeTopLevel = \case
   Left stmt -> fmap Left <$> analyzeStmt (A.astValue stmt)
   Right prop -> Just . Right <$> analyzeProp prop
 
-analyzeStmts :: [AST.Stmt] -> Analyze [B.Statement]
+analyzeStmts :: [AST.Statement] -> Analyze [B.Statement]
 analyzeStmts = fmap catMaybes . mapM (analyzeStmt . A.astValue)
 
-analyzeStmt :: AST.Stmt' -> Analyze (Maybe B.Statement)
+analyzeStmt :: AST.StatementF -> Analyze (Maybe B.Statement)
 analyzeStmt = \case
   AST.If c a b -> B.if_ <$> (analyzeExpr <$> c <::> Boolean)
                         <*> analyzeStmts a <*> analyzeStmts b
   AST.Assign ass -> B.assign <$> mapM analyzeAssignment ass
 
-analyzeProp :: AST.Prop -> Analyze B.Property
+analyzeProp :: AST.Property -> Analyze B.Property
 analyzeProp = \case
   AST.Assume f -> B.assume <$> analyzeProperty f
   AST.Assert f -> B.assert <$> analyzeProperty f
 
-analyzeAssignment :: (AST.LVal, AST.Expr) -> Analyze B.Assignment
+analyzeAssignment :: AST.Assignment -> Analyze B.Assignment
 analyzeAssignment (lval, e) = do
   lv <- analyzeLValue lval
   e' <- analyzeExpr <$> e <::> typeOf lv
   return (lv, e')
 
-analyzeLValue :: AST.LVal -> Analyze B.LValue
-analyzeLValue (AST.Ref ast is) = do
+analyzeLValue :: AST.LValue -> Analyze B.LValue
+analyzeLValue (AST.LValue ast is) = do
   var <- lookupEnv ast
   let n = A.astValue var
   let t = typeOf n
@@ -144,11 +144,11 @@ analyzeLValue (AST.Ref ast is) = do
   es <- mapM (uncurry . NE.zipWithM $ guardType analyzeExpr) is'
   return (B.lvalue n es)
 
-analyzeExpr :: AST.Expr' -> Analyze B.Expression
+analyzeExpr :: AST.ExpressionF -> Analyze B.Expression
 analyzeExpr = \case
-  AST.IntConst  i -> return (B.integerLiteral i)
-  AST.BoolConst b -> return (B.booleanLiteral b)
-  AST.LVal lval -> do
+  AST.IntegerLiteral i -> return (B.integerLiteral i)
+  AST.BooleanLiteral b -> return (B.booleanLiteral b)
+  AST.Ref lval -> do
     lval' <- analyzeLValue lval
     return (B.ref lval')
   AST.Unary op e -> do
@@ -164,7 +164,7 @@ analyzeExpr = \case
     a' <- analyzeExpr (A.astValue a)
     b' <- analyzeExpr <$> b <::> typeOf a'
     return (B.equals s a' b')
-  AST.Ternary c a b -> do
+  AST.IfElse c a b -> do
     c' <- analyzeExpr <$> c <::> Boolean
     a' <- analyzeExpr (A.astValue a)
     b' <- analyzeExpr <$> b <::> typeOf a'
@@ -178,10 +178,10 @@ type AnalyzeF t = ReaderT (Env F.Var, Env Name) Result t
 analyzeFormula :: F.AST.Term -> AnalyzeF F.Formula
 analyzeFormula f = analyzeTerm <$> f <::> Boolean
 
-analyzeTerm :: F.AST.Term' -> AnalyzeF F.Term
+analyzeTerm :: F.AST.TermF -> AnalyzeF F.Term
 analyzeTerm = \case
-  F.AST.IntConst  i -> return (F.integerConstant i)
-  F.AST.BoolConst b -> return (F.booleanConstant b)
+  F.AST.IntegerConstant i -> return (F.integerConstant i)
+  F.AST.BooleanConstant b -> return (F.booleanConstant b)
   F.AST.Ref ast is -> do
     var <- analyzeName ast
     A.astValue <$> foldM analyzeSelect var is
@@ -194,16 +194,16 @@ analyzeTerm = \case
     a' <- analyzeTerm <$> a <::> d1
     b' <- analyzeTerm <$> b <::> d2
     return (F.binary op a' b')
-  F.AST.Ternary c a b -> do
+  F.AST.IfElse c a b -> do
     c' <- analyzeFormula c
     a' <- analyzeTerm (A.astValue a)
     b' <- analyzeTerm <$> b <::> typeOf a'
-    return (F.if_ c' a' b')
+    return (F.ifElse c' a' b')
   F.AST.Equals s a b -> do
     a' <- analyzeTerm (A.astValue a)
     b' <- analyzeTerm <$> b <::> typeOf a'
     return (F.equals s a' b')
-  F.AST.Quantified q vars f -> do
+  F.AST.Quantify q vars f -> do
     let flatVars = fmap (fmap F.var <$>) (sequence =<< vars)
     qv <- lift $ runReaderT (extendEnvT flatVars) emptyEnv
     f' <- local (first (<> qv)) (analyzeFormula f)

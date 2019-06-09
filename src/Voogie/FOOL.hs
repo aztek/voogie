@@ -56,7 +56,7 @@ data Term
   | Quantify Quantifier VarList Term
   | Equals Sign Term Term
   | Let Binding Term
-  | If Term Term Term
+  | IfElse Term Term Term
   -- Arrays
   | Select Term Term
   | Store Term Term Term
@@ -78,7 +78,7 @@ instance TypeOf Term where
     Quantify{}        -> Boolean
     Equals{}          -> Boolean
     Let           _ t -> typeOf t
-    If          _ a _ -> typeOf a
+    IfElse      _ a _ -> typeOf a
     Select        a _ -> arrayArgument (typeOf a)
     Store       a _ _ -> typeOf a
     TupleLiteral   es -> TupleType (fmap typeOf es)

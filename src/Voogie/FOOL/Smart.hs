@@ -80,8 +80,8 @@ trivialDefinition (ConstantSymbol c) (Constant c') = c == c'
 trivialDefinition (TupleD t) (TupleLiteral t') = fmap constant t == t'
 trivialDefinition _ _ = False
 
-if_ :: Term -> Term -> Term -> Term
-if_ = If
+ifElse :: Term -> Term -> Term -> Term
+ifElse = IfElse
 
 select :: Foldable f => Term -> f Term -> Term
 select = foldl typeSafeSelect

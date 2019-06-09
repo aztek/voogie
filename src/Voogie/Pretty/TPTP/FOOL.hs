@@ -84,7 +84,7 @@ instance Pretty Term where
     Application  f as -> funapp (prettyIdentifier f) (pretty <$> as)
     Select        a i -> funapp2 (builtin kwdSelect) (pretty a) (pretty i)
     Store       a i e -> funapp3 (builtin kwdStore)  (pretty a) (pretty i) (pretty e)
-    If          c a b -> funapp3 (builtin kwdIf) (pretty c) (line <> pretty a) (line <> pretty b)
+    IfElse      c a b -> funapp3 (builtin kwdIf) (pretty c) (line <> pretty a) (line <> pretty b)
     Quantify   q vs t -> pretty q <> tuple (pretty <$> vs) <> punctuation ":" <+> pretty' t
     TupleLiteral   ts -> tuple (NonUnit.toNonEmpty (pretty <$> ts))
 

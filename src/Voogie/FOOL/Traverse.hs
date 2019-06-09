@@ -40,7 +40,7 @@ traverseTerm termF typeF = \case
   Quantify  q vs f -> Quantify q   <$> traverse typedF vs <*> termF f
   Equals     s a b -> Equals s     <$> termF a <*> termF b
   Let          b t -> Let          <$> traverseBinding termF typeF b <*> termF t
-  If         c a b -> If           <$> termF c <*> termF a <*> termF b
+  IfElse     c a b -> IfElse       <$> termF c <*> termF a <*> termF b
   Select       a i -> Select       <$> termF a <*> termF i
   Store      a i v -> Store        <$> termF a <*> termF i <*> termF v
   TupleLiteral  es -> TupleLiteral <$> traverse termF es

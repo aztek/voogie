@@ -9,38 +9,40 @@ import Voogie.Theory
 
 type Identifier = AST Name
 
-data LVal = Ref Identifier [NonEmpty Expr]
+data LValue = LValue Identifier [NonEmpty Expression]
   deriving (Show, Eq)
 
-type Expr = AST Expr'
-data Expr'
-  = IntConst Integer
-  | BoolConst Bool
-  | Unary   UnaryOp  Expr
-  | Binary  BinaryOp Expr Expr
-  | Ternary          Expr Expr Expr
-  | Equals Sign Expr Expr
-  | LVal LVal
+type Expression = AST ExpressionF
+data ExpressionF
+  = IntegerLiteral Integer
+  | BooleanLiteral Bool
+  | Ref LValue
+  | Unary UnaryOp Expression
+  | Binary BinaryOp Expression Expression
+  | IfElse Expression Expression Expression
+  | Equals Sign Expression Expression
   deriving (Show, Eq)
 
-type Stmt = AST Stmt'
-data Stmt'
-  = If Expr [Stmt] [Stmt]
-  | Assign (NonEmpty (LVal, Expr))
+type Assignment = (LValue, Expression)
+
+type Statement = AST StatementF
+data StatementF
+  = If Expression [Statement] [Statement]
+  | Assign (NonEmpty (LValue, Expression))
   deriving (Show, Eq)
 
 data Decl = Declare (Typed (NonEmpty Identifier))
   deriving (Show, Eq)
 
-data FunDef = FunDef Type Identifier [Typed Identifier] [Stmt]
+data FunDef = FunDef Type Identifier [Typed Identifier] [Statement]
   deriving (Show, Eq)
 
-data Prop
+data Property
   = Assume F.Formula
   | Assert F.Formula
   deriving (Show, Eq)
 
-type TopLevel = Either Stmt Prop
+type TopLevel = Either Statement Property
 
 data Returns = Returns (NonEmpty (Typed Identifier))
   deriving (Show, Eq)
