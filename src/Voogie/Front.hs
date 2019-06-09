@@ -18,7 +18,7 @@ import Data.Maybe (catMaybes)
 import Data.Semigroup (Semigroup(..))
 #endif
 
-import qualified Voogie.AST as A
+import Voogie.AST (AST(..))
 import qualified Voogie.AST.Boogie as AST
 import qualified Voogie.AST.FOOL as F.AST
 import qualified Voogie.Boogie.Smart as B
@@ -43,20 +43,20 @@ liftMT f = do { e <- ask; lift (f e) }
 localM :: Monad m => ReaderT r m r -> ReaderT r m a -> ReaderT r m a
 localM m rma = do { r <- m; local (const r) rma }
 
-lookupEnv :: (Ord a, Named a) => A.AST a -> AnalyzeE a (A.AST (Typed a))
-lookupEnv = liftMT . \ast (Env vs) -> case Map.lookup (A.astValue ast) vs of
+lookupEnv :: (Ord a, Named a) => AST a -> AnalyzeE a (AST (Typed a))
+lookupEnv = liftMT . \ast (Env vs) -> case Map.lookup (astValue ast) vs of
   Just  t -> Right (Typed t <$> ast)
   Nothing -> Left  (UndefinedVariable $ fmap nameOf ast)
 
-extendEnv :: (Ord a, Named a) => Typed (A.AST a) -> AnalyzeE a (Env a)
+extendEnv :: (Ord a, Named a) => Typed (AST a) -> AnalyzeE a (Env a)
 extendEnv = liftMT . extend
   where
     extend (Typed t ast) env@(Env vs) = case runReaderT (lookupEnv ast) env of
       Right tast' -> Left (MultipleDefinitions $ fmap (fmap nameOf) tast')
-      Left _ -> Right (Env (Map.insert (A.astValue ast) t vs))
+      Left _ -> Right (Env (Map.insert (astValue ast) t vs))
 
 extendEnvT :: (Ord a, Named a, Traversable t)
-           => t (Typed (A.AST a)) -> AnalyzeE a (Env a)
+           => t (Typed (AST a)) -> AnalyzeE a (Env a)
 extendEnvT ts = do { env <- ask; foldM (local . const) env (fmap extendEnv ts) }
 
 type Analyze t = AnalyzeE Name t
@@ -81,38 +81,38 @@ analyzeMain (AST.Main modifies pre returns locals toplevel post) = do
 
   return (env, B.main modifies' pre' toplevel' post')
   where
-    modifies' = fmap A.astValue modifies
+    modifies' = fmap astValue modifies
     returns' = maybe [] (\(AST.Returns r) -> NE.toList r) returns
 
 analyzeDecls :: [AST.Decl] -> Analyze (Env Name)
 analyzeDecls = extendEnvT
              . concatMap (\(AST.Declare ns) -> NE.toList (sequence ns))
 
-typed :: (TypeOf a, Pretty a) => Type -> A.AST a -> Result a
-typed t (A.AST pos a)
+typed :: (TypeOf a, Pretty a) => Type -> AST a -> Result a
+typed t (AST pos a)
   | t == typeOf a = Right a
-  | otherwise = Left (TypeMismatch (A.AST pos (Typed (typeOf a) (pretty a))) t)
+  | otherwise = Left (TypeMismatch (AST pos (Typed (typeOf a) (pretty a))) t)
 
 typedM :: (Pretty a, TypeOf a, Monad m)
-       => Type -> A.AST (m a) -> m (Result a)
+       => Type -> AST (m a) -> m (Result a)
 typedM t = fmap (typed t) . sequence
 
 infix 3 <::>
 (<::>) :: (Pretty a, TypeOf a, MonadTrans t, Monad (t Result))
-       => A.AST (t Result a) -> Type -> t Result a
+       => AST (t Result a) -> Type -> t Result a
 ast <::> t = t `typedM` ast >>= lift
 
 guardType :: (Pretty a, TypeOf a, MonadTrans t, Monad (t Result))
-          => (b -> t Result a) -> A.AST b -> Type -> t Result a
+          => (b -> t Result a) -> AST b -> Type -> t Result a
 guardType f a t = f <$> a <::> t
 
 analyzeTopLevel :: AST.TopLevel -> Analyze (Maybe B.TopLevel)
 analyzeTopLevel = \case
-  Left stmt -> fmap Left <$> analyzeStmt (A.astValue stmt)
+  Left stmt -> fmap Left <$> analyzeStmt (astValue stmt)
   Right prop -> Just . Right <$> analyzeProp prop
 
 analyzeStmts :: [AST.Statement] -> Analyze [B.Statement]
-analyzeStmts = fmap catMaybes . mapM (analyzeStmt . A.astValue)
+analyzeStmts = fmap catMaybes . mapM (analyzeStmt . astValue)
 
 analyzeStmt :: AST.StatementF -> Analyze (Maybe B.Statement)
 analyzeStmt = \case
@@ -134,7 +134,7 @@ analyzeAssignment (lval, e) = do
 analyzeLValue :: AST.LValue -> Analyze B.LValue
 analyzeLValue (AST.LValue ast is) = do
   var <- lookupEnv ast
-  let n = A.astValue var
+  let n = astValue var
   let t = typeOf n
   let ais = arrayIndexes t
   is' <- lift $ if length is > length ais
@@ -160,12 +160,12 @@ analyzeExpr = \case
     b' <- analyzeExpr <$> b <::> d2
     return (B.binary op a' b')
   AST.Equals s a b -> do
-    a' <- analyzeExpr (A.astValue a)
+    a' <- analyzeExpr (astValue a)
     b' <- analyzeExpr <$> b <::> typeOf a'
     return (B.equals s a' b')
   AST.IfElse c a b -> do
     c' <- analyzeExpr <$> c <::> Boolean
-    a' <- analyzeExpr (A.astValue a)
+    a' <- analyzeExpr (astValue a)
     b' <- analyzeExpr <$> b <::> typeOf a'
     return (B.ifElse c' a' b')
 
@@ -183,7 +183,7 @@ analyzeTerm = \case
   F.AST.BooleanConstant b -> return (F.booleanConstant b)
   F.AST.Ref ast is -> do
     var <- analyzeName ast
-    A.astValue <$> foldM analyzeSelect var is
+    astValue <$> foldM analyzeSelect var is
   F.AST.Unary op t -> do
     let d = unaryOpDomain op
     t' <- analyzeTerm <$> t <::> d
@@ -195,31 +195,31 @@ analyzeTerm = \case
     return (F.binary op a' b')
   F.AST.IfElse c a b -> do
     c' <- analyzeFormula c
-    a' <- analyzeTerm (A.astValue a)
+    a' <- analyzeTerm (astValue a)
     b' <- analyzeTerm <$> b <::> typeOf a'
     return (F.ifElse c' a' b')
   F.AST.Equals s a b -> do
-    a' <- analyzeTerm (A.astValue a)
+    a' <- analyzeTerm (astValue a)
     b' <- analyzeTerm <$> b <::> typeOf a'
     return (F.equals s a' b')
   F.AST.Quantify q vars f -> do
     let flatVars = fmap (fmap F.var <$>) (sequence =<< vars)
     qv <- lift $ runReaderT (extendEnvT flatVars) emptyEnv
     f' <- local (first (<> qv)) (analyzeFormula f)
-    let vars' = fmap (fmap A.astValue) flatVars
+    let vars' = fmap (fmap astValue) flatVars
     return (F.quantify q vars' f')
 
 instance Semigroup (m a) => Semigroup (ReaderT r m a) where
   ReaderT f <> ReaderT g = ReaderT (f <> g)
 
-analyzeName :: A.AST Name -> AnalyzeF (A.AST F.Term)
+analyzeName :: AST Name -> AnalyzeF (AST F.Term)
 analyzeName ast = withReaderT fst analyzeVar
                <> withReaderT snd analyzeSym
   where
     analyzeVar = fmap F.variable <$> lookupEnv (F.var <$> ast)
     analyzeSym = fmap F.constant <$> lookupEnv ast
 
-analyzeSelect :: A.AST F.Term -> NonEmpty F.AST.Term -> AnalyzeF (A.AST F.Term)
-analyzeSelect ast@(A.AST pos term) as = case typeOf term of
-  Array ts _ -> A.AST pos <$> (F.select term <$> NE.zipWithM (guardType analyzeTerm) as ts)
+analyzeSelect :: AST F.Term -> NonEmpty F.AST.Term -> AnalyzeF (AST F.Term)
+analyzeSelect ast@(AST pos term) as = case typeOf term of
+  Array ts _ -> AST pos <$> (F.select term <$> NE.zipWithM (guardType analyzeTerm) as ts)
   t -> lift $ Left (NonArraySelect (Typed t <$> fmap pretty ast))
