@@ -68,13 +68,13 @@ type ErrorRange = (SourcePos, SourcePos)
 
 errorRange :: Error -> Maybe ErrorRange
 errorRange = \case
-  InputOutputError                   _ -> Nothing
-  ParsingError                     err -> Just (errorPos err, errorPos err)
-  UndefinedVariable      (AST range _) -> Just range
-  MultipleDefinitions    (AST range _) -> Just range
-  TypeMismatch         (AST range _) _ -> Just range
-  NonArraySelect         (AST range _) -> Just range
-  ArrayDimensionMismatch (AST range _) -> Just range
+  InputOutputError         _ -> Nothing
+  ParsingError           err -> Just (errorPos err, errorPos err)
+  UndefinedVariable      ast -> Just (astRange ast)
+  MultipleDefinitions    ast -> Just (astRange ast)
+  TypeMismatch         ast _ -> Just (astRange ast)
+  NonArraySelect         ast -> Just (astRange ast)
+  ArrayDimensionMismatch ast -> Just (astRange ast)
 
 data ErrorReport = ErrorReport (Maybe Text) Error
 

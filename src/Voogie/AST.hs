@@ -5,7 +5,7 @@ module Voogie.AST where
 import Text.Parsec.Pos (SourcePos)
 
 data AST a = AST {
-  position :: (SourcePos, SourcePos),
+  astRange :: (SourcePos, SourcePos),
   astValue :: a
 } deriving (Eq, Functor, Foldable, Traversable)
 
