@@ -1,4 +1,3 @@
-{-# LANGUAGE GADTs #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -23,14 +22,15 @@ type Result = Either Error
 fmapError :: (e -> e') -> Either e a -> Either e' a
 fmapError = flip bimap id
 
-data Error where
-  InputOutputError       :: IOError -> Error
-  ParsingError           :: ParseError -> Error
-  UndefinedVariable      :: Named  a => AST a -> Error
-  MultipleDefinitions    :: Named  a => AST (Typed a) -> Error
-  TypeMismatch           :: Pretty a => AST (Typed a) -> Type -> Error
-  NonArraySelect         :: Pretty a => AST (Typed a) -> Error
-  ArrayDimensionMismatch :: Pretty a => AST (Typed a) -> Error
+data Error
+  = InputOutputError       IOError
+  | ParsingError           ParseError
+  | UndefinedVariable      (AST Name)
+  | MultipleDefinitions    (AST (Typed Name))
+  | TypeMismatch           (AST (Typed Doc)) Type
+  | NonArraySelect         (AST (Typed Doc))
+  | ArrayDimensionMismatch (AST (Typed Doc))
+  deriving (Show)
 
 instance Pretty Error where
   pretty = \case
@@ -43,11 +43,11 @@ instance Pretty Error where
                                  "unexpected" "end of input"
                                $ errorMessages err)
 
-    UndefinedVariable (AST _ v) ->
-      text "variable not in scope:" <+> bold (pretty $ nameOf v)
+    UndefinedVariable (AST _ n) ->
+      text "variable not in scope:" <+> bold (pretty n)
 
-    MultipleDefinitions (AST _ v) ->
-      text "variable redefined:" <+> renderTyped (nameOf <$> v)
+    MultipleDefinitions (AST _ t) ->
+      text "variable redefined:" <+> renderTyped t
 
     TypeMismatch (AST _ a) t ->
           text "expected an expression of the type" <+> bold (pretty t)

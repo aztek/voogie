@@ -24,7 +24,7 @@ import qualified Voogie.AST.FOOL as F.AST
 import qualified Voogie.Boogie.Smart as B
 import Voogie.Error
 import qualified Voogie.FOOL.Smart as F
-import Voogie.Pretty.Boogie.Boogie (Pretty)
+import Voogie.Pretty.Boogie.Boogie (Pretty(..))
 import Voogie.Theory
 
 newtype Env a = Env (Map a Type)
@@ -46,13 +46,13 @@ localM m rma = do { r <- m; local (const r) rma }
 lookupEnv :: (Ord a, Named a) => A.AST a -> AnalyzeE a (A.AST (Typed a))
 lookupEnv = liftMT . \ast (Env vs) -> case Map.lookup (A.astValue ast) vs of
   Just  t -> Right (Typed t <$> ast)
-  Nothing -> Left  (UndefinedVariable ast)
+  Nothing -> Left  (UndefinedVariable $ fmap nameOf ast)
 
 extendEnv :: (Ord a, Named a) => Typed (A.AST a) -> AnalyzeE a (Env a)
 extendEnv = liftMT . extend
   where
     extend (Typed t ast) env@(Env vs) = case runReaderT (lookupEnv ast) env of
-      Right tast' -> Left (MultipleDefinitions tast')
+      Right tast' -> Left (MultipleDefinitions $ fmap (fmap nameOf) tast')
       Left _ -> Right (Env (Map.insert (A.astValue ast) t vs))
 
 extendEnvT :: (Ord a, Named a, Traversable t)
@@ -91,7 +91,7 @@ analyzeDecls = extendEnvT
 typed :: (TypeOf a, Pretty a) => Type -> A.AST a -> Result a
 typed t (A.AST pos a)
   | t == typeOf a = Right a
-  | otherwise = Left (TypeMismatch (A.AST pos (Typed (typeOf a) a)) t)
+  | otherwise = Left (TypeMismatch (A.AST pos (Typed (typeOf a) (pretty a))) t)
 
 typedM :: (Pretty a, TypeOf a, Monad m)
        => Type -> A.AST (m a) -> m (Result a)
@@ -138,7 +138,7 @@ analyzeLValue (AST.LValue ast is) = do
   let t = typeOf n
   let ais = arrayIndexes t
   is' <- lift $ if length is > length ais
-                then Left (ArrayDimensionMismatch (Typed t <$> var))
+                then Left (ArrayDimensionMismatch (Typed t <$> fmap pretty var))
                 else Right (zip is ais)
   es <- mapM (uncurry . NE.zipWithM $ guardType analyzeExpr) is'
   return (B.lvalue n es)
@@ -222,4 +222,4 @@ analyzeName ast = withReaderT fst analyzeVar
 analyzeSelect :: A.AST F.Term -> NonEmpty F.AST.Term -> AnalyzeF (A.AST F.Term)
 analyzeSelect ast@(A.AST pos term) as = case typeOf term of
   Array ts _ -> A.AST pos <$> (F.select term <$> NE.zipWithM (guardType analyzeTerm) as ts)
-  t -> lift $ Left (NonArraySelect (Typed t <$> ast))
+  t -> lift $ Left (NonArraySelect (Typed t <$> fmap pretty ast))
