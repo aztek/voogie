@@ -21,7 +21,6 @@ import Data.Semigroup (Semigroup(..))
 import qualified Voogie.AST as A
 import qualified Voogie.AST.Boogie as AST
 import qualified Voogie.AST.FOOL as F.AST
-import Voogie.Boogie (Boogie)
 import qualified Voogie.Boogie.Smart as B
 import Voogie.Error
 import qualified Voogie.FOOL.Smart as F
@@ -62,10 +61,10 @@ extendEnvT ts = do { env <- ask; foldM (local . const) env (fmap extendEnv ts) }
 
 type Analyze t = AnalyzeE Name t
 
-analyze :: AST.Boogie -> Result Boogie
+analyze :: AST.Boogie -> Result B.Boogie
 analyze boogie = runReaderT (analyzeBoogie boogie) emptyEnv
 
-analyzeBoogie :: AST.Boogie -> Analyze Boogie
+analyzeBoogie :: AST.Boogie -> Analyze B.Boogie
 analyzeBoogie (AST.Boogie globals main) = do
   (Env vs, main') <- localM (analyzeDecls globals) (analyzeMain main)
   let vs' = fmap (\(n, t) -> Typed t n) (Map.toList vs)
