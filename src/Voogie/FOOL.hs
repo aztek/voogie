@@ -81,7 +81,7 @@ instance TypeOf Term where
     IfElse      _ a _ -> typeOf a
     Select        a _ -> arrayArgument (typeOf a)
     Store       a _ _ -> typeOf a
-    TupleLiteral   es -> TupleType (fmap typeOf es)
+    TupleLiteral   es -> Tuple (fmap typeOf es)
 
 newtype Conjunction = Conjunction { getConjunction :: Formula }
   deriving (Eq, Show)

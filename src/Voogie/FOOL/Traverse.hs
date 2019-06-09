@@ -18,7 +18,7 @@ traverseType :: Applicative f
              -> Type -> f Type
 traverseType typeF = \case
   Array      ts t -> Array      <$> traverse typeF ts <*> typeF t
-  TupleType    ts -> TupleType  <$> traverse typeF ts
+  Tuple        ts -> Tuple      <$> traverse typeF ts
   Functional ts t -> Functional <$> traverse typeF ts <*> typeF t
   t               -> pure t
 

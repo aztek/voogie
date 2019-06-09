@@ -7,7 +7,7 @@ module Voogie.Pretty.Boogie.Boogie (
 
 import qualified Data.List.NonEmpty as NE (nonEmpty, toList, unzip)
 
-import Voogie.Boogie
+import Voogie.Boogie hiding (tuple)
 import Voogie.Pretty.Boogie
 import Voogie.Pretty.Boogie.FOOL ()
 

@@ -16,8 +16,8 @@ instance Pretty Type where
     Integer -> builtin typeInteger
     Boolean -> builtin typeBoolean
     Array i t -> brackets (commaSep (pretty <$> i)) <+> pretty t
-    TupleType ts -> error $ "Cannot represent tuple " ++ show ts ++
-                            " in the Boogie syntax."
+    Tuple ts -> error $ "Cannot represent tuple " ++ show ts ++
+                        " in the Boogie syntax."
     Functional ts t -> ts' <+> operator "->" <+> pretty t
       where ts' = sepBy (space <> operator "*" <> space) (pretty <$> ts)
     Custom n -> pretty n

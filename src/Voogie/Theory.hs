@@ -20,7 +20,7 @@ data Type
   = Boolean
   | Integer
   | Array (NonEmpty Type) Type
-  | TupleType (NonUnit Type)
+  | Tuple (NonUnit Type)
   | Functional (NonEmpty Type) Type
   | Custom Name
   deriving (Show, Eq, Ord)
@@ -44,8 +44,8 @@ array :: [Type] -> Type -> Type
 array [] s = s
 array (t:ts) s = Array (t :| ts) s
 
-tupleType :: NonEmpty Type -> Type
-tupleType = either id TupleType . NonUnit.nonUnit
+tuple :: NonEmpty Type -> Type
+tuple = either id Tuple . NonUnit.nonUnit
 
 returnType :: Type -> Type
 returnType = \case

@@ -9,7 +9,7 @@ import qualified Data.List.NonEmpty as NE (nonEmpty)
 import Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonUnit as NonUnit
 
-import Voogie.FOOL
+import Voogie.FOOL hiding (tuple)
 import Voogie.Pretty
 import Voogie.TPTP.Syntax
 
@@ -29,7 +29,7 @@ instance Pretty Type where
     Integer         -> builtin intName
     Custom        n -> text n
     Array       i t -> foldr (funapp2 $ builtin arrayName) (pretty t) (pretty <$> i)
-    TupleType    ts -> tuple (NonUnit.toNonEmpty (pretty <$> ts))
+    Tuple        ts -> tuple (NonUnit.toNonEmpty (pretty <$> ts))
     Functional ts t -> sepBy (space <> operator "*" <> space) (pretty <$> ts)
                    <+> operator ">" <+> pretty t
 

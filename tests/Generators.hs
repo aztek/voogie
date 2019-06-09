@@ -15,7 +15,7 @@ import Test.QuickCheck (Arbitrary(..), Gen, Positive(..), Args(..),
                         shrinkList, stdArgs,
                         forAllProperties, quickCheckWithResult)
 
-import Voogie.Boogie hiding (array, tupleType)
+import Voogie.Boogie hiding (array, tuple)
 
 instance Arbitrary Quantifier where
   arbitrary = elements [minBound..maxBound]
@@ -78,7 +78,7 @@ instance Arbitrary Type where
 
   shrink = \case
     Array is r      -> r : NE.toList is
-    TupleType ts    -> NU.toList ts
+    Tuple     ts    -> NU.toList ts
     Functional as r -> r : NE.toList as
     _ -> []
 
@@ -86,7 +86,7 @@ sizedType :: Int -> Gen Type
 sizedType n = oneof
             $ atomic
            ++ if n < 1 then []
-              else [array, tupleType, functional]
+              else [array, tuple, functional]
   where
     atomic = return <$> [Integer, Boolean]
 
@@ -94,9 +94,9 @@ sizedType n = oneof
       (r NU.:| is) <- traverse sizedType =<< splitNU (n - 1)
       return (Array is r)
 
-    tupleType = do
+    tuple = do
       ts <- traverse sizedType =<< splitNU (n - 1)
-      return (TupleType ts)
+      return (Tuple ts)
 
     functional = do
       (r NU.:| as) <- traverse sizedType =<< splitNU (n - 1)
