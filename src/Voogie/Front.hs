@@ -19,7 +19,7 @@ import Data.Semigroup (Semigroup(..))
 #endif
 
 import Voogie.AST (AST(..))
-import qualified Voogie.AST.Boogie as AST
+import qualified Voogie.AST.Boogie as B.AST
 import qualified Voogie.AST.FOOL as F.AST
 import qualified Voogie.Boogie.Smart as B
 import Voogie.Error
@@ -61,17 +61,17 @@ extendEnvT ts = do { env <- ask; foldM (local . const) env (fmap extendEnv ts) }
 
 type Analyze t = AnalyzeE Name t
 
-analyze :: AST.Boogie -> Result B.Boogie
+analyze :: B.AST.Boogie -> Result B.Boogie
 analyze boogie = runReaderT (analyzeBoogie boogie) emptyEnv
 
-analyzeBoogie :: AST.Boogie -> Analyze B.Boogie
-analyzeBoogie (AST.Boogie globals main) = do
+analyzeBoogie :: B.AST.Boogie -> Analyze B.Boogie
+analyzeBoogie (B.AST.Boogie globals main) = do
   (Env vs, main') <- localM (analyzeDecls globals) (analyzeMain main)
   let vs' = fmap (\(n, t) -> Typed t n) (Map.toList vs)
   return (B.boogie vs' main')
 
-analyzeMain :: AST.Main -> Analyze (Env Name, B.Main)
-analyzeMain (AST.Main modifies pre returns locals toplevel post) = do
+analyzeMain :: B.AST.Main -> Analyze (Env Name, B.Main)
+analyzeMain (B.AST.Main modifies pre returns locals toplevel post) = do
   pre' <- mapM analyzeProperty pre
 
   env <- localM (analyzeDecls locals) (extendEnvT returns')
@@ -82,11 +82,11 @@ analyzeMain (AST.Main modifies pre returns locals toplevel post) = do
   return (env, B.main modifies' pre' toplevel' post')
   where
     modifies' = fmap astValue modifies
-    returns' = maybe [] (\(AST.Returns r) -> NE.toList r) returns
+    returns' = maybe [] (\(B.AST.Returns r) -> NE.toList r) returns
 
-analyzeDecls :: [AST.Decl] -> Analyze (Env Name)
+analyzeDecls :: [B.AST.Decl] -> Analyze (Env Name)
 analyzeDecls = extendEnvT
-             . concatMap (\(AST.Declare ns) -> NE.toList (sequence ns))
+             . concatMap (\(B.AST.Declare ns) -> NE.toList (sequence ns))
 
 typed :: (TypeOf a, Pretty a) => Type -> AST a -> Result a
 typed t (AST pos a)
@@ -106,33 +106,33 @@ guardType :: (Pretty a, TypeOf a, MonadTrans t, Monad (t Result))
           => (b -> t Result a) -> AST b -> Type -> t Result a
 guardType f a t = f <$> a <::> t
 
-analyzeTopLevel :: AST.TopLevel -> Analyze (Maybe B.TopLevel)
+analyzeTopLevel :: B.AST.TopLevel -> Analyze (Maybe B.TopLevel)
 analyzeTopLevel = \case
   Left stmt -> fmap Left <$> analyzeStmt (astValue stmt)
   Right prop -> Just . Right <$> analyzeProp prop
 
-analyzeStmts :: [AST.Statement] -> Analyze [B.Statement]
+analyzeStmts :: [B.AST.Statement] -> Analyze [B.Statement]
 analyzeStmts = fmap catMaybes . mapM (analyzeStmt . astValue)
 
-analyzeStmt :: AST.StatementF -> Analyze (Maybe B.Statement)
+analyzeStmt :: B.AST.StatementF -> Analyze (Maybe B.Statement)
 analyzeStmt = \case
-  AST.If c a b -> B.if_ <$> (analyzeExpr <$> c <::> Boolean)
-                        <*> analyzeStmts a <*> analyzeStmts b
-  AST.Assign ass -> B.assign <$> mapM analyzeAssignment ass
+  B.AST.If c a b -> B.if_ <$> (analyzeExpr <$> c <::> Boolean)
+                          <*> analyzeStmts a <*> analyzeStmts b
+  B.AST.Assign ass -> B.assign <$> mapM analyzeAssignment ass
 
-analyzeProp :: AST.Property -> Analyze B.Property
+analyzeProp :: B.AST.Property -> Analyze B.Property
 analyzeProp = \case
-  AST.Assume f -> B.assume <$> analyzeProperty f
-  AST.Assert f -> B.assert <$> analyzeProperty f
+  B.AST.Assume f -> B.assume <$> analyzeProperty f
+  B.AST.Assert f -> B.assert <$> analyzeProperty f
 
-analyzeAssignment :: AST.Assignment -> Analyze B.Assignment
+analyzeAssignment :: B.AST.Assignment -> Analyze B.Assignment
 analyzeAssignment (lval, e) = do
   lv <- analyzeLValue lval
   e' <- analyzeExpr <$> e <::> typeOf lv
   return (lv, e')
 
-analyzeLValue :: AST.LValue -> Analyze B.LValue
-analyzeLValue (AST.LValue ast is) = do
+analyzeLValue :: B.AST.LValue -> Analyze B.LValue
+analyzeLValue (B.AST.LValue ast is) = do
   var <- lookupEnv ast
   let n = astValue var
   let t = typeOf n
@@ -143,27 +143,27 @@ analyzeLValue (AST.LValue ast is) = do
   es <- mapM (uncurry . NE.zipWithM $ guardType analyzeExpr) is'
   return (B.lvalue n es)
 
-analyzeExpr :: AST.ExpressionF -> Analyze B.Expression
+analyzeExpr :: B.AST.ExpressionF -> Analyze B.Expression
 analyzeExpr = \case
-  AST.IntegerLiteral i -> return (B.integerLiteral i)
-  AST.BooleanLiteral b -> return (B.booleanLiteral b)
-  AST.Ref lval -> do
+  B.AST.IntegerLiteral i -> return (B.integerLiteral i)
+  B.AST.BooleanLiteral b -> return (B.booleanLiteral b)
+  B.AST.Ref lval -> do
     lval' <- analyzeLValue lval
     return (B.ref lval')
-  AST.Unary op e -> do
+  B.AST.Unary op e -> do
     let d = unaryOpDomain op
     e' <- analyzeExpr <$> e <::> d
     return (B.unary op e')
-  AST.Binary op a b -> do
+  B.AST.Binary op a b -> do
     let (d1, d2) = binaryOpDomain op
     a' <- analyzeExpr <$> a <::> d1
     b' <- analyzeExpr <$> b <::> d2
     return (B.binary op a' b')
-  AST.Equals s a b -> do
+  B.AST.Equals s a b -> do
     a' <- analyzeExpr (astValue a)
     b' <- analyzeExpr <$> b <::> typeOf a'
     return (B.equals s a' b')
-  AST.IfElse c a b -> do
+  B.AST.IfElse c a b -> do
     c' <- analyzeExpr <$> c <::> Boolean
     a' <- analyzeExpr (astValue a)
     b' <- analyzeExpr <$> b <::> typeOf a'
