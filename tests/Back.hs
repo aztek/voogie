@@ -11,7 +11,7 @@ import Generators ()
 
 import Voogie.Back (translateExpr)
 import Voogie.Boogie (Expression)
-import Voogie.Theory (typeOf)
+import Voogie.Language (typeOf)
 
 prop_translateExprPreservesTyping :: Expression -> Property
 prop_translateExprPreservesTyping e = typeOf e === typeOf (translateExpr e)

@@ -1,7 +1,7 @@
 {-# LANGUAGE LambdaCase #-}
 
 module Voogie.Boogie (
-  module Voogie.Theory,
+  module Voogie.Language,
   Var,
   Function,
   LValue(..),
@@ -18,7 +18,7 @@ module Voogie.Boogie (
 import Data.List.NonEmpty (NonEmpty)
 
 import qualified Voogie.FOOL as F
-import Voogie.Theory
+import Voogie.Language
 
 type Var = Typed Name
 type Function = Typed Name

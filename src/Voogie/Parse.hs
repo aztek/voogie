@@ -43,7 +43,7 @@ import qualified Text.Parsec.Token as Token
 
 import Voogie.AST
 import Voogie.Boogie.Syntax
-import Voogie.Theory
+import Voogie.Language
 
 type Parser = Parsec Text ()
 type Operator = E.Operator Text () Identity

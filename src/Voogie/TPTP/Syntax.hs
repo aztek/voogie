@@ -20,7 +20,7 @@ module Voogie.TPTP.Syntax (
   arrayName
 ) where
 
-import Voogie.Theory
+import Voogie.Language
 
 instance Named BinaryOp where
   nameOf = \case

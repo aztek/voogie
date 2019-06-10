@@ -2,7 +2,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE LambdaCase #-}
 
-module Voogie.Theory (
+module Voogie.Language (
   Name,
   Named(..),
   Type(..),

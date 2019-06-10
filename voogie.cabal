@@ -52,6 +52,7 @@ executable voogie
     Voogie.FOOL.Traverse
     Voogie.FOOL.Smart
     Voogie.Front
+    Voogie.Language
     Voogie.Parse
     Voogie.Parse.Boogie
     Voogie.Parse.FOOL
@@ -61,7 +62,6 @@ executable voogie
     Voogie.Pretty.Boogie.FOOL
     Voogie.Pretty.TPTP
     Voogie.Pretty.TPTP.FOOL
-    Voogie.Theory
     Voogie.TPTP
     Voogie.TPTP.Syntax
     Paths_voogie
@@ -121,7 +121,7 @@ test-suite test-quickcheck-generators
     Data.List.NonUnit
     Voogie.Boogie
     Voogie.FOOL
-    Voogie.Theory
+    Voogie.Language
   build-depends:
     base,
     QuickCheck
@@ -158,11 +158,11 @@ test-suite test-quickcheck-back
     Voogie.FOOL.Traverse
     Voogie.FOOL.Smart
     Voogie.FOOL.TypeSafe
+    Voogie.Language
     Voogie.Pretty
     Voogie.Pretty.Boogie
     Voogie.Pretty.Boogie.Boogie
     Voogie.Pretty.Boogie.FOOL
-    Voogie.Theory
   build-depends:
     base,
     mtl,

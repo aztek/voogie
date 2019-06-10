@@ -28,7 +28,7 @@ import Voogie.AST.FOOL (Formula)
 import Voogie.Error
 import Voogie.Parse
 import qualified Voogie.Parse.FOOL as F
-import Voogie.Theory
+import Voogie.Language
 
 expr :: Parser Expression
 expr = buildExpressionParser operators term

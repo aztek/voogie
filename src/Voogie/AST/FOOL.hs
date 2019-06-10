@@ -9,7 +9,7 @@ module Voogie.AST.FOOL (
 import Data.List.NonEmpty (NonEmpty)
 
 import Voogie.AST
-import Voogie.Theory
+import Voogie.Language
 
 type Identifier = AST Name
 

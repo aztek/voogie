@@ -21,7 +21,7 @@ import qualified Voogie.Boogie as B
 import qualified Voogie.FOOL.ArrayTheory as AT
 import qualified Voogie.FOOL.Smart as F
 import Voogie.FOOL.Traverse
-import Voogie.Theory hiding (tuple)
+import Voogie.Language hiding (tuple)
 import Voogie.Pretty.Boogie.Boogie ()
 
 data TranslationOptions = TranslationOptions {

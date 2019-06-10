@@ -18,7 +18,7 @@ import Text.Parsec.Pos (SourcePos, sourceName, sourceLine, sourceColumn)
 import Voogie.AST
 import Voogie.Pretty
 import Voogie.Pretty.Boogie ()
-import Voogie.Theory
+import Voogie.Language
 
 type Result = Either Error
 

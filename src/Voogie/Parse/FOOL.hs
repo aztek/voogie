@@ -9,7 +9,7 @@ import Text.Parsec.Expr (Assoc, buildExpressionParser)
 
 import Voogie.AST.FOOL
 import Voogie.Parse
-import Voogie.Theory
+import Voogie.Language
 
 term :: Parser Term
 term = buildExpressionParser operators arg

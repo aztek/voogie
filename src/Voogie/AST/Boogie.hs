@@ -20,7 +20,7 @@ import Data.List.NonEmpty (NonEmpty)
 import Voogie.AST
 import qualified Voogie.AST.FOOL as F
 import Voogie.Pretty.Boogie (Pretty(pretty), empty)
-import Voogie.Theory
+import Voogie.Language
 
 type Identifier = AST Name
 

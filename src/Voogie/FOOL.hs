@@ -2,7 +2,7 @@
 {-# LANGUAGE LambdaCase #-}
 
 module Voogie.FOOL (
-  module Voogie.Theory,
+  module Voogie.Language,
   Var(..),
   VarList,
   Identifier,
@@ -24,7 +24,7 @@ import Data.List.NonUnit (NonUnit)
 import Data.Semigroup (Semigroup(..))
 #endif
 
-import Voogie.Theory
+import Voogie.Language
 
 newtype Var = Var Name
   deriving (Show, Eq, Ord)

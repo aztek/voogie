@@ -28,7 +28,7 @@ module Voogie.Boogie.Syntax (
 
 import Data.Function (on)
 
-import Voogie.Theory
+import Voogie.Language
 
 instance Named UnaryOp where
   nameOf = \case

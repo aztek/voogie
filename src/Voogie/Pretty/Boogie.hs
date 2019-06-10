@@ -9,7 +9,7 @@ module Voogie.Pretty.Boogie (
 
 import Voogie.Boogie.Syntax
 import Voogie.Pretty
-import Voogie.Theory
+import Voogie.Language
 
 instance Pretty Type where
   pretty = \case

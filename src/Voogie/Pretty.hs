@@ -19,7 +19,7 @@ import qualified Data.List.NonEmpty as NE (one, two, three)
 
 import Text.PrettyPrint.ANSI.Leijen hiding ((<$>))
 
-import Voogie.Theory (Name)
+import Voogie.Language (Name)
 
 sepBy :: Doc -> NonEmpty Doc -> Doc
 sepBy s (d :| ds) = d <> mconcat (fmap (s <>) ds)

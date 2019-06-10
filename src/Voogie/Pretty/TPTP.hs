@@ -5,7 +5,7 @@ module Voogie.Pretty.TPTP (
 ) where
 
 import Voogie.Pretty.TPTP.FOOL
-import Voogie.Theory
+import Voogie.Language
 import Voogie.TPTP
 import Voogie.TPTP.Syntax
 
