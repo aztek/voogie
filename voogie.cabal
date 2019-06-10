@@ -15,7 +15,7 @@ maintainer: evgeny.kotelnikov@gmail.com
 category: Language
 build-type: Simple
 extra-source-files: README.md
-cabal-version: >= 1.10
+cabal-version: >= 2.0
 tested-with:
   GHC == 7.10.3,
   GHC == 8.0.2,
@@ -32,10 +32,36 @@ flag Werror
   manual: True
 
 executable voogie
-  hs-source-dirs: src
+  hs-source-dirs: src/Voogie/Executable
   main-is: Main.hs
   other-modules:
-    Data.List.NonEmpty
+    CmdArgs
+    Paths_voogie
+  ghc-options:
+    -Wall -threaded
+  if flag(Werror)
+    ghc-options: -Werror
+  build-depends:
+    base,
+    text,
+    optparse-applicative >= 0.14.3 && < 0.15,
+    unix                 >= 2.7    && < 2.8,
+    voogie-internal
+  default-language: Haskell2010
+  if impl(ghc < 8)
+    ghc-options:
+      -fwarn-incomplete-record-updates -fwarn-incomplete-uni-patterns
+      -fno-warn-orphans
+    build-depends: semigroups >= 0.18
+  if impl(ghc >= 8)
+    ghc-options:
+      -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns
+      -Wredundant-constraints -Wno-orphans
+    default-extensions: Safe
+
+library voogie-internal
+  hs-source-dirs: src
+  exposed-modules:
     Data.List.NonUnit
     Voogie.AST
     Voogie.AST.Boogie
@@ -44,7 +70,6 @@ executable voogie
     Voogie.Boogie
     Voogie.Boogie.Smart
     Voogie.Boogie.Syntax
-    Voogie.CmdArgs
     Voogie.Error
     Voogie.FOOL
     Voogie.FOOL.ArrayTheory
@@ -64,21 +89,20 @@ executable voogie
     Voogie.Pretty.TPTP.FOOL
     Voogie.TPTP
     Voogie.TPTP.Syntax
-    Paths_voogie
+  other-modules:
+    Data.List.NonEmpty
   ghc-options:
-    -Wall -threaded
+    -Wall
   if flag(Werror)
     ghc-options: -Werror
   build-depends:
-    base                 >= 4.8    && < 5.0,
-    containers           >= 0.6.0  && < 0.7,
-    extra                >= 1.6    && < 1.7,
-    mtl                  >= 2.2    && < 3.0,
-    parsec               >= 3.1    && < 3.2,
-    text                 >= 0.11.3 && < 1.3,
-    optparse-applicative >= 0.14.3 && < 0.15,
-    ansi-wl-pprint       >= 0.6.6  && < 0.7,
-    unix                 >= 2.7    && < 2.8
+    base           >= 4.8    && < 5.0,
+    containers     >= 0.6.0  && < 0.7,
+    extra          >= 1.6    && < 1.7,
+    mtl            >= 2.2    && < 3.0,
+    parsec         >= 3.1    && < 3.2,
+    text           >= 0.11.3 && < 1.3,
+    ansi-wl-pprint >= 0.6.6  && < 0.7
   default-language: Haskell2010
   if impl(ghc < 8)
     ghc-options:
@@ -101,7 +125,7 @@ test-suite test-idempotent-parsing-pretty-printing
 
 test-suite test-quickcheck-generators
   type: exitcode-stdio-1.0
-  hs-source-dirs: src, tests
+  hs-source-dirs: tests
   main-is: Generators.hs
   ghc-options:
     -Wall -threaded -main-is Generators
@@ -111,27 +135,19 @@ test-suite test-quickcheck-generators
     ghc-options:
       -fwarn-incomplete-record-updates -fwarn-incomplete-uni-patterns
       -fno-warn-orphans
-    build-depends: semigroups >= 0.18
   if impl(ghc >= 8)
     ghc-options:
       -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns
       -Wredundant-constraints -Wno-orphans
-  other-modules:
-    Data.List.NonEmpty
-    Data.List.NonUnit
-    Voogie.Boogie
-    Voogie.FOOL
-    Voogie.Language
   build-depends:
     base,
+    voogie-internal,
     QuickCheck
-  if impl(ghc < 8)
-    build-depends: semigroups
   default-language: Haskell2010
 
 test-suite test-quickcheck-back
   type: exitcode-stdio-1.0
-  hs-source-dirs: src, tests
+  hs-source-dirs: tests
   main-is: Back.hs
   ghc-options:
     -Wall -threaded -main-is Back
@@ -141,33 +157,14 @@ test-suite test-quickcheck-back
     ghc-options:
       -fwarn-incomplete-record-updates -fwarn-incomplete-uni-patterns
       -fno-warn-orphans
-    build-depends: semigroups >= 0.18
   if impl(ghc >= 8)
     ghc-options:
       -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns
       -Wredundant-constraints -Wno-orphans
   other-modules:
     Generators
-    Data.List.NonEmpty
-    Data.List.NonUnit
-    Voogie.Back
-    Voogie.Boogie
-    Voogie.Boogie.Syntax
-    Voogie.FOOL
-    Voogie.FOOL.ArrayTheory
-    Voogie.FOOL.Traverse
-    Voogie.FOOL.Smart
-    Voogie.FOOL.TypeSafe
-    Voogie.Language
-    Voogie.Pretty
-    Voogie.Pretty.Boogie
-    Voogie.Pretty.Boogie.Boogie
-    Voogie.Pretty.Boogie.FOOL
   build-depends:
     base,
-    mtl,
-    ansi-wl-pprint,
+    voogie-internal,
     QuickCheck
-  if impl(ghc < 8)
-    build-depends: semigroups
   default-language: Haskell2010

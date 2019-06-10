@@ -23,13 +23,14 @@ import System.IO.Error (tryIOError)
 import System.Posix.Terminal (queryTerminal)
 import System.Posix.IO (stdOutput, stdError)
 
-import Voogie.CmdArgs
 import Voogie.Back
 import Voogie.Error
 import Voogie.Front
 import Voogie.Parse.Boogie (parseBoogie)
 import Voogie.Pretty.TPTP
 import Voogie.TPTP
+
+import CmdArgs
 
 collectOptions :: CmdArgs -> TranslationOptions
 collectOptions cmdArgs = TranslationOptions (not $ noArrayTheory cmdArgs)
