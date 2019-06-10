@@ -31,7 +31,7 @@ data StatementF
   | Assign (NonEmpty (LValue, Expression))
   deriving (Show, Eq)
 
-data Decl = Declare (Typed (NonEmpty Identifier))
+data Declaration = Declaration { getDeclaration :: Typed (NonEmpty Identifier) }
   deriving (Show, Eq)
 
 data FunDef = FunDef Type Identifier [Typed Identifier] [Statement]
@@ -44,14 +44,14 @@ data Property
 
 type TopLevel = Either Statement Property
 
-data Returns = Returns (NonEmpty (Typed Identifier))
+data Returns = Returns { getReturns :: NonEmpty (Typed Identifier) }
   deriving (Show, Eq)
 
 data Main = Main [Identifier] [F.Formula] (Maybe Returns)
-                 [Decl] [TopLevel] [F.Formula]
+                 [Declaration] [TopLevel] [F.Formula]
   deriving (Show, Eq)
 
-data Boogie = Boogie [Decl] Main
+data Boogie = Boogie [Declaration] Main
   deriving (Show, Eq)
 
 instance Pretty Boogie where

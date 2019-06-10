@@ -67,7 +67,7 @@ analyze boogie = runReaderT (analyzeBoogie boogie) emptyEnv
 
 analyzeBoogie :: B.AST.Boogie -> Analyze B.Boogie
 analyzeBoogie (B.AST.Boogie globals main) = do
-  (Env vs, main') <- localM (analyzeDecls globals) (analyzeMain main)
+  (Env vs, main') <- localM (analyzeDeclarations globals) (analyzeMain main)
   let vs' = fmap (\(n, t) -> Typed t n) (Map.toList vs)
   return (B.boogie vs' main')
 
@@ -75,7 +75,7 @@ analyzeMain :: B.AST.Main -> Analyze (Env Name, B.Main)
 analyzeMain (B.AST.Main modifies pre returns locals toplevel post) = do
   pre' <- mapM analyzeProperty pre
 
-  env <- localM (analyzeDecls locals) (extendEnvT returns')
+  env <- localM (analyzeDeclarations locals) (extendEnvT returns')
 
   toplevel' <- local (const env) (mapMaybeM analyzeTopLevel toplevel)
   post' <- local (const env) (mapM analyzeProperty post)
@@ -83,11 +83,11 @@ analyzeMain (B.AST.Main modifies pre returns locals toplevel post) = do
   return (env, B.main modifies' pre' toplevel' post')
   where
     modifies' = fmap astValue modifies
-    returns' = maybe [] (\(B.AST.Returns r) -> toList r) returns
+    returns' = maybe [] (toList . B.AST.getReturns) returns
 
-analyzeDecls :: [B.AST.Decl] -> Analyze (Env Name)
-analyzeDecls = extendEnvT
-             . concatMap (\(B.AST.Declare ns) -> toList (sequence ns))
+analyzeDeclarations :: [B.AST.Declaration] -> Analyze (Env Name)
+analyzeDeclarations = extendEnvT
+                    . concatMap (toList . sequence . B.AST.getDeclaration)
 
 typed :: (TypeOf a, Pretty a) => Type -> AST a -> Result a
 typed t (AST pos a)

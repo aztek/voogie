@@ -85,8 +85,8 @@ atomicStmt p = p <* semi
 keyword :: Name -> Parser a -> Parser a
 keyword k p = atomicStmt (reserved k *> p)
 
-decl :: Parser Decl
-decl = keyword kwdVar $ Declare <$> typed (commaSep1 identifier)
+declaration :: Parser Declaration
+declaration = keyword kwdVar $ Declaration <$> typed (commaSep1 identifier)
 
 main :: Parser Main
 main = do
@@ -96,7 +96,7 @@ main = do
   pre  <- many (try precondition)
   post <- many (try postcondition)
   (ds, ss) <- braces $ do
-    ds <- many (try decl)
+    ds <- many (try declaration)
     ss <- many topLevel
     return (ds, ss)
   return (Main (maybe [] toList ms) pre rs ds ss post)
@@ -121,7 +121,7 @@ topLevel :: Parser (Either Statement Property)
 topLevel = Left <$> stmt <|> Right <$> property
 
 boogie :: Parser Boogie
-boogie = whiteSpace >> Boogie <$> many (try decl) <*> main
+boogie = whiteSpace >> Boogie <$> many (try declaration) <*> main
 
 rewrapParsingError :: Parser a -> SourceName -> Text -> Result a
 rewrapParsingError p sn s = fmapError ParsingError (parse p sn s)
