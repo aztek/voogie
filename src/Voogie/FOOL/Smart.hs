@@ -1,3 +1,12 @@
+{-|
+Module       : Voogie.FOOL.Smart
+Description  : Smart constructors for the FOOL data types.
+Copyright    : (c) Evgenii Kotelnikov, 2019
+License      : GPL-3
+Maintainer   : evgeny.kotelnikov@gmail.com
+Stability    : provisional
+-}
+
 module Voogie.FOOL.Smart (
   Var,
   VarList,

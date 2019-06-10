@@ -1,3 +1,12 @@
+{-|
+Module       : Voogie.FOOL.TypeSafe
+Description  : Type-safe smart constructors of FOOL terms.
+Copyright    : (c) Evgenii Kotelnikov, 2019
+License      : GPL-3
+Maintainer   : evgeny.kotelnikov@gmail.com
+Stability    : provisional
+-}
+
 module Voogie.FOOL.TypeSafe (
   Var,
   Identifier,

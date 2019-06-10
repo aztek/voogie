@@ -1,5 +1,14 @@
 {-# LANGUAGE LambdaCase #-}
 
+{-|
+Module       : Voogie.Pretty.TPTP.FOOL
+Description  : Pretty printer of FOOL formulas in the TPTP syntax.
+Copyright    : (c) Evgenii Kotelnikov, 2019
+License      : GPL-3
+Maintainer   : evgeny.kotelnikov@gmail.com
+Stability    : provisional
+-}
+
 module Voogie.Pretty.TPTP.FOOL (
   module Voogie.Pretty
 ) where

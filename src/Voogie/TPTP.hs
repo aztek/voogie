@@ -1,5 +1,14 @@
 {-# LANGUAGE LambdaCase #-}
 
+{-|
+Module       : Voogie.TPTP
+Description  : The TPTP language.
+Copyright    : (c) Evgenii Kotelnikov, 2019
+License      : GPL-3
+Maintainer   : evgeny.kotelnikov@gmail.com
+Stability    : provisional
+-}
+
 module Voogie.TPTP (
   Unit(..),
   InputType(..),

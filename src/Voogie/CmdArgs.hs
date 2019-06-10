@@ -1,5 +1,14 @@
 {-# LANGUAGE CPP #-}
 
+{-|
+Module       : Voogie.CmdArgs
+Description  : Command line options of the voogie executable.
+Copyright    : (c) Evgenii Kotelnikov, 2019
+License      : GPL-3
+Maintainer   : evgeny.kotelnikov@gmail.com
+Stability    : provisional
+-}
+
 module Voogie.CmdArgs (
   Action(..),
   CmdArgs(..),

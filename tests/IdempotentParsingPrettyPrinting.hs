@@ -1,3 +1,12 @@
+{-|
+Module       : Main
+Description  : Unit tests of voogie.
+Copyright    : (c) Evgenii Kotelnikov, 2019
+License      : GPL-3
+Maintainer   : evgeny.kotelnikov@gmail.com
+Stability    : provisional
+-}
+
 module Main (
   main
 ) where

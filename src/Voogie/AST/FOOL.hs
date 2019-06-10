@@ -1,3 +1,12 @@
+{-|
+Module       : Voogie.AST.FOOL
+Description  : Abstract syntax tree of a FOOL formula.
+Copyright    : (c) Evgenii Kotelnikov, 2019
+License      : GPL-3
+Maintainer   : evgeny.kotelnikov@gmail.com
+Stability    : provisional
+-}
+
 module Voogie.AST.FOOL (
   Identifier,
   VarList,

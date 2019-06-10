@@ -1,5 +1,14 @@
 {-# LANGUAGE LambdaCase #-}
 
+{-|
+Module       : Voogie.Pretty.TPTP
+Description  : Helper functions for the pretty printer in the TPTP syntax.
+Copyright    : (c) Evgenii Kotelnikov, 2019
+License      : GPL-3
+Maintainer   : evgeny.kotelnikov@gmail.com
+Stability    : provisional
+-}
+
 module Voogie.Pretty.TPTP (
   module Voogie.Pretty.TPTP.FOOL
 ) where

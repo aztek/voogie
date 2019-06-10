@@ -1,5 +1,14 @@
 {-# LANGUAGE DeriveFunctor, DeriveFoldable, DeriveTraversable #-}
 
+{-|
+Module       : Voogie.AST
+Description  : Abstract syntax tree.
+Copyright    : (c) Evgenii Kotelnikov, 2019
+License      : GPL-3
+Maintainer   : evgeny.kotelnikov@gmail.com
+Stability    : provisional
+-}
+
 module Voogie.AST (
   AST(..)
 ) where

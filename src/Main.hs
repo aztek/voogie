@@ -1,3 +1,12 @@
+{-|
+Module       : Main
+Description  : The entry point of the voogie executable.
+Copyright    : (c) Evgenii Kotelnikov, 2019
+License      : GPL-3
+Maintainer   : evgeny.kotelnikov@gmail.com
+Stability    : provisional
+-}
+
 module Main (
   main
 ) where

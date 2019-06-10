@@ -1,5 +1,14 @@
 {-# LANGUAGE LambdaCase #-}
 
+{-|
+Module       : Voogie.Boogie
+Description  : The Boogie language.
+Copyright    : (c) Evgenii Kotelnikov, 2019
+License      : GPL-3
+Maintainer   : evgeny.kotelnikov@gmail.com
+Stability    : provisional
+-}
+
 module Voogie.Boogie (
   module Voogie.Language,
   Var,

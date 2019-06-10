@@ -1,6 +1,15 @@
 {-# LANGUAGE PackageImports #-}
 {-# LANGUAGE CPP #-}
 
+{-|
+Module       : Data.List.NonEmpty
+Description  : Extra helper function for 'Data.List.NonEmpty' from "base".
+Copyright    : (c) Evgenii Kotelnikov, 2019
+License      : GPL-3
+Maintainer   : evgeny.kotelnikov@gmail.com
+Stability    : provisional
+-}
+
 module Data.List.NonEmpty (
   module Data.List.NonEmpty
 ) where

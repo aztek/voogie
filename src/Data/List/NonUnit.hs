@@ -1,5 +1,14 @@
 {-# LANGUAGE DeriveFunctor, DeriveFoldable, DeriveTraversable #-}
 
+{-|
+Module       : Data.List.NonUnit
+Description  : A list with at least two elements.
+Copyright    : (c) Evgenii Kotelnikov, 2019
+License      : GPL-3
+Maintainer   : evgeny.kotelnikov@gmail.com
+Stability    : provisional
+-}
+
 module Data.List.NonUnit (
   NonUnit(..),
   toNonEmpty,

@@ -1,3 +1,12 @@
+{-|
+Module       : Voogie.FOOL.ArrayTheory
+Description  : The theory of arrays embedded into FOOL.
+Copyright    : (c) Evgenii Kotelnikov, 2019
+License      : GPL-3
+Maintainer   : evgeny.kotelnikov@gmail.com
+Stability    : provisional
+-}
+
 module Voogie.FOOL.ArrayTheory (
   Instantiation,
   arrayTypeName,

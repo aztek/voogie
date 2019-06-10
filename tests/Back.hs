@@ -1,5 +1,14 @@
 {-# LANGUAGE TemplateHaskell #-}
 
+{-|
+Module       : Back
+Description  : QuickCheck properties of the voogie translator.
+Copyright    : (c) Evgenii Kotelnikov, 2019
+License      : GPL-3
+Maintainer   : evgeny.kotelnikov@gmail.com
+Stability    : provisional
+-}
+
 module Back (
   main
 ) where

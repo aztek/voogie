@@ -1,3 +1,12 @@
+{-|
+Module       : Voogie.Parse
+Description  : Helper functions for the parsers of Boogie and FOOL.
+Copyright    : (c) Evgenii Kotelnikov, 2019
+License      : GPL-3
+Maintainer   : evgeny.kotelnikov@gmail.com
+Stability    : provisional
+-}
+
 module Voogie.Parse (
   module Voogie.Boogie.Syntax,
   Parser,

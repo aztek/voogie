@@ -2,6 +2,15 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE LambdaCase #-}
 
+{-|
+Module       : Voogie.Language
+Description  : Abstract syntax shared between Boogie and FOOL.
+Copyright    : (c) Evgenii Kotelnikov, 2019
+License      : GPL-3
+Maintainer   : evgeny.kotelnikov@gmail.com
+Stability    : provisional
+-}
+
 module Voogie.Language (
   Name,
   Named(..),

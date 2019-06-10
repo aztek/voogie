@@ -3,6 +3,15 @@
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE CPP #-}
 
+{-|
+Module       : Voogie.Front
+Description  : Type checker of Boogie programs.
+Copyright    : (c) Evgenii Kotelnikov, 2019
+License      : GPL-3
+Maintainer   : evgeny.kotelnikov@gmail.com
+Stability    : provisional
+-}
+
 module Voogie.Front (
   analyze
 ) where

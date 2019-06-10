@@ -1,6 +1,15 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE LambdaCase #-}
 
+{-|
+Module       : Voogie.FOOL
+Description  : The FOOL language.
+Copyright    : (c) Evgenii Kotelnikov, 2019
+License      : GPL-3
+Maintainer   : evgeny.kotelnikov@gmail.com
+Stability    : provisional
+-}
+
 module Voogie.FOOL (
   module Voogie.Language,
   Var(..),

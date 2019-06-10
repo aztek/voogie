@@ -1,3 +1,12 @@
+{-|
+Module       : Voogie.Parse.FOOL
+Description  : Parser of FOOL formulas embedded in Boogie properties.
+Copyright    : (c) Evgenii Kotelnikov, 2019
+License      : GPL-3
+Maintainer   : evgeny.kotelnikov@gmail.com
+Stability    : provisional
+-}
+
 module Voogie.Parse.FOOL (
   term,
   formula

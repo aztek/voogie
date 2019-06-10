@@ -1,3 +1,12 @@
+{-|
+Module       : Voogie.Pretty
+Description  : Helper functions for pretty printing.
+Copyright    : (c) Evgenii Kotelnikov, 2019
+License      : GPL-3
+Maintainer   : evgeny.kotelnikov@gmail.com
+Stability    : provisional
+-}
+
 module Voogie.Pretty (
   module Text.PrettyPrint.ANSI.Leijen,
   sepBy,
