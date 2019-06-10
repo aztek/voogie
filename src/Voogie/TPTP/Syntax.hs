@@ -61,15 +61,15 @@ instance Named Bool where
 
 keywords :: [Name]
 keywords = [
-    kwdTtf
-  , kwdType
-  , kwdAxiom
-  , kwdConjecture
-  , kwdIf
-  , kwdLet
-  , kwdSelect
-  , kwdStore
-  , kwdTypeDecl
+  kwdTtf,
+  kwdType,
+  kwdAxiom,
+  kwdConjecture,
+  kwdIf,
+  kwdLet,
+  kwdSelect,
+  kwdStore,
+  kwdTypeDecl
   ]
 
 kwdTtf, kwdType, kwdAxiom, kwdConjecture :: Name
@@ -92,9 +92,9 @@ kwdTypeDecl = "$tType"
 
 typeNames :: [Name]
 typeNames = [
-    intName
-  , boolName
-  , arrayName
+  intName,
+  boolName,
+  arrayName
   ]
 
 intName, boolName, arrayName :: Name

@@ -77,8 +77,8 @@ instance Arbitrary Type where
   arbitrary = sizedType 0
 
   shrink = \case
-    Array is r      -> r : NE.toList is
-    Tuple     ts    -> NU.toList ts
+    Array      is r -> r : NE.toList is
+    Tuple        ts -> NU.toList ts
     Functional as r -> r : NE.toList as
     _ -> []
 
@@ -123,12 +123,12 @@ typed t e = typeOf e == t
 
 sizedExpression :: Int -> Gen Expression
 sizedExpression n = oneof
-                  $ [intLiteral, boolLiteral]
+                  $ [integerLiteral, booleanLiteral]
                  ++ if n < 1 then []
                     else [ref, unary, binary, ifElse, {-funApp,-} equals]
   where
-    intLiteral = IntegerLiteral <$> arbitrary
-    boolLiteral = BooleanLiteral <$> arbitrary
+    integerLiteral = IntegerLiteral <$> arbitrary
+    booleanLiteral = BooleanLiteral <$> arbitrary
 
     ref = do
       k <- choose (0, n - 1)
@@ -176,10 +176,10 @@ instance Arbitrary Expression where
   arbitrary = sized sizedExpression
 
   shrink = \case
-    Unary op e    -> e : (Unary op <$> shrink e)
+    Unary    op e -> e : (Unary op <$> shrink e)
     Binary op a b -> a : b : (Binary op <$> shrink a <*> shrink b)
-    IfElse c a b  -> a : b : c : (IfElse <$> shrink c <*> shrink a <*> shrink b)
-    Equals s a b  -> a : b : (Equals s <$> shrink a <*> shrink b)
+    IfElse  c a b -> a : b : c : (IfElse <$> shrink c <*> shrink a <*> shrink b)
+    Equals  s a b -> a : b : (Equals s <$> shrink a <*> shrink b)
     _ -> []
 
 sizedAssignment :: Int -> Gen Assignment

@@ -68,8 +68,8 @@ type Formula = Term
 
 instance TypeOf Term where
   typeOf = \case
-    IntegerConstant _ -> Integer
-    BooleanConstant _ -> Boolean
+    IntegerConstant{} -> Integer
+    BooleanConstant{} -> Boolean
     Variable        v -> typeOf v
     Constant        i -> typeOf i
     Application   i _ -> returnType (typeOf i)
@@ -87,14 +87,14 @@ newtype Conjunction = Conjunction { getConjunction :: Formula }
   deriving (Eq, Show)
 
 instance Semigroup Conjunction where
-  Conjunction x <> Conjunction y = Conjunction (binaryAnd x y)
+  Conjunction x <> Conjunction y = Conjunction (x /\ y)
     where
-      binaryAnd :: Formula -> Formula -> Formula
-      binaryAnd f (BooleanConstant True) = f
-      binaryAnd (BooleanConstant True) g = g
+      (/\) :: Formula -> Formula -> Formula
+      f /\ BooleanConstant True = f
+      BooleanConstant True /\ g = g
       -- This case is only needed to satisfy the associativity law of Semigroup
-      binaryAnd (Binary And f g) h = Binary And f (Binary And g h)
-      binaryAnd f g = Binary And f g
+      Binary And f g /\ h = Binary And f (Binary And g h)
+      f /\ g = Binary And f g
 
 instance Monoid Conjunction where
   mempty = Conjunction (BooleanConstant True)

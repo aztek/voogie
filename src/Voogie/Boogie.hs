@@ -35,8 +35,8 @@ data Expression
 
 instance TypeOf Expression where
   typeOf = \case
-    IntegerLiteral _ -> Integer
-    BooleanLiteral _ -> Boolean
+    IntegerLiteral{} -> Integer
+    BooleanLiteral{} -> Boolean
     Ref           lv -> typeOf lv
     Unary       op _ -> unaryOpRange op
     Binary    op _ _ -> binaryOpRange op
