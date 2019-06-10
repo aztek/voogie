@@ -14,7 +14,7 @@ module Voogie.Pretty.Boogie.Boogie (
   module Voogie.Pretty.Boogie
 ) where
 
-import Data.Foldable (Foldable, toList)
+import Data.Foldable (toList)
 import qualified Data.List.NonEmpty as NE (nonEmpty, unzip)
 
 import Voogie.Boogie hiding (tuple)
