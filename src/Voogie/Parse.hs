@@ -122,14 +122,14 @@ commaSep1 p = NE.fromList <$> Token.commaSep1 lexer p
 (<+>) :: AST a -> AST b -> (SourcePos, SourcePos)
 AST (a, _) _ <+> AST (_, b) _ = (a, b)
 
-infix' :: Name -> (AST a -> AST a -> a) -> Assoc -> Operator (AST a)
-infix' n f = E.Infix . fmap (\_ a b -> AST (a <+> b) (f a b)) $ reservedOp n
+infix' :: (AST a -> AST a -> a) -> Name -> Assoc -> Operator (AST a)
+infix' f = E.Infix . fmap (\_ a b -> AST (a <+> b) (f a b)) . reservedOp
 
-prefix :: Name -> (AST a -> a) -> Operator (AST a)
-prefix n f = E.Prefix . fmap (\op x -> AST (op <+> x) (f x)) $ reservedOp n
+prefix :: (AST a -> a) -> Name -> Operator (AST a)
+prefix f = E.Prefix . fmap (\op x -> AST (op <+> x) (f x)) . reservedOp
 
-postfix :: Name -> (AST a -> a) -> Operator (AST a)
-postfix n f = E.Postfix . fmap (\op x -> AST (x <+> op) (f x)) $ reservedOp n
+postfix :: (AST a -> a) -> Name -> Operator (AST a)
+postfix f = E.Postfix . fmap (\op x -> AST (x <+> op) (f x)) . reservedOp
 
 assocLeft :: [Assoc -> b] -> [b]
 assocLeft = map ($ AssocLeft)

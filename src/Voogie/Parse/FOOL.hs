@@ -25,13 +25,13 @@ term :: Parser Term
 term = buildExpressionParser operators arg
 
 unary :: UnaryOp -> Operator Term
-unary = prefix <$> nameOf <*> Unary
+unary = prefix <$> Unary <*> nameOf
 
 binary :: BinaryOp -> Assoc -> Operator Term
-binary = infix' <$> nameOf <*> Binary
+binary = infix' <$> Binary <*> nameOf
 
 equals :: Sign -> Assoc -> Operator Term
-equals = infix' <$> nameOf <*> Equals
+equals = infix' <$> Equals <*> nameOf
 
 operators :: [[Operator Term]]
 operators = unaryOperators ++ binaryOperators

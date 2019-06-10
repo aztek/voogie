@@ -43,13 +43,13 @@ expr :: Parser Expression
 expr = buildExpressionParser operators term
 
 unary :: UnaryOp -> Operator Expression
-unary = prefix <$> nameOf <*> Unary
+unary = prefix <$> Unary <*> nameOf
 
 binary :: BinaryOp -> Assoc -> Operator Expression
-binary = infix' <$> nameOf <*> Binary
+binary = infix' <$> Binary <*> nameOf
 
 equals :: Sign -> Assoc -> Operator Expression
-equals = infix' <$> nameOf <*> Equals
+equals = infix' <$> Equals <*> nameOf
 
 operators :: [[Operator Expression]]
 operators = unaryOperators ++ binaryOperators
