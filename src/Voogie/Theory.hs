@@ -2,7 +2,33 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE LambdaCase #-}
 
-module Voogie.Theory where
+module Voogie.Theory (
+  Name,
+  Named(..),
+  Type(..),
+  arrayElement,
+  arrayArgument,
+  arrayIndexes,
+  array,
+  tuple,
+  returnType,
+  Typed(..),
+  valueOf,
+  TypeOf(..),
+  Quantifier(..),
+  UnaryOp(..),
+  BinaryOp(..),
+  isAssociative,
+  unaryOpTypes,
+  unaryOpDomain,
+  unaryOpRange,
+  logicalConnectives,
+  arithmeticPredicates,
+  binaryOpTypes,
+  binaryOpDomain,
+  binaryOpRange,
+  Sign(..)
+) where
 
 import Data.List.NonEmpty (NonEmpty((:|)))
 import Data.List.NonUnit (NonUnit)
@@ -75,9 +101,18 @@ data UnaryOp
   deriving (Show, Eq, Ord, Bounded, Enum)
 
 data BinaryOp
-  = And | Or | Imply | Iff
-  | Greater | Less | Geq | Leq
-  | Add | Subtract | Multiply | Divide
+  = And
+  | Or
+  | Imply
+  | Iff
+  | Greater
+  | Less
+  | Geq
+  | Leq
+  | Add
+  | Subtract
+  | Multiply
+  | Divide
   deriving (Show, Eq, Ord, Bounded, Enum)
 
 isAssociative :: BinaryOp -> Bool

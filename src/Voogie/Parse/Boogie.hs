@@ -1,4 +1,16 @@
-module Voogie.Parse.Boogie where
+module Voogie.Parse.Boogie (
+  term,
+  lval,
+  stmt,
+  declaration,
+  returns,
+  property,
+  topLevel,
+  main,
+  boogie,
+  rewrapParsingError,
+  parseBoogie
+) where
 
 import Control.Applicative ((<|>), many)
 import Control.Monad (guard)

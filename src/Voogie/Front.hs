@@ -3,7 +3,9 @@
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE CPP #-}
 
-module Voogie.Front (analyze) where
+module Voogie.Front (
+  analyze
+) where
 
 import Control.Monad (foldM)
 import Control.Monad.Extra (mapMaybeM)

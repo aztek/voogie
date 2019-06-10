@@ -1,6 +1,10 @@
 {-# LANGUAGE DeriveFunctor, DeriveFoldable, DeriveTraversable #-}
 
-module Data.List.NonUnit where
+module Data.List.NonUnit (
+  NonUnit(..),
+  toNonEmpty,
+  nonUnit,
+) where
 
 import qualified Data.List.NonEmpty as NE (cons, nonEmpty, NonEmpty(..))
 import Data.List.NonEmpty (NonEmpty)

@@ -1,7 +1,9 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module Generators where
+module Generators (
+  main
+) where
 
 import Control.Monad ((<=<))
 import Data.Foldable (toList)

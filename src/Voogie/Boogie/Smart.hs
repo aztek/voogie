@@ -1,6 +1,27 @@
 module Voogie.Boogie.Smart (
-  module Voogie.Boogie.Smart,
-  TopLevel, Statement, Assignment, Property, Expression, LValue, Main, Boogie
+  TopLevel,
+  Statement,
+  Assignment,
+  Property,
+  Expression,
+  LValue,
+  Main,
+  Boogie,
+  lvalue,
+  integerLiteral,
+  booleanLiteral,
+  ref,
+  unary,
+  binary,
+  ifElse,
+  funApp,
+  equals,
+  assign,
+  if_,
+  assume,
+  assert,
+  main,
+  boogie
 ) where
 
 import qualified Data.List.NonEmpty as NE (nonEmpty)

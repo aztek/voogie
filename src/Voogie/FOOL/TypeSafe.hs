@@ -1,6 +1,13 @@
 module Voogie.FOOL.TypeSafe (
-  module Voogie.FOOL.TypeSafe,
-  Var, Identifier, Definition(..), Binding(..), Term, Formula
+  Var,
+  Identifier,
+  Definition(..),
+  Binding(..),
+  Term,
+  Formula,
+  typeSafeApplication,
+  typeSafeStore,
+  typeSafeSelect
 ) where
 
 import qualified Data.List.NonEmpty as NE (zipWith)

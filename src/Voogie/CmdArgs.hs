@@ -1,7 +1,9 @@
 {-# LANGUAGE CPP #-}
 
 module Voogie.CmdArgs (
-  Action(..), CmdArgs(..), cmdArgsParserInfo
+  Action(..),
+  CmdArgs(..),
+  cmdArgsParserInfo
 ) where
 
 import Control.Applicative ((<|>))

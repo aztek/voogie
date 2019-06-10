@@ -1,6 +1,30 @@
 {-# LANGUAGE LambdaCase #-}
 
-module Voogie.Boogie.Syntax where
+module Voogie.Boogie.Syntax (
+  precedence,
+  comparePrecedence,
+  comparePrecedenceEquality,
+  keywords,
+  kwdAssert,
+  kwdAssume,
+  kwdVar,
+  kwdIf,
+  kwdThen,
+  kwdElse,
+  kwdProcedure,
+  kwdMain,
+  kwdRequires,
+  kwdEnsures,
+  kwdReturns,
+  kwdModifies,
+  operatorNames,
+  opAssign,
+  opTyped,
+  opQsep,
+  typeNames,
+  typeInteger,
+  typeBoolean
+) where
 
 import Data.Function (on)
 

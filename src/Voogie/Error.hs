@@ -2,7 +2,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Voogie.Error (
-  Result, Error(..), ErrorReport(..), fmapError
+  Result,
+  Error(..),
+  ErrorReport(..),
+  fmapError
 ) where
 
 import Data.Bifunctor (bimap)

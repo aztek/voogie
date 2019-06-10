@@ -1,7 +1,9 @@
 module Voogie.FOOL.ArrayTheory (
   Instantiation,
-  arrayTypeName, arrayType,
-  selectSymbol, storeSymbol,
+  arrayTypeName,
+  arrayType,
+  selectSymbol,
+  storeSymbol,
   theory
 ) where
 

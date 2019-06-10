@@ -1,6 +1,15 @@
 {-# LANGUAGE LambdaCase #-}
 
-module Voogie.Back where
+module Voogie.Back (
+  TranslationOptions(..),
+  translate,
+  translateBoogie,
+  translateStatement,
+  translateAssign,
+  translateProperty,
+  translateExpr,
+  translateLValue
+) where
 
 import Control.Monad.Writer (Writer, runWriter, tell)
 import qualified Data.List as L (nub)

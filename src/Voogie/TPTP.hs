@@ -1,6 +1,12 @@
 {-# LANGUAGE LambdaCase #-}
 
-module Voogie.TPTP where
+module Voogie.TPTP (
+  Unit(..),
+  InputType(..),
+  unitInputType,
+  TPTP(..),
+  toTPTP
+) where
 
 import Voogie.FOOL
 

@@ -1,6 +1,13 @@
 {-# LANGUAGE LambdaCase #-}
 
-module Voogie.FOOL.Traverse where
+module Voogie.FOOL.Traverse (
+  traverseProblem,
+  traverseType,
+  traverseTyped,
+  traverseTerm,
+  traverseBinding,
+  traverseDefinition
+) where
 
 import Voogie.FOOL
 

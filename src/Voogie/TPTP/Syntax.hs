@@ -1,6 +1,24 @@
 {-# LANGUAGE LambdaCase #-}
 
-module Voogie.TPTP.Syntax where
+module Voogie.TPTP.Syntax (
+  isInfix,
+  isPrefix,
+  keywords,
+  kwdTtf,
+  kwdType,
+  kwdAxiom,
+  kwdConjecture,
+  kwdIf,
+  kwdLet,
+  kwdSelect,
+  kwdStore,
+  opAssign,
+  kwdTypeDecl,
+  typeNames,
+  intName,
+  boolName,
+  arrayName
+) where
 
 import Voogie.Theory
 

@@ -1,4 +1,19 @@
-module Voogie.AST.Boogie where
+module Voogie.AST.Boogie (
+  Identifier,
+  LValue(..),
+  Expression,
+  ExpressionF(..),
+  Assignment,
+  Statement,
+  StatementF(..),
+  Declaration(..),
+  FunDef(..),
+  Property(..),
+  TopLevel,
+  Returns(..),
+  Main(..),
+  Boogie(..)
+) where
 
 import Data.List.NonEmpty (NonEmpty)
 

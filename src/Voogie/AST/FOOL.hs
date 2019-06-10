@@ -1,4 +1,10 @@
-module Voogie.AST.FOOL where
+module Voogie.AST.FOOL (
+  Identifier,
+  VarList,
+  Term,
+  TermF(..),
+  Formula
+) where
 
 import Data.List.NonEmpty (NonEmpty)
 

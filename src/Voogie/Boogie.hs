@@ -1,8 +1,18 @@
 {-# LANGUAGE LambdaCase #-}
 
 module Voogie.Boogie (
-  module Voogie.Boogie,
-  module Voogie.Theory
+  module Voogie.Theory,
+  Var,
+  Function,
+  LValue(..),
+  lvariable,
+  Expression(..),
+  Assignment,
+  Statement(..),
+  Property(..),
+  TopLevel,
+  Main(..),
+  Boogie(..)
 ) where
 
 import Data.List.NonEmpty (NonEmpty)

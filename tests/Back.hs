@@ -1,6 +1,8 @@
 {-# LANGUAGE TemplateHaskell #-}
 
-module Back where
+module Back (
+  main
+) where
 
 import Test.QuickCheck (Property, Args(..), (===),
                         stdArgs, forAllProperties, quickCheckWithResult)
