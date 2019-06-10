@@ -32,7 +32,8 @@ module Voogie.Parse (
   typed,
   constants,
   boolean,
-  quantifier
+  quantifier,
+  parse
 ) where
 
 import Control.Applicative ((<|>))
@@ -41,17 +42,20 @@ import Data.Functor (($>))
 import Data.Functor.Identity (Identity)
 import qualified Data.List.NonEmpty as NE (fromList)
 import Data.List.NonEmpty (NonEmpty)
+import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 
 import Text.Parsec.Char (alphaNum, letter, oneOf)
 import Text.Parsec.Expr (Assoc(..))
 import qualified Text.Parsec.Expr as E (Operator(..))
-import Text.Parsec.Pos (SourcePos)
+import Text.Parsec.Pos (SourceName, SourcePos)
+import qualified Text.Parsec.Prim as P (parse)
 import Text.Parsec.Prim (Parsec, getPosition)
 import qualified Text.Parsec.Token as Token
 
 import Voogie.AST
 import Voogie.Boogie.Syntax
+import Voogie.Error (Result, Error(..), fmapError)
 import Voogie.Language
 
 type Parser = Parsec Text ()
@@ -159,3 +163,6 @@ boolean = constants
 
 quantifier :: Parser Quantifier
 quantifier = constants
+
+parse :: Parser a -> Maybe SourceName -> Text -> Result a
+parse p sn s = fmapError ParsingError (P.parse p (fromMaybe "<stdin>" sn) s)

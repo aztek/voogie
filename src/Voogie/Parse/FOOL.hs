@@ -8,6 +8,7 @@ Stability    : provisional
 -}
 
 module Voogie.Parse.FOOL (
+  module Voogie.Parse,
   term,
   formula
 ) where

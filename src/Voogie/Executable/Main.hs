@@ -11,7 +11,6 @@ module Main (
   main
 ) where
 
-import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import qualified Data.Text.IO as TIO
 
@@ -61,7 +60,7 @@ runVoogie cmdArgs contents = reportContents $ case action cmdArgs of
     Check     -> pretty <$> (runParser >>= runAnalyzer)
     Translate -> pretty <$> (runParser >>= runAnalyzer >>= runTranslator)
   where
-    source = fromMaybe "<stdin>" (filePath cmdArgs)
+    source = filePath cmdArgs
     options = collectOptions cmdArgs
 
     runParser = parseBoogie source contents

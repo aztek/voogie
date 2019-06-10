@@ -8,6 +8,7 @@ Stability    : provisional
 -}
 
 module Voogie.Parse.Boogie (
+  module Voogie.Parse,
   expr,
   lval,
   stmt,
@@ -17,7 +18,6 @@ module Voogie.Parse.Boogie (
   topLevel,
   main,
   boogie,
-  rewrapParsingError,
   parseBoogie
 ) where
 
@@ -29,12 +29,12 @@ import qualified Data.List.NonEmpty as NE (zip)
 import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 
-import Text.Parsec (SourceName, try, parse, optionMaybe)
+import Text.Parsec (SourceName, try, optionMaybe)
 import Text.Parsec.Expr (Assoc, buildExpressionParser)
 
 import Voogie.AST.Boogie
 import Voogie.AST.FOOL (Formula)
-import Voogie.Error
+import Voogie.Error (Result)
 import Voogie.Parse
 import qualified Voogie.Parse.FOOL as F
 import Voogie.Language
@@ -43,7 +43,7 @@ expr :: Parser Expression
 expr = buildExpressionParser operators term
 
 unary :: UnaryOp -> Operator Expression
-unary  = prefix <$> nameOf <*> Unary
+unary = prefix <$> nameOf <*> Unary
 
 binary :: BinaryOp -> Assoc -> Operator Expression
 binary = infix' <$> nameOf <*> Binary
@@ -144,8 +144,5 @@ topLevel = Left <$> stmt <|> Right <$> property
 boogie :: Parser Boogie
 boogie = whiteSpace >> Boogie <$> many (try declaration) <*> main
 
-rewrapParsingError :: Parser a -> SourceName -> Text -> Result a
-rewrapParsingError p sn s = fmapError ParsingError (parse p sn s)
-
-parseBoogie :: SourceName -> Text -> Result Boogie
-parseBoogie = rewrapParsingError boogie
+parseBoogie :: Maybe SourceName -> Text -> Result Boogie
+parseBoogie = parse boogie
