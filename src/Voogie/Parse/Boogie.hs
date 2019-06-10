@@ -8,7 +8,7 @@ Stability    : provisional
 -}
 
 module Voogie.Parse.Boogie (
-  term,
+  expr,
   lval,
   stmt,
   declaration,
