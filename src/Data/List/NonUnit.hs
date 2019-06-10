@@ -2,14 +2,11 @@
 
 module Data.List.NonUnit where
 
-import qualified Data.List.NonEmpty as NE (toList, cons, nonEmpty, NonEmpty(..))
+import qualified Data.List.NonEmpty as NE (cons, nonEmpty, NonEmpty(..))
 import Data.List.NonEmpty (NonEmpty)
 
 data NonUnit a = a :| NonEmpty a
   deriving (Eq, Show, Ord, Functor, Foldable, Traversable)
-
-toList :: NonUnit a -> [a]
-toList (a :| ne) = a : NE.toList ne
 
 toNonEmpty :: NonUnit a -> NonEmpty a
 toNonEmpty (a :| ne) = NE.cons a ne

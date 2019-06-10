@@ -2,8 +2,9 @@ module Voogie.Parse.Boogie where
 
 import Control.Applicative ((<|>), many)
 import Control.Monad (guard)
+import Data.Foldable (toList)
 import Data.List.NonEmpty (NonEmpty)
-import qualified Data.List.NonEmpty as NE (toList, zip)
+import qualified Data.List.NonEmpty as NE (zip)
 import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 
@@ -98,7 +99,7 @@ main = do
     ds <- many (try decl)
     ss <- many topLevel
     return (ds, ss)
-  return (Main (maybe [] NE.toList ms) pre rs ds ss post)
+  return (Main (maybe [] toList ms) pre rs ds ss post)
 
 returns :: Parser Returns
 returns = reserved kwdReturns >> parens (Returns <$> commaSep1 (typed identifier))

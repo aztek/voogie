@@ -4,8 +4,8 @@ module Voogie.FOOL.Smart (
   Problem(..), appendTheory, appendTheories
 ) where
 
+import Data.Foldable (toList)
 import Data.List.NonEmpty (NonEmpty)
-import qualified Data.List.NonEmpty as NE (toList)
 import Data.List.NonUnit (nonUnit)
 
 import Voogie.FOOL
@@ -87,7 +87,7 @@ select :: Foldable f => Term -> f Term -> Term
 select = foldl typeSafeSelect
 
 store :: Term -> NonEmpty Term -> Term -> Term
-store a = store' . reverse . NE.toList
+store a = store' . reverse . toList
   where
    store' :: [Term] -> Term -> Term
    store' []     t = t

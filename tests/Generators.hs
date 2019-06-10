@@ -4,10 +4,11 @@
 module Generators where
 
 import Control.Monad ((<=<))
+import Data.Foldable (toList)
 import Data.List.NonEmpty (NonEmpty)
-import Data.List.NonEmpty as NE (toList, NonEmpty((:|)))
+import Data.List.NonEmpty as NE (NonEmpty((:|)))
 import Data.List.NonUnit (NonUnit)
-import qualified Data.List.NonUnit as NU (toList, NonUnit((:|)))
+import qualified Data.List.NonUnit as NU (NonUnit((:|)))
 
 import qualified Test.QuickCheck as QC (Property)
 import Test.QuickCheck (Arbitrary(..), Gen, Positive(..), Args(..),
@@ -59,7 +60,7 @@ splitNE n = do
   return (k NE.:| ks)
 
 prop_splitNE :: Positive Int -> QC.Property
-prop_splitNE (Positive n) = forAll (splitNE n) $ \ks -> sum (NE.toList ks) <= n
+prop_splitNE (Positive n) = forAll (splitNE n) $ \ks -> sum ks <= n
 
 splitNU :: Int -> Gen (NonUnit Int)
 splitNU n = do
@@ -68,7 +69,7 @@ splitNU n = do
   return (k NU.:| ks)
 
 prop_splitNU :: Positive Int -> QC.Property
-prop_splitNU (Positive n) = forAll (splitNU n) $ \ks -> sum (NU.toList ks) <= n
+prop_splitNU (Positive n) = forAll (splitNU n) $ \ks -> sum ks <= n
 
 instance Arbitrary Type where
   -- Currently, truly arbitrary types significantly slow down generation of
@@ -77,9 +78,9 @@ instance Arbitrary Type where
   arbitrary = sizedType 0
 
   shrink = \case
-    Array      is r -> r : NE.toList is
-    Tuple        ts -> NU.toList ts
-    Functional as r -> r : NE.toList as
+    Array      is r -> r : toList is
+    Tuple        ts -> toList ts
+    Functional as r -> r : toList as
     _ -> []
 
 sizedType :: Int -> Gen Type
@@ -208,7 +209,7 @@ instance Arbitrary Statement where
   arbitrary = sized sizedStatement
 
   shrink = \case
-    If c f as bs -> NE.toList as ++ bs ++ (If c f <$> traverse shrink as <*> shrinkList shrink bs)
+    If c f as bs -> toList as ++ bs ++ (If c f <$> traverse shrink as <*> shrinkList shrink bs)
     _ -> []
 
 return []

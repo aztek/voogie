@@ -5,7 +5,8 @@ module Voogie.Pretty.Boogie.Boogie (
   module Voogie.Pretty.Boogie
 ) where
 
-import qualified Data.List.NonEmpty as NE (nonEmpty, toList, unzip)
+import Data.Foldable (Foldable, toList)
+import qualified Data.List.NonEmpty as NE (nonEmpty, unzip)
 
 import Voogie.Boogie hiding (tuple)
 import Voogie.Pretty.Boogie
@@ -45,20 +46,22 @@ instance Pretty Expression where
         pretty'' e = pretty' e
     Ref lv -> pretty lv
 
-atomic :: [Doc] -> Doc
-atomic ds = hsep ds <> punctuation ";"
+atomic :: Foldable t => t Doc -> Doc
+atomic ds = hsep (toList ds) <> punctuation ";"
 
 marked :: Name -> Doc -> Doc
 marked k d = atomic [keyword k, d]
 
-nested :: [Doc] -> Doc
-nested [] = empty
-nested d = nest 2 (line <> vsep d) <> line
+nested :: Foldable t => t Doc -> Doc
+nested ds = case toList ds of
+  [] -> empty
+  dl -> nest 2 (line <> vsep dl) <> line
 
-block :: Pretty a => [a] -> Doc
+block :: (Foldable t, Functor t, Pretty a) => t a -> Doc
 block = braces . nested . fmap pretty
 
-prettyIte :: Expression -> [Statement] -> [Statement] -> Doc
+prettyIte :: (Foldable t1, Functor t1, Foldable t2, Functor t2)
+          => Expression -> t1 Statement -> t2 Statement -> Doc
 prettyIte c a b = hsep (thenBranch ++ elseBranch)
   where
     thenBranch = [keyword kwdIf, parens (pretty c), block a]
@@ -71,8 +74,8 @@ instance Pretty Statement where
         (lvs, rvs) = NE.unzip pairs
         prettyLVs = commaSep (pretty <$> lvs)
         prettyRVs = commaSep (pretty <$> rvs)
-    If c False a b -> prettyIte c (NE.toList a) b
-    If c True  a b -> prettyIte c b (NE.toList a)
+    If c False a b -> prettyIte c a b
+    If c True  a b -> prettyIte c b a
 
 instance Pretty Property where
   pretty = \case

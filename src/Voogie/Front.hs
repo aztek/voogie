@@ -9,8 +9,9 @@ import Control.Monad (foldM)
 import Control.Monad.Extra (mapMaybeM)
 import Control.Monad.Reader (MonadTrans, lift, ReaderT(..), withReaderT, ask, local)
 import Data.Bifunctor (first)
+import Data.Foldable (toList)
 import Data.List.NonEmpty (NonEmpty)
-import qualified Data.List.NonEmpty as NE (toList, zipWithM)
+import qualified Data.List.NonEmpty as NE (zipWithM)
 import Data.Map (Map)
 import qualified Data.Map as Map (empty, insert, lookup, toList)
 import Data.Maybe (catMaybes)
@@ -82,11 +83,11 @@ analyzeMain (B.AST.Main modifies pre returns locals toplevel post) = do
   return (env, B.main modifies' pre' toplevel' post')
   where
     modifies' = fmap astValue modifies
-    returns' = maybe [] (\(B.AST.Returns r) -> NE.toList r) returns
+    returns' = maybe [] (\(B.AST.Returns r) -> toList r) returns
 
 analyzeDecls :: [B.AST.Decl] -> Analyze (Env Name)
 analyzeDecls = extendEnvT
-             . concatMap (\(B.AST.Declare ns) -> NE.toList (sequence ns))
+             . concatMap (\(B.AST.Declare ns) -> toList (sequence ns))
 
 typed :: (TypeOf a, Pretty a) => Type -> AST a -> Result a
 typed t (AST pos a)
