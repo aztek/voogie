@@ -118,6 +118,11 @@ guardType :: (Pretty a, TypeOf a, MonadTrans t, Monad (t Result))
           => (b -> t Result a) -> AST b -> Type -> t Result a
 guardType f a t = f <$> a <::> t
 
+guardTypes :: (Pretty a, TypeOf a, MonadTrans t, Monad (t Result))
+           => (b -> t Result a) -> NonEmpty (AST b) -> NonEmpty Type
+           -> t Result (NonEmpty a)
+guardTypes f = NE.zipWithM (guardType f)
+
 analyzeTopLevel :: B.AST.TopLevel -> Analyze (Maybe B.TopLevel)
 analyzeTopLevel = \case
   Left stmt -> fmap Left <$> analyzeStmt (astValue stmt)
@@ -152,7 +157,7 @@ analyzeLValue (B.AST.LValue ast is) = do
   is' <- lift $ if length is > length ais
                 then Left (ArrayDimensionMismatch (Typed t <$> fmap pretty var))
                 else Right (zip is ais)
-  es <- mapM (uncurry . NE.zipWithM $ guardType analyzeExpr) is'
+  es <- mapM (uncurry $ guardTypes analyzeExpr) is'
   return (B.lvalue n es)
 
 analyzeExpr :: B.AST.ExpressionF -> Analyze B.Expression
@@ -233,5 +238,5 @@ analyzeName ast = withReaderT fst analyzeVar
 
 analyzeSelect :: AST F.Term -> NonEmpty F.AST.Term -> AnalyzeF (AST F.Term)
 analyzeSelect ast@(AST pos term) as = case typeOf term of
-  Array ts _ -> AST pos <$> (F.select term <$> NE.zipWithM (guardType analyzeTerm) as ts)
+  Array ts _ -> AST pos <$> (F.select term <$> guardTypes analyzeTerm as ts)
   t -> lift $ Left (NonArraySelect (Typed t <$> fmap pretty ast))
