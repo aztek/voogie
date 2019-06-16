@@ -14,26 +14,14 @@ module Voogie.FOOL.TypeSafe (
   Binding(..),
   Term,
   Formula,
-  typeSafeApplication,
   typeSafeStore,
   typeSafeSelect
 ) where
 
-import qualified Data.List.NonEmpty as NE (zipWith)
 import Data.List.NonEmpty (NonEmpty((:|)))
 
 import Voogie.FOOL
 import Voogie.Pretty.Boogie.FOOL (pretty, displayS, renderCompact)
-
-typeSafeApplication :: Identifier -> NonEmpty Term -> Term
-typeSafeApplication f ts
-  | Functional as _ <- typeOf f
-  , length as == length ts
-  , and $ NE.zipWith (\t a -> typeOf t == a) ts as = application
-  | otherwise = error $ displayS (renderCompact $ pretty application)
-                                 "ill-typed expression "
-  where
-    application = Application f ts
 
 typeSafeStore :: Term -> Term -> Term -> Term
 typeSafeStore arr index element

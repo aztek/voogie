@@ -124,10 +124,12 @@ commaSep1 p = NE.fromList <$> Token.commaSep1 lexer p
 AST (a, _) _ <+> AST (_, b) _ = (a, b)
 
 infix' :: (AST a -> AST a -> a) -> Name -> Assoc -> Operator (AST a)
-infix' f = E.Infix . fmap (\_ a b -> AST (a <+> b) (f a b)) . reservedOp
+infix' f = E.Infix . fmap (const inf) . reservedOp
+  where inf a b = AST (a <+> b) (f a b)
 
 prefix :: (AST a -> a) -> Name -> Operator (AST a)
-prefix f = E.Prefix . fmap (\op x -> AST (op <+> x) (f x)) . reservedOp
+prefix f = E.Prefix . fmap (flip $ foldr pre) . many1 . reservedOp
+  where pre op x = AST (op <+> x) (f x)
 
 postfix :: (AST a -> a) -> Name -> Operator (AST a)
 postfix f = E.Postfix . fmap (\op x -> AST (x <+> op) (f x)) . reservedOp

@@ -74,7 +74,7 @@ variable :: Typed Var -> Term
 variable = Variable
 
 application :: Identifier -> NonEmpty Term -> Term
-application = typeSafeApplication <$> fmap name
+application = Application
 
 binary :: BinaryOp -> Term -> Term -> Term
 binary = Binary

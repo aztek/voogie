@@ -137,7 +137,7 @@ sizedExpression :: Int -> Gen Expression
 sizedExpression n = oneof
                   $ [integerLiteral, booleanLiteral]
                  ++ if n < 1 then []
-                    else [ref, unary, binary, ifElse, {-funApp,-} equals]
+                    else [ref, unary, binary, ifElse, application, equals]
   where
     integerLiteral = IntegerLiteral <$> arbitrary
     booleanLiteral = BooleanLiteral <$> arbitrary
@@ -170,12 +170,10 @@ sizedExpression n = oneof
       b <- sizedExpression bs `suchThat` typed (typeOf a)
       return (IfElse c a b)
 
-    -- funApp = do
-    --   es <- traverse sizedExpression =<< splitNE (n - 1)
-    --   f <- arbitraryName
-    --   let ts = fmap typeOf es
-    --   r <- arbitrary
-    --   return (FunApp (Typed (Functional ts r) f) es)
+    application = do
+      f <- Typed <$> arbitrary <*> arbitraryName
+      es <- traverse sizedExpression =<< splitNE (n - 1)
+      return (Application f es)
 
     equals = do
       s <- arbitrary
@@ -188,10 +186,11 @@ instance Arbitrary Expression where
   arbitrary = sized sizedExpression
 
   shrink = \case
-    Unary    op e -> e : (Unary op <$> shrink e)
-    Binary op a b -> a : b : (Binary op <$> shrink a <*> shrink b)
-    IfElse  c a b -> a : b : c : (IfElse <$> shrink c <*> shrink a <*> shrink b)
-    Equals  s a b -> a : b : (Equals s <$> shrink a <*> shrink b)
+    Unary       op e -> e : (Unary op <$> shrink e)
+    Binary    op a b -> a : b : (Binary op <$> shrink a <*> shrink b)
+    IfElse     c a b -> a : b : c : (IfElse <$> shrink c <*> shrink a <*> shrink b)
+    Equals     s a b -> a : b : (Equals s <$> shrink a <*> shrink b)
+    -- Application f es -> es ++ (Application f <$> shrinkList shrink es)
     _ -> []
 
 sizedAssignment :: Int -> Gen Assignment

@@ -20,7 +20,7 @@ module Voogie.Language (
   arrayIndexes,
   array,
   tuple,
-  returnType,
+  -- returnType,
   Typed(..),
   valueOf,
   TypeOf(..),
@@ -80,10 +80,10 @@ array (t:ts) s = Array (t :| ts) s
 tuple :: NonEmpty Type -> Type
 tuple = either id Tuple . NonUnit.nonUnit
 
-returnType :: Type -> Type
-returnType = \case
-  Functional _ r -> r
-  t -> error (show t ++ " is not a function")
+-- returnType :: Type -> Type
+-- returnType = \case
+--   Functional _ r -> r
+--   t -> error (show t ++ " is not a function")
 
 data Typed a = Typed Type a
   deriving (Show, Eq, Ord, Functor, Foldable, Traversable)

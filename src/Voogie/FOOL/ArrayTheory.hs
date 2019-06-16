@@ -37,13 +37,11 @@ arrayType = Custom . arrayTypeName
 
 -- select : array(τ, σ) × τ → σ
 selectSymbol :: Instantiation -> Identifier
-selectSymbol i@(tau, sigma) = Typed t ("select" ++ instantiationName i)
-  where t = Functional (NE.two (arrayType i) tau) sigma
+selectSymbol i@(_, sigma) = Typed sigma ("select" ++ instantiationName i)
 
 -- store : array(τ, σ) × τ × σ → array(τ, σ)
 storeSymbol :: Instantiation -> Identifier
-storeSymbol i@(tau, sigma) = Typed t ("store" ++ instantiationName i)
-  where t = Functional (NE.three (arrayType i) tau sigma) (arrayType i)
+storeSymbol i = Typed (arrayType i) ("store" ++ instantiationName i)
 
 theory :: Instantiation -> Theory
 theory t@(tau, sigma) =

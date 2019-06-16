@@ -81,7 +81,7 @@ instance TypeOf Term where
     BooleanConstant{} -> Boolean
     Variable        v -> typeOf v
     Constant        i -> typeOf i
-    Application   i _ -> returnType (typeOf i)
+    Application   f _ -> typeOf f
     Binary     op _ _ -> binaryOpRange op
     Unary        op _ -> unaryOpRange op
     Quantify{}        -> Boolean
