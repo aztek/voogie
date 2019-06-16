@@ -40,7 +40,7 @@ selectSymbol inst@(_, sigma) = Typed sigma ("select" ++ instantiationName inst)
 
 -- store : array(τ, σ) × τ × σ → array(τ, σ)
 storeSymbol :: Instantiation -> Identifier
-storeSymbol inst = Typed (arrayType i) ("store" ++ instantiationName inst)
+storeSymbol inst = Typed (arrayType inst) ("store" ++ instantiationName inst)
 
 select :: Instantiation -> Term -> Term -> Term
 select inst arr index = application (selectSymbol inst) (NE.two arr index)
@@ -69,8 +69,8 @@ theory inst@(tau, sigma) =
                             (forall (NE.one i')
                                     (select inst a i === select inst b i) ==> a === b)
 
-    a' = Typed (arrayType t) (var "a")
-    b' = Typed (arrayType t) (var "b")
+    a' = Typed (arrayType inst) (var "a")
+    b' = Typed (arrayType inst) (var "b")
     v' = Typed sigma (var "v")
     i' = Typed tau (var "i")
     j' = Typed tau (var "j")
