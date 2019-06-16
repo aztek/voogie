@@ -136,6 +136,13 @@ guardArraySelect (AST p e) = case typeOf e of
   Array ts r -> return (ts, r)
   t -> lift . Left . NonArraySelect $ AST p (Typed t (pretty e))
 
+guardArrayIndexes :: (Pretty e, TypeOf e, Pretty a, TypeOf a, MonadTrans t, Monad (t Result))
+                  => (b -> t Result a) -> AST e
+                  -> NonEmpty (AST b) -> NonEmpty Type -> t Result (NonEmpty a)
+guardArrayIndexes f ast as ts = do
+  (as', ts') <- guardArrayDimension ast as ts
+  guardTypes f as' ts'
+
 analyzeTopLevel :: B.AST.TopLevel -> Analyze (Maybe B.TopLevel)
 analyzeTopLevel = \case
   Left stmt -> fmap Left <$> analyzeStmt (astValue stmt)
@@ -166,7 +173,7 @@ analyzeLValue (B.AST.LValue ast is) = do
   var@(AST _ n) <- lookupEnv ast
   let ts = arrayIndexes (typeOf n)
   (is', ts') <- guardArrayDimension var is ts
-  es <- zipWithM (guardTypes analyzeExpr) is' ts'
+  es <- zipWithM (guardArrayIndexes analyzeExpr var) is' ts'
   return (B.lvalue n es)
 
 analyzeExpr :: B.AST.ExpressionF -> Analyze B.Expression
@@ -248,6 +255,5 @@ analyzeName ast = withReaderT fst analyzeVar
 analyzeSelect :: AST F.Term -> NonEmpty F.AST.Term -> AnalyzeF (AST F.Term)
 analyzeSelect ast@(AST pos term) as = do
   (ts, _) <- guardArraySelect ast
-  (as', ts') <- guardArrayDimension ast as ts
-  is <- guardTypes analyzeTerm as' ts'
+  is <- guardArrayIndexes analyzeTerm ast as ts
   return $ AST pos (F.select term is)
