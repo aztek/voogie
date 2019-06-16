@@ -23,7 +23,7 @@ module Voogie.Back (
 import Control.Monad.Writer (Writer, runWriter, tell)
 import qualified Data.List as L (nub)
 import Data.List.NonEmpty (NonEmpty((:|)))
-import qualified Data.List.NonEmpty as NE (nub, cons, nonEmpty, two, three)
+import qualified Data.List.NonEmpty as NE (nub, cons, nonEmpty)
 import Data.Semigroup (sconcat)
 
 import qualified Voogie.Boogie as B
@@ -118,18 +118,17 @@ eliminateArrayTheory problem = F.appendTheories problem' theories
       t -> traverseTerm eliminateTerm eliminateType t
 
     select :: F.Term -> F.Term -> Writer [AT.Instantiation] F.Term
-    select a i =  F.application
-              <$> (AT.selectSymbol <$> inst)
-              <*> traverse eliminateTerm (NE.two a i)
-      where
-        inst = instantiation (typeOf i) (arrayArgument (typeOf a))
+    select a i =  AT.select
+              <$> instantiation (typeOf i) (arrayArgument (typeOf a))
+              <*> eliminateTerm a
+              <*> eliminateTerm i
 
     store :: F.Term -> F.Term -> F.Term -> Writer [AT.Instantiation] F.Term
-    store a i v =  F.application
-               <$> (AT.storeSymbol <$> inst)
-               <*> traverse eliminateTerm (NE.three a i v)
-      where
-        inst = instantiation (typeOf i) (typeOf v)
+    store a i v =  AT.store
+               <$> instantiation (typeOf i) (typeOf v)
+               <*> eliminateTerm a
+               <*> eliminateTerm i
+               <*> eliminateTerm v
 
     eliminateType :: Type -> Writer [AT.Instantiation] Type
     eliminateType = \case
