@@ -23,7 +23,7 @@ module Voogie.Boogie.Smart (
   unary,
   binary,
   ifElse,
-  funApp,
+  application,
   equals,
   assign,
   if_,
@@ -60,8 +60,8 @@ binary = Binary
 ifElse :: Expression -> Expression -> Expression -> Expression
 ifElse = IfElse
 
-funApp :: Function -> NonEmpty Expression -> Expression
-funApp = FunApp
+application :: Function -> NonEmpty Expression -> Expression
+application = Application
 
 equals :: Sign -> Expression -> Expression -> Expression
 equals = Equals

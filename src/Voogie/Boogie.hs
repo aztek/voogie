@@ -49,7 +49,7 @@ data Expression
   | Binary BinaryOp Expression Expression
   | IfElse Expression Expression Expression
   | Equals Sign Expression Expression
-  | FunApp Function (NonEmpty Expression)
+  | Application Function (NonEmpty Expression)
   deriving (Show, Eq)
 
 instance TypeOf Expression where
@@ -60,7 +60,7 @@ instance TypeOf Expression where
     Unary       op _ -> unaryOpRange op
     Binary    op _ _ -> binaryOpRange op
     IfElse     _ a _ -> typeOf a
-    FunApp       f _ -> returnType (typeOf f)
+    Application  f _ -> returnType (typeOf f)
     Equals{}         -> Boolean
 
 type Assignment = (LValue, Expression)

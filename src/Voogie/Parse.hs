@@ -45,6 +45,7 @@ import Data.List.NonEmpty (NonEmpty)
 import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 
+import Text.Parsec.Combinator (many1)
 import Text.Parsec.Char (alphaNum, letter, oneOf)
 import Text.Parsec.Expr (Assoc(..))
 import qualified Text.Parsec.Expr as E (Operator(..))

@@ -46,7 +46,7 @@ instance Pretty Expression where
     IfElse c a b -> keyword kwdIf   <+> pretty c <+>
                     keyword kwdThen <+> pretty a <+>
                     keyword kwdElse <+> pretty b
-    FunApp f as -> funapp (pretty f) (pretty <$> as)
+    Application f as -> funapp (pretty f) (pretty <$> as)
     Equals s a b -> pretty'' a <+> pretty s <+> pretty'' b
       where
         pretty'' e@(Binary op _ _) = case comparePrecedenceEquality op of
