@@ -123,25 +123,21 @@ guardTypes :: (Pretty a, TypeOf a, MonadTrans t, Monad (t Result))
            -> t Result (NonEmpty a)
 guardTypes f = NE.zipWithM (guardType f)
 
-guardArrayDimension :: (Pretty e, TypeOf e, Foldable f, MonadTrans t, Monad (t Result))
+guardArrayDimension :: (Pretty e, TypeOf e, Foldable f,
+                        MonadTrans t, Monad (t Result))
                     => AST e -> f a -> f b -> t Result (f a, f b)
 guardArrayDimension (AST p e) is ts
   | length is == length ts = return (is, ts)
   | otherwise = lift . Left . ArrayDimensionMismatch
               $ AST p (Typed (typeOf e) (pretty e))
 
-guardArraySelect :: (Pretty a, TypeOf a, MonadTrans t, Monad (t Result))
-                 => AST a -> t Result (NonEmpty Type, Type)
-guardArraySelect (AST p e) = case typeOf e of
-  Array ts r -> return (ts, r)
-  t -> lift . Left . NonArraySelect $ AST p (Typed t (pretty e))
-
-guardArrayIndexes :: (Pretty e, TypeOf e, Pretty a, TypeOf a, MonadTrans t, Monad (t Result))
+guardArrayIndexes :: (Pretty e, TypeOf e, Pretty a, TypeOf a,
+                      MonadTrans t, Monad (t Result))
                   => (b -> t Result a) -> AST e
-                  -> NonEmpty (AST b) -> NonEmpty Type -> t Result (NonEmpty a)
-guardArrayIndexes f ast as ts = do
-  (as', ts') <- guardArrayDimension ast as ts
-  guardTypes f as' ts'
+                  -> NonEmpty (AST b) -> NonEmpty Type
+                  -> t Result (NonEmpty a)
+guardArrayIndexes f a is ts =
+  guardArrayDimension a is ts >>= uncurry (guardTypes f)
 
 analyzeTopLevel :: B.AST.TopLevel -> Analyze (Maybe B.TopLevel)
 analyzeTopLevel = \case
@@ -168,13 +164,21 @@ analyzeAssignment (lval, e) = do
   e' <- analyzeExpr <$> e <::> typeOf lv
   return (lv, e')
 
+analyzeSelect :: (Pretty e, TypeOf e, Pretty a, TypeOf a,
+                  MonadTrans t, Monad (t Result))
+              => (i -> t Result a) -> AST e -> [NonEmpty (AST i)]
+              -> t Result (e, [NonEmpty a])
+analyzeSelect f var@(AST _ v) is = do
+  let ts = arrayIndexes (typeOf v)
+  (is', ts') <- guardArrayDimension var is ts
+  es <- zipWithM (guardArrayIndexes f var) is' ts'
+  return (v, es)
+
 analyzeLValue :: B.AST.LValue -> Analyze B.LValue
 analyzeLValue (B.AST.LValue ast is) = do
-  var@(AST _ n) <- lookupEnv ast
-  let ts = arrayIndexes (typeOf n)
-  (is', ts') <- guardArrayDimension var is ts
-  es <- zipWithM (guardArrayIndexes analyzeExpr var) is' ts'
-  return (B.lvalue n es)
+  var <- lookupEnv ast
+  (var', is') <- analyzeSelect analyzeExpr var is
+  return (B.lvalue var' is')
 
 analyzeExpr :: B.AST.ExpressionF -> Analyze B.Expression
 analyzeExpr = \case
@@ -216,7 +220,8 @@ analyzeTerm = \case
   F.AST.BooleanConstant b -> return (F.booleanConstant b)
   F.AST.Ref ast is -> do
     var <- analyzeName ast
-    astValue <$> foldM analyzeSelect var is
+    (var', is') <- analyzeSelect analyzeTerm var is
+    return (foldl F.select var' is')
   F.AST.Unary op t -> do
     let d = unaryOpDomain op
     t' <- analyzeTerm <$> t <::> d
@@ -251,9 +256,3 @@ analyzeName ast = withReaderT fst analyzeVar
   where
     analyzeVar = fmap F.variable <$> lookupEnv (F.var <$> ast)
     analyzeSym = fmap F.constant <$> lookupEnv ast
-
-analyzeSelect :: AST F.Term -> NonEmpty F.AST.Term -> AnalyzeF (AST F.Term)
-analyzeSelect ast@(AST pos term) as = do
-  (ts, _) <- guardArraySelect ast
-  is <- guardArrayIndexes analyzeTerm ast as ts
-  return $ AST pos (F.select term is)
