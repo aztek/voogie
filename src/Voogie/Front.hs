@@ -16,7 +16,7 @@ module Voogie.Front (
   analyze
 ) where
 
-import Control.Monad (foldM)
+import Control.Monad (foldM, zipWithM)
 import Control.Monad.Extra (mapMaybeM)
 import Control.Monad.Reader (MonadTrans, lift, ReaderT(..), withReaderT, ask, local)
 import Data.Bifunctor (first)
@@ -123,6 +123,12 @@ guardTypes :: (Pretty a, TypeOf a, MonadTrans t, Monad (t Result))
            -> t Result (NonEmpty a)
 guardTypes f = NE.zipWithM (guardType f)
 
+guardArrayDimension :: (Pretty v, Foldable f, MonadTrans t, Monad (t Result))
+                    => AST (Typed v) -> f a -> f b -> t Result (f a, f b)
+guardArrayDimension v is ts
+  | length is == length ts = return (is, ts)
+  | otherwise = lift . Left . ArrayDimensionMismatch $ fmap (fmap pretty) v
+
 analyzeTopLevel :: B.AST.TopLevel -> Analyze (Maybe B.TopLevel)
 analyzeTopLevel = \case
   Left stmt -> fmap Left <$> analyzeStmt (astValue stmt)
@@ -150,14 +156,10 @@ analyzeAssignment (lval, e) = do
 
 analyzeLValue :: B.AST.LValue -> Analyze B.LValue
 analyzeLValue (B.AST.LValue ast is) = do
-  var <- lookupEnv ast
-  let n = astValue var
-  let t = typeOf n
-  let ais = arrayIndexes t
-  is' <- lift $ if length is > length ais
-                then Left (ArrayDimensionMismatch (Typed t <$> fmap pretty var))
-                else Right (zip is ais)
-  es <- mapM (uncurry $ guardTypes analyzeExpr) is'
+  var@(AST _ n) <- lookupEnv ast
+  let ts = arrayIndexes (typeOf n)
+  (is', ts') <- guardArrayDimension var is ts
+  es <- zipWithM (guardTypes analyzeExpr) is' ts'
   return (B.lvalue n es)
 
 analyzeExpr :: B.AST.ExpressionF -> Analyze B.Expression
