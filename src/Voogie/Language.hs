@@ -31,8 +31,6 @@ module Voogie.Language (
   unaryOpTypes,
   unaryOpDomain,
   unaryOpRange,
-  logicalConnectives,
-  arithmeticPredicates,
   binaryOpTypes,
   binaryOpDomain,
   binaryOpRange,
@@ -148,24 +146,23 @@ unaryOpDomain, unaryOpRange :: UnaryOp -> Type
 unaryOpDomain = fst . unaryOpTypes
 unaryOpRange  = snd . unaryOpTypes
 
-logicalConnectives :: [BinaryOp]
-logicalConnectives = [And, Or, Imply, Iff]
-
-arithmeticPredicates :: [BinaryOp]
-arithmeticPredicates = [Greater, Less, Geq, Leq]
-
-arithmeticFunctions :: [BinaryOp]
-arithmeticFunctions = [Add, Subtract, Multiply, Divide]
-
 binaryOpTypes :: BinaryOp -> ((Type, Type), Type)
-binaryOpTypes op
-  | op `elem` logicalConnectives   = logical predicate
-  | op `elem` arithmeticPredicates = arithmetic predicate
-  | op `elem` arithmeticFunctions  = arithmetic function
-  | otherwise = error "binaryOpTypes: unknown binary operator"
+binaryOpTypes = \case
+  And      -> boolean predicate
+  Or       -> boolean predicate
+  Imply    -> boolean predicate
+  Iff      -> boolean predicate
+  Greater  -> integer predicate
+  Less     -> integer predicate
+  Geq      -> integer predicate
+  Leq      -> integer predicate
+  Add      -> integer function
+  Subtract -> integer function
+  Multiply -> integer function
+  Divide   -> integer function
   where
-    logical = (,) (Boolean, Boolean)
-    arithmetic = (,) (Integer, Integer)
+    boolean = (,) (Boolean, Boolean)
+    integer = (,) (Integer, Integer)
     function = Integer
     predicate = Boolean
 
