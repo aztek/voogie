@@ -123,11 +123,18 @@ guardTypes :: (Pretty a, TypeOf a, MonadTrans t, Monad (t Result))
            -> t Result (NonEmpty a)
 guardTypes f = NE.zipWithM (guardType f)
 
-guardArrayDimension :: (Pretty v, Foldable f, MonadTrans t, Monad (t Result))
-                    => AST (Typed v) -> f a -> f b -> t Result (f a, f b)
-guardArrayDimension v is ts
+guardArrayDimension :: (Pretty e, TypeOf e, Foldable f, MonadTrans t, Monad (t Result))
+                    => AST e -> f a -> f b -> t Result (f a, f b)
+guardArrayDimension (AST p e) is ts
   | length is == length ts = return (is, ts)
-  | otherwise = lift . Left . ArrayDimensionMismatch $ fmap (fmap pretty) v
+  | otherwise = lift . Left . ArrayDimensionMismatch
+              $ AST p (Typed (typeOf e) (pretty e))
+
+guardArraySelect :: (Pretty a, TypeOf a, MonadTrans t, Monad (t Result))
+                 => AST a -> t Result (NonEmpty Type, Type)
+guardArraySelect (AST p e) = case typeOf e of
+  Array ts r -> return (ts, r)
+  t -> lift . Left . NonArraySelect $ AST p (Typed t (pretty e))
 
 analyzeTopLevel :: B.AST.TopLevel -> Analyze (Maybe B.TopLevel)
 analyzeTopLevel = \case
@@ -239,6 +246,8 @@ analyzeName ast = withReaderT fst analyzeVar
     analyzeSym = fmap F.constant <$> lookupEnv ast
 
 analyzeSelect :: AST F.Term -> NonEmpty F.AST.Term -> AnalyzeF (AST F.Term)
-analyzeSelect ast@(AST pos term) as = case typeOf term of
-  Array ts _ -> AST pos <$> (F.select term <$> guardTypes analyzeTerm as ts)
-  t -> lift $ Left (NonArraySelect (Typed t <$> fmap pretty ast))
+analyzeSelect ast@(AST pos term) as = do
+  (ts, _) <- guardArraySelect ast
+  (as', ts') <- guardArrayDimension ast as ts
+  is <- guardTypes analyzeTerm as' ts'
+  return $ AST pos (F.select term is)
