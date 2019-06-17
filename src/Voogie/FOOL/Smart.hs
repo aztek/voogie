@@ -48,7 +48,7 @@ import Data.List.NonEmpty (NonEmpty)
 import Data.List.NonUnit (nonUnit)
 
 import Voogie.FOOL
-import Voogie.FOOL.TypeSafe
+import qualified Voogie.FOOL.TypeSafe as TS (select, store)
 
 var :: Name -> Var
 var = Var
@@ -123,14 +123,14 @@ ifElse :: Term -> Term -> Term -> Term
 ifElse = IfElse
 
 select :: Foldable f => Term -> f Term -> Term
-select = foldl typeSafeSelect
+select = foldl TS.select
 
 store :: Term -> NonEmpty Term -> Term -> Term
 store a = store' . reverse . toList
   where
    store' :: [Term] -> Term -> Term
    store' []     t = t
-   store' (i:is) t = store' is $ typeSafeStore (select a $ reverse is) i t
+   store' (i:is) t = store' is $ TS.store (select a $ reverse is) i t
 
 tupleLiteral :: NonEmpty Term -> Term
 tupleLiteral = either id TupleLiteral . nonUnit

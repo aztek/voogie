@@ -8,14 +8,8 @@ Stability    : provisional
 -}
 
 module Voogie.FOOL.TypeSafe (
-  Var,
-  Identifier,
-  Definition(..),
-  Binding(..),
-  Term,
-  Formula,
-  typeSafeStore,
-  typeSafeSelect
+  store,
+  select
 ) where
 
 import Data.List.NonEmpty (NonEmpty((:|)))
@@ -23,21 +17,21 @@ import Data.List.NonEmpty (NonEmpty((:|)))
 import Voogie.FOOL
 import Voogie.Pretty.Boogie.FOOL (pretty, displayS, renderCompact)
 
-typeSafeStore :: Term -> Term -> Term -> Term
-typeSafeStore arr index element
+store :: Term -> Term -> Term -> Term
+store arr index element
   | a@(Array (i :| _) _) <- typeOf arr
   , typeOf index == i
-  , typeOf element == arrayArgument a = store
-  | otherwise = error $ displayS (renderCompact $ pretty store)
+  , typeOf element == arrayArgument a = storeTerm
+  | otherwise = error $ displayS (renderCompact $ pretty storeTerm)
                                  "ill-typed expression "
   where
-    store = Store arr index element
+    storeTerm = Store arr index element
 
-typeSafeSelect :: Term -> Term -> Term
-typeSafeSelect arr index
+select :: Term -> Term -> Term
+select arr index
   | Array (i :| _) _ <- typeOf arr
-  , typeOf index == i = select
-  | otherwise = error $ displayS (renderCompact $ pretty select)
+  , typeOf index == i = selectTerm
+  | otherwise = error $ displayS (renderCompact $ pretty selectTerm)
                                  "ill-typed expression "
   where
-    select = Select arr index
+    selectTerm = Select arr index
