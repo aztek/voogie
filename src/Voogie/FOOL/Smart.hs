@@ -49,7 +49,7 @@ import Data.List.NonEmpty (NonEmpty)
 import Data.List.NonUnit (nonUnit)
 
 import Voogie.FOOL
-import qualified Voogie.FOOL.TypeSafe as TS (select, store)
+import Voogie.Pretty.Boogie.FOOL (pretty, displayS, renderCompact)
 
 var :: Name -> Var
 var = Var
@@ -124,10 +124,23 @@ ifElse :: Term -> Term -> Term -> Term
 ifElse = IfElse
 
 select :: Term -> NonEmpty Term -> Term
-select = TS.select
+select arr index
+  | Array i _ <- typeOf arr
+  , fmap typeOf index == i = selectTerm
+  | otherwise = error $ displayS (renderCompact $ pretty selectTerm)
+                                 "ill-typed expression "
+  where
+    selectTerm = Select arr index
 
 store :: Term -> NonEmpty Term -> Term -> Term
-store = TS.store
+store arr index element
+  | a@(Array i _) <- typeOf arr
+  , fmap typeOf index == i
+  , typeOf element == arrayArgument a = storeTerm
+  | otherwise = error $ displayS (renderCompact $ pretty storeTerm)
+                                 "ill-typed expression "
+  where
+    storeTerm = Store arr index element
 
 tupleLiteral :: NonEmpty Term -> Term
 tupleLiteral = either id TupleLiteral . nonUnit

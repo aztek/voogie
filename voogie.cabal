@@ -84,7 +84,6 @@ library voogie-internal
     Voogie.Error
     Voogie.FOOL
     Voogie.FOOL.ArrayTheory
-    Voogie.FOOL.TypeSafe
     Voogie.FOOL.Traverse
     Voogie.FOOL.Smart
     Voogie.Front
