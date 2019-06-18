@@ -83,6 +83,12 @@ pretty' t
   | isUnitary t = pretty t
   | otherwise   = parens (pretty t)
 
+select :: Doc -> Doc -> Doc
+select = funapp2 (builtin kwdSelect)
+
+store :: Doc -> Doc -> Doc -> Doc
+store = funapp3 (builtin kwdStore)
+
 instance Pretty Term where
   pretty = \case
     IntegerConstant n -> number n
@@ -91,8 +97,8 @@ instance Pretty Term where
     Constant        f -> prettyIdentifier f
     Equals      s a b -> pretty' a <+> pretty s <+> pretty' b
     Application  f as -> funapp (prettyIdentifier f) (pretty <$> as)
-    Select        a i -> funapp2 (builtin kwdSelect) (pretty a) (pretty i)
-    Store       a i e -> funapp3 (builtin kwdStore)  (pretty a) (pretty i) (pretty e)
+    Select     a is   -> foldl select (pretty a) (pretty <$> is)
+    Store      a is e -> foldStore select store (pretty a) (pretty <$> is) (pretty e)
     IfElse      c a b -> funapp3 (builtin kwdIf) (pretty c) (line <> pretty a) (line <> pretty b)
     Quantify   q vs t -> pretty q <> tuple (pretty <$> vs) <> punctuation ":" <+> pretty' t
     TupleLiteral   ts -> tuple (NonUnit.toNonEmpty (pretty <$> ts))

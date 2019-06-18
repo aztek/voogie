@@ -40,6 +40,7 @@ module Voogie.FOOL.Smart (
   ifElse,
   select,
   store,
+  foldStore,
   tupleLiteral
 ) where
 
@@ -106,8 +107,8 @@ infixl 6 =/=
 (=/=) :: Term -> Term -> Term
 x =/= y = equals Neg x y
 
-conjunction :: [Formula] -> Formula
-conjunction = getConjunction . mconcat . fmap Conjunction
+conjunction :: Foldable t => t Formula -> Formula
+conjunction = getConjunction . mconcat . fmap Conjunction . toList
 
 let_ :: Binding -> Term -> Term
 let_ b@(Binding d s) t
@@ -122,15 +123,11 @@ trivialDefinition _ _ = False
 ifElse :: Term -> Term -> Term -> Term
 ifElse = IfElse
 
-select :: Foldable f => Term -> f Term -> Term
-select = foldl TS.select
+select :: Term -> NonEmpty Term -> Term
+select = TS.select
 
 store :: Term -> NonEmpty Term -> Term -> Term
-store a = store' . reverse . toList
-  where
-   store' :: [Term] -> Term -> Term
-   store' []     t = t
-   store' (i:is) t = store' is $ TS.store (select a $ reverse is) i t
+store = TS.store
 
 tupleLiteral :: NonEmpty Term -> Term
 tupleLiteral = either id TupleLiteral . nonUnit

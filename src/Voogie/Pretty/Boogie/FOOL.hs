@@ -13,7 +13,7 @@ module Voogie.Pretty.Boogie.FOOL (
   module Voogie.Pretty.Boogie
 ) where
 
-import Voogie.FOOL
+import Voogie.FOOL hiding (tuple)
 import Voogie.Pretty.Boogie
 
 instance Pretty a => Pretty (Typed a) where
@@ -58,8 +58,9 @@ instance Pretty Term where
     IfElse c a b -> keyword kwdIf   <+> pretty c <+>
                     keyword kwdThen <+> pretty a <+>
                     keyword kwdElse <+> pretty b
-    Select a i -> pretty a <> brackets (pretty i)
-    Store a i v -> pretty a <> brackets (pretty i) <+> operator opAssign <+> pretty v
+    Select a is -> pretty a <> tuple (pretty <$> is)
+    t@Store{} -> error $ "Cannot represent store term " ++ show t ++
+                         " in the Boogie syntax."
     t@Let{} -> error $ "Cannot represent let-expression " ++ show t ++
                        " in the Boogie syntax."
     t@TupleLiteral{} -> error $ "Cannot represent tuple literal " ++ show t ++

@@ -57,8 +57,8 @@ traverseTerm termF typeF = \case
   Equals     s a b -> Equals s     <$> termF a <*> termF b
   Let          b t -> Let          <$> traverseBinding termF typeF b <*> termF t
   IfElse     c a b -> IfElse       <$> termF c <*> termF a <*> termF b
-  Select       a i -> Select       <$> termF a <*> termF i
-  Store      a i v -> Store        <$> termF a <*> termF i <*> termF v
+  Select       a i -> Select       <$> termF a <*> traverse termF i
+  Store      a i v -> Store        <$> termF a <*> traverse termF i <*> termF v
   TupleLiteral  es -> TupleLiteral <$> traverse termF es
   t                -> pure t
   where

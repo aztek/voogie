@@ -15,16 +15,19 @@ module Voogie.FOOL.ArrayTheory (
   theory
 ) where
 
-import qualified Data.List.NonEmpty as NE (one, two, three, four)
+import Data.List.NonEmpty (NonEmpty(..), (<|))
+import qualified Data.List.NonEmpty as NE (zipWith)
+import Data.List.NonEmpty.Extra (snoc)
 
 import Voogie.FOOL
-import Voogie.FOOL.Smart (application, variable, var, forall, (===), (=/=), (==>))
+import Voogie.FOOL.Smart (application, variable, var, forall, conjunction,
+                          (===), (=/=), (==>))
 import Voogie.Pretty (pretty, displayS, renderCompact)
 
-type Instantiation = (Type, Type)
+type Instantiation = (NonEmpty Type, Type)
 
 instantiationName :: Instantiation -> Name
-instantiationName (tau, sigma) = printType tau ++ printType sigma
+instantiationName (taus, sigma) = concatMap printType taus ++ printType sigma
   where
     printType t = showChar '_' . displayS (renderCompact $ pretty t) $ ""
 
@@ -42,41 +45,48 @@ selectSymbol inst@(_, sigma) = Typed sigma ("select" ++ instantiationName inst)
 storeSymbol :: Instantiation -> Identifier
 storeSymbol inst = Typed (arrayType inst) ("store" ++ instantiationName inst)
 
-select :: Instantiation -> Term -> Term -> Term
-select inst arr index = application (selectSymbol inst) (NE.two arr index)
+select :: Instantiation -> Term -> NonEmpty Term -> Term
+select inst a i = application (selectSymbol inst) (a <| i)
 
-store :: Instantiation -> Term -> Term -> Term -> Term
-store inst arr index val = application (storeSymbol inst) (NE.three arr index val)
+store :: Instantiation -> Term -> NonEmpty Term -> Term -> Term
+store inst a i e = application (storeSymbol inst) (snoc (a <| i) e)
 
 theory :: Instantiation -> Theory
-theory inst@(tau, sigma) =
+theory inst@(taus, sigma) =
   Theory [arrayTypeName inst] [selectSymbol inst, storeSymbol inst]
          [readOverWrite1, readOverWrite2, extensionality]
   where
-    -- (∀ a: array(τ, σ)) (∀ v: σ) (∀ i: τ) (∀ j: τ)
-    --   (i = j => select(store(a, i, v), j) = v)
-    readOverWrite1 = forall (NE.four a' v' i' j')
-                            (i === j ==> select inst (store inst a i v) j === v)
+    -- (∀ a: array(τ, σ)) (∀ v: σ) (∀ I: T) (∀ J: T)
+    --   (I = J => select(store(a, I, v), J) = v)
+    readOverWrite1 = forall (a' <| v' <| is' <> js') $
+      conjunction (NE.zipWith (===) is js)
+        ==>
+      select inst (store inst a is v) js === v
 
-    -- (∀ a: array(τ, σ)) (∀ v: σ) (∀ i: τ) (∀ j: τ)
-    --   (i != j => select(store(a, i, v), j) = select(a, j))
-    readOverWrite2 = forall (NE.four a' v' i' j')
-                            (i =/= j ==> select inst (store inst a i v) j === select inst a j)
+    -- (∀ a: array(τ, σ)) (∀ v: σ) (∀ I: T) (∀ J: T)
+    --   (I != J => select(store(a, I, v), J) = select(a, J))
+    readOverWrite2 = forall (a' <| v' <| is' <> js') $
+      conjunction (NE.zipWith (=/=) is js)
+        ==>
+      select inst (store inst a is v) js === select inst a js
 
     -- (∀ a: array(τ, σ)) (∀ b: array(τ, σ))
     --   ((∀ i: τ) (select(a, i) = select(b, i)) => a = b)
-    extensionality = forall (NE.two a' b')
-                            (forall (NE.one i')
-                                    (select inst a i === select inst b i) ==> a === b)
+    extensionality = forall (a' <| b' <| is') $
+      select inst a is === select inst b is
+        ==>
+      a === b
 
     a' = Typed (arrayType inst) (var "a")
     b' = Typed (arrayType inst) (var "b")
     v' = Typed sigma (var "v")
-    i' = Typed tau (var "i")
-    j' = Typed tau (var "j")
+    is' = NE.zipWith Typed taus (vars "i")
+    js' = NE.zipWith Typed taus (vars "j")
+
+    vars p = fmap (var . \n -> p <> show n) (0 :| [(1::Int)..])
 
     a = variable a'
     b = variable b'
     v = variable v'
-    i = variable i'
-    j = variable j'
+    is = fmap variable is'
+    js = fmap variable js'

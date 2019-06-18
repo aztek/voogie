@@ -22,8 +22,8 @@ module Voogie.Back (
 
 import Control.Monad.Writer (Writer, runWriter, tell)
 import qualified Data.List as L (nub)
-import Data.List.NonEmpty (NonEmpty((:|)))
-import qualified Data.List.NonEmpty as NE (nub, cons, nonEmpty)
+import Data.List.NonEmpty (NonEmpty)
+import qualified Data.List.NonEmpty as NE (nub, cons)
 import Data.Semigroup (sconcat)
 
 import qualified Voogie.Boogie as B
@@ -74,14 +74,13 @@ translateStatement s = F.let_ (F.Binding definition body)
           tuple = F.tupleLiteral (F.constant <$> vars)
 
 translateAssign :: B.Assignment -> F.Term
-translateAssign (lval, e) = maybe id (F.store n) is (translateExpr e)
-  where
-    (n, is) = translateLValue lval
+translateAssign (lval, e) = F.foldStore F.select F.store n is (translateExpr e)
+  where (n, is) = translateLValue lval
 
 translateProperty :: B.Property -> F.Term -> F.Term
 translateProperty = \case
   B.Assume f -> F.binary Imply f
-  B.Assert f -> F.binary And  f
+  B.Assert f -> F.binary And   f
 
 translateExpr :: B.Expression -> F.Term
 translateExpr = \case
@@ -92,15 +91,10 @@ translateExpr = \case
   B.IfElse     c a b -> F.ifElse (translateExpr c) (translateExpr a) (translateExpr b)
   B.Equals     s a b -> F.equals s (translateExpr a) (translateExpr b)
   B.Application f es -> F.application f (fmap translateExpr es)
-  B.Ref         lval -> maybe n (F.select n) is
-    where
-      (n, is) = translateLValue lval
+  B.Ref         lval -> uncurry (foldl F.select) (translateLValue lval)
 
-translateLValue :: B.LValue -> (F.Term, Maybe (NonEmpty F.Term))
-translateLValue (B.LValue n is) = (n', is')
-  where
-    n' = F.constant (F.name <$> n)
-    is' = fmap translateExpr . sconcat <$> NE.nonEmpty is
+translateLValue :: B.LValue -> (F.Term, [NonEmpty F.Term])
+translateLValue (B.LValue n is) = (F.constant (F.name <$> n), fmap translateExpr <$> is)
 
 eliminateArrayTheory :: F.Problem -> F.Problem
 eliminateArrayTheory problem = F.appendTheories problem' theories
@@ -117,26 +111,26 @@ eliminateArrayTheory problem = F.appendTheories problem' theories
       F.Store  a i v -> store  a i v
       t -> traverseTerm eliminateTerm eliminateType t
 
-    select :: F.Term -> F.Term -> Writer [AT.Instantiation] F.Term
+    select :: F.Term -> NonEmpty F.Term -> Writer [AT.Instantiation] F.Term
     select a i =  AT.select
-              <$> instantiation (typeOf i) (arrayArgument (typeOf a))
+              <$> instantiation (fmap typeOf i) (arrayArgument (typeOf a))
               <*> eliminateTerm a
-              <*> eliminateTerm i
+              <*> traverse eliminateTerm i
 
-    store :: F.Term -> F.Term -> F.Term -> Writer [AT.Instantiation] F.Term
+    store :: F.Term -> NonEmpty F.Term -> F.Term -> Writer [AT.Instantiation] F.Term
     store a i v =  AT.store
-               <$> instantiation (typeOf i) (typeOf v)
+               <$> instantiation (fmap typeOf i) (typeOf v)
                <*> eliminateTerm a
-               <*> eliminateTerm i
+               <*> traverse eliminateTerm i
                <*> eliminateTerm v
 
     eliminateType :: Type -> Writer [AT.Instantiation] Type
     eliminateType = \case
-      Array (t :| ts) r -> do
-        inst <- instantiation t (array ts r)
+      Array ts r -> do
+        inst <- instantiation ts r
         tell [inst]
         return (AT.arrayType inst)
       t -> traverseType eliminateType t
 
-    instantiation :: Type -> Type -> Writer [AT.Instantiation] AT.Instantiation
+    instantiation :: NonEmpty Type -> Type -> Writer [AT.Instantiation] AT.Instantiation
     instantiation = curry (traverse eliminateType)

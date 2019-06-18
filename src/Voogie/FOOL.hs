@@ -18,6 +18,7 @@ module Voogie.FOOL (
   Definition(..),
   Binding(..),
   Term(..),
+  foldStore,
   Formula,
   Conjunction(..),
   Theory(..),
@@ -26,7 +27,9 @@ module Voogie.FOOL (
   appendTheories
 ) where
 
-import Data.List.NonEmpty (NonEmpty)
+import Data.Foldable (toList)
+import Data.List.NonEmpty (NonEmpty(..))
+import qualified Data.List.NonEmpty as NE (nonEmpty)
 import Data.List.NonUnit (NonUnit)
 
 #if !MIN_VERSION_base(4, 11, 0)
@@ -67,11 +70,16 @@ data Term
   | Let Binding Term
   | IfElse Term Term Term
   -- Arrays
-  | Select Term Term
-  | Store Term Term Term
+  | Select Term (NonEmpty Term)
+  | Store Term (NonEmpty Term) Term
   -- Tuples
   | TupleLiteral (NonUnit Term)
   deriving (Show, Eq, Ord)
+
+foldStore :: Foldable f => (a -> i -> a) -> (a -> i -> t -> t) -> a -> f i -> t -> t
+foldStore select store a ii e
+  | Just (i :| is) <- NE.nonEmpty (toList ii) = store a i (foldStore select store (select a i) is e)
+  | otherwise = e
 
 type Formula = Term
 
@@ -88,7 +96,7 @@ instance TypeOf Term where
     Equals{}          -> Boolean
     Let           _ t -> typeOf t
     IfElse      _ a _ -> typeOf a
-    Select        a _ -> arrayArgument (typeOf a)
+    Select        a _ -> arrayElement (typeOf a)
     Store       a _ _ -> typeOf a
     TupleLiteral   es -> Tuple (fmap typeOf es)
 
