@@ -1,3 +1,5 @@
+{-# LANGUAGE CPP #-}
+
 {-|
 Module       : Voogie.FOOL.ArrayTheory
 Description  : The theory of arrays embedded into FOOL.
@@ -18,6 +20,9 @@ module Voogie.FOOL.ArrayTheory (
 import Data.List.NonEmpty (NonEmpty(..), (<|))
 import qualified Data.List.NonEmpty as NE (zipWith)
 import Data.List.NonEmpty.Extra (snoc)
+#if !MIN_VERSION_base(4, 11, 0)
+import Data.Semigroup (Semigroup(..))
+#endif
 
 import Voogie.FOOL
 import Voogie.FOOL.Smart (application, variable, var, forall, conjunction,
