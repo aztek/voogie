@@ -16,6 +16,7 @@ module Voogie.Pretty (
   funapp1,
   funapp2,
   funapp3,
+  prettyParens,
   keyword,
   operator,
   builtin,
@@ -50,6 +51,11 @@ funapp2 f a b = funapp f (NE.two a b)
 
 funapp3 :: Doc -> Doc -> Doc -> Doc -> Doc
 funapp3 f a b c = funapp f (NE.three a b c)
+
+prettyParens :: Pretty e => (e -> Bool) -> e -> Doc
+prettyParens needsParens e
+  | needsParens e = parens (pretty e)
+  | otherwise = pretty e
 
 keyword, operator, builtin, punctuation :: Name -> Doc
 keyword = blue . text

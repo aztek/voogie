@@ -24,36 +24,42 @@ import Voogie.Pretty.Boogie.FOOL ()
 instance Pretty LValue where
   pretty (LValue v is) = pretty v <> hcat (tuple . fmap pretty <$> is)
 
-pretty' :: Expression -> Doc
-pretty' e = case e of
-  Binary{} -> parens (pretty e)
-  Equals{} -> parens (pretty e)
-  IfElse{} -> parens (pretty e)
-  _ -> pretty e
+isInfix :: Expression -> Bool
+isInfix = \case
+  Binary{} -> True
+  Equals{} -> True
+  IfElse{} -> True
+  _ -> False
+
+prettyUnary :: Expression -> Doc
+prettyUnary = prettyParens isInfix
+
+prettyBinary :: BinaryOp -> Expression -> Doc
+prettyBinary op = prettyParens $ \case
+  Binary op' _ _ -> case op `comparePrecedence` op' of
+    EQ | op == op' && isAssociative op -> False
+    LT -> False
+    _  -> True
+  Equals{} -> comparePrecedenceEquality op /= GT
+  e -> isInfix e
+
+prettyEquals :: Expression -> Doc
+prettyEquals = prettyParens $ \case
+  Binary op _ _ -> comparePrecedenceEquality op /= LT
+  e -> isInfix e
 
 instance Pretty Expression where
   pretty = \case
     IntegerLiteral i -> number i
     BooleanLiteral b -> boolean b
-    Unary op e -> pretty op <> pretty' e
-    Binary op a b -> pretty'' a <+> pretty op <+> pretty'' b
-      where
-        pretty'' e@(Binary op' _ _) = case op `comparePrecedence` op' of
-          LT -> pretty e
-          EQ | op == op' && isAssociative op -> pretty e
-          _ -> parens (pretty e)
-        pretty'' e = pretty' e
-    IfElse c a b -> keyword kwdIf   <+> pretty c <+>
-                    keyword kwdThen <+> pretty a <+>
-                    keyword kwdElse <+> pretty b
     Application f as -> funapp (pretty f) (pretty <$> as)
-    Equals s a b -> pretty'' a <+> pretty s <+> pretty'' b
-      where
-        pretty'' e@(Binary op _ _) = case comparePrecedenceEquality op of
-          LT -> pretty e
-          _ -> parens (pretty e)
-        pretty'' e = pretty' e
-    Ref lv -> pretty lv
+    Unary     op   e -> pretty op <> prettyUnary e
+    Binary    op a b -> prettyBinary op a <+> pretty op <+> prettyBinary op b
+    Equals     s a b -> prettyEquals a <+> pretty s <+> prettyEquals b
+    Ref           lv -> pretty lv
+    IfElse     c a b -> keyword kwdIf   <+> pretty c
+                    <+> keyword kwdThen <+> pretty a
+                    <+> keyword kwdElse <+> pretty b
 
 atomic :: Foldable t => t Doc -> Doc
 atomic ds = hsep (toList ds) <> punctuation ";"
