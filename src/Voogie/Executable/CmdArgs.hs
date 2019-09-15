@@ -19,9 +19,11 @@ import Control.Applicative ((<|>))
 
 import Options.Applicative (
     Parser, ParserInfo, ParseError(..),
-    header, fullDesc, long, short, info, helper, help, hidden, switch, value,
+    headerDoc, fullDesc, long, short, info, helper, help, hidden, switch, value,
     maybeReader, metavar, (<**>), option, abortOption, strArgument, flag'
   )
+
+import Options.Applicative.Help.Pretty (Doc, vsep, text)
 
 #if !MIN_VERSION_base(4, 11, 0)
 import Data.Semigroup ((<>))
@@ -66,11 +68,22 @@ parser =  CmdArgs
       $ long "no_array_theory"
      <> help "Do not use polymorhic theory of arrays"
 
+banner :: Doc
+banner = vsep $ fmap text [
+    "                         _      ",
+    " __   _____   ___   __ _(_) ___ ",
+    " \\ \\ / / _ \\ / _ \\ / _` | |/ _ \\",
+    "  \\ V / (_) | (_) | (_| | |  __/",
+    "   \\_/ \\___/ \\___/ \\__, |_|\\___|",
+    "                   |___/        ",
+    "",
+    "Voogie - a verification conditions generator for simple Boogie programs"
+  ]
+
 cmdArgsParserInfo :: ParserInfo CmdArgs
 cmdArgsParserInfo = info (parser <**> versionOption <**> helper)
   $ fullDesc
- <> header ("Voogie - a verification conditions generator " ++
-            "for simple Boogie programs")
+ <> headerDoc (Just banner)
   where
     versionOption = abortOption (InfoMsg $ showVersion version)
       $ long "version"
