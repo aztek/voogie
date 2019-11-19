@@ -62,8 +62,8 @@ executable voogie
   build-depends:
     base,
     text,
-    optparse-applicative >= 0.14.3 && < 0.15,
-    unix                 >= 2.7    && < 2.8,
+    optparse-applicative >= 0.14.3 && <= 0.15.1,
+    unix                 >= 2.7    && <  2.8,
     voogie-internal
   if impl(ghc >= 8)
     default-extensions: Safe
@@ -148,5 +148,21 @@ test-suite test-quickcheck-back
     Generators
   build-depends:
     base,
+    voogie-internal,
+    QuickCheck
+
+test-suite test-quickcheck-parse
+  import: ghc-warnings
+  default-language: Haskell2010
+  type: exitcode-stdio-1.0
+  hs-source-dirs: tests
+  main-is: Parse.hs
+  ghc-options:
+    -threaded -main-is Parse
+  other-modules:
+    Generators
+  build-depends:
+    base,
+    text,
     voogie-internal,
     QuickCheck
