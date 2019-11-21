@@ -1,4 +1,4 @@
-cabal-version: 2.4
+cabal-version: 3.0
 name: voogie
 version: 0.1.0.0
 synopsis: A verification conditions generator for simple Boogie programs
@@ -21,7 +21,8 @@ tested-with:
   GHC == 8.0.2,
   GHC == 8.2.2,
   GHC == 8.4.4,
-  GHC == 8.6.5
+  GHC == 8.6.5,
+  GHC == 8.8.1
 
 source-repository head
   type: git
