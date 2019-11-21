@@ -151,18 +151,3 @@ test-suite test-quickcheck-back
     voogie-internal,
     QuickCheck
 
-test-suite test-quickcheck-parse
-  import: ghc-warnings
-  default-language: Haskell2010
-  type: exitcode-stdio-1.0
-  hs-source-dirs: tests
-  main-is: Parse.hs
-  ghc-options:
-    -threaded -main-is Parse
-  other-modules:
-    Generators
-  build-depends:
-    base,
-    text,
-    voogie-internal,
-    QuickCheck
